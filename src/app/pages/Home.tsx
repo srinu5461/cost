@@ -1130,11 +1130,11 @@ export function Home() {
               </p>
 
               <a
-                href="tel:1800151624"
+                href="tel:1800151654"
                 className="flex items-center justify-center gap-3 w-full bg-[#E31837] hover:bg-[#C41230] text-white font-black text-lg md:text-xl py-4 md:py-5 rounded-xl transition-colors shadow-lg"
               >
                 <Phone className="size-5 md:size-6 shrink-0" />
-                1-800-151-624
+                1-800-151-654
               </a>
 
               <p className="text-center text-xs md:text-sm text-slate-400 font-medium tracking-wide">

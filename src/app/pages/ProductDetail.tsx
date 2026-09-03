@@ -839,7 +839,11 @@ export function ProductDetail() {
   const productCategory = displayProduct?.category || 'Uncategorized';
   const productDescription = displayProduct?.description;
   const productBrand = displayProduct?.brand;
-  const productInStock = displayProduct?.inStock ?? true;
+  const uropaPromisedDate = displayProduct?.uropaPromisedDate || '';
+  const backOrderAvailable = displayProduct?.backOrderAvailable || false;
+  // If promised date is in the future, treat as out of stock until it arrives
+  const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
+  const productInStock = promisedDateInFuture ? false : (displayProduct?.inStock ?? true);
   const productRating = displayProduct?.rating || 4.7;
   const productBrandLogo = displayProduct?.brandLogo || displayProduct?.brandLogoUrl;
   const productCode = displayProduct?.code || displayProduct?.sku || '';
@@ -1211,6 +1215,23 @@ export function ProductDetail() {
               <div className="flex items-center gap-2 py-2">
                 <CheckCircle2 className="size-5 text-green-600" />
                 <span className="text-sm font-semibold text-green-600">In Stock</span>
+              </div>
+            )}
+            {!productInStock && backOrderAvailable && (
+              <div className="flex flex-col gap-1 py-2 px-3 bg-amber-50 border border-amber-200 rounded">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-5 text-amber-600" />
+                  <span className="text-sm font-semibold text-amber-700">Available on Backorder</span>
+                </div>
+                {uropaPromisedDate && (
+                  <span className="text-xs text-amber-600 ml-7">Expected: {new Date(uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                )}
+              </div>
+            )}
+            {!productInStock && !backOrderAvailable && (
+              <div className="flex items-center gap-2 py-2">
+                <X className="size-5 text-red-600" />
+                <span className="text-sm font-semibold text-red-600">Out of Stock</span>
               </div>
             )}
 
