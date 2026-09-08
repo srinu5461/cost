@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
 import { 
-  Package, Search, Eye, CheckCircle, XCircle, Clock, 
-  DollarSign, Filter, Download
+  Package, Search, Eye, CheckCircle, Clock, 
+  DollarSign, Download, RotateCcw, Calendar, AlertCircle
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
+
+interface ReturnItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
 
 interface Return {
   id: string;
@@ -27,12 +25,7 @@ interface Return {
     name: string;
     email: string;
   };
-  items: Array<{
-    productId: string;
-    productName: string;
-    quantity: number;
-    price: number;
-  }>;
+  items: ReturnItem[];
   reason: string;
   status: 'pending' | 'approved' | 'rejected' | 'refunded';
   refundAmount: number;
@@ -47,7 +40,6 @@ export function ReturnsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Statistics
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -70,8 +62,8 @@ export function ReturnsManagement() {
 
       if (response.ok) {
         const data = await response.json();
-        setReturns(data.returns);
-        calculateStats(data.returns);
+        setReturns(data.returns || []);
+        calculateStats(data.returns || []);
       }
     } catch (error) {
       console.error('Error fetching returns:', error);
@@ -88,17 +80,17 @@ export function ReturnsManagement() {
       rejected: returnsList.filter(r => r.status === 'rejected').length,
       totalRefunded: returnsList
         .filter(r => r.status === 'refunded')
-        .reduce((sum, r) => sum + r.refundAmount, 0),
+        .reduce((sum, r) => sum + (r.refundAmount || 0), 0),
     };
     setStats(stats);
   };
 
   const filteredReturns = returns.filter(ret => {
     const matchesSearch = 
-      ret.returnNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ret.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ret.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ret.customer.email.toLowerCase().includes(searchQuery.toLowerCase());
+      ret.returnNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ret.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ret.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ret.customer?.email?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || ret.status === statusFilter;
     
@@ -108,199 +100,219 @@ export function ReturnsManagement() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50">Pending</Badge>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-full font-bold text-xs uppercase tracking-wider">
+            <Clock className="size-3.5" />
+            Pending Review
+          </span>
+        );
       case 'approved':
-        return <Badge variant="outline" className="bg-blue-50">Approved</Badge>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 border border-blue-200 rounded-full font-bold text-xs uppercase tracking-wider">
+            <CheckCircle className="size-3.5" />
+            Approved
+          </span>
+        );
       case 'rejected':
-        return <Badge variant="outline" className="bg-red-50">Rejected</Badge>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-800 border border-red-200 rounded-full font-bold text-xs uppercase tracking-wider">
+            <AlertCircle className="size-3.5" />
+            Rejected
+          </span>
+        );
       case 'refunded':
-        return <Badge variant="outline" className="bg-green-50">Refunded</Badge>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full font-bold text-xs uppercase tracking-wider">
+            <CheckCircle className="size-3.5" />
+            Refunded
+          </span>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full font-bold text-xs uppercase tracking-wider">
+            {status}
+          </span>
+        );
     }
+  };
+
+  const exportReturns = () => {
+    window.open(
+      `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049/returns/export`,
+      '_blank'
+    );
   };
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto pb-8 space-y-5">
         <div className="animate-pulse space-y-4">
-          <div className="h-10 w-64 bg-slate-200 rounded"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="h-20 w-full bg-slate-100 rounded-xl border border-slate-200"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-slate-200 rounded"></div>
+              <div key={i} className="h-24 bg-slate-100 rounded-xl border border-slate-200"></div>
             ))}
           </div>
-          <div className="h-96 bg-slate-200 rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="max-w-7xl mx-auto pb-8 space-y-5">
+      {/* Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Returns & Refunds Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Process customer return requests and manage refunds
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <RotateCcw className="size-6 text-[#E31837]" />
+            Returns & Refunds Management
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Process customer return requests, inspect items, and issue refunds
           </p>
         </div>
-        <Button onClick={() => exportReturns()}>
-          <Download className="size-4 mr-2" />
+        <button
+          onClick={exportReturns}
+          className="h-10 px-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-all shadow-2xs text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+        >
+          <Download className="size-4" />
           Export Returns
-        </Button>
+        </button>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'TOTAL RETURNS', value: stats.total, icon: Package, color: 'text-slate-600', bg: 'bg-slate-50' },
+          { label: 'PENDING REVIEW', value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'APPROVED REQUESTS', value: stats.approved, icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'TOTAL REFUNDED', value: `$${stats.totalRefunded.toFixed(2)}`, icon: DollarSign, color: 'text-[#E31837]', bg: 'bg-rose-50' },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Returns</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{stat.value}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-full">
-                <Package className="size-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold">{stats.pending}</p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-full">
-                <Clock className="size-6 text-yellow-600" />
+              <div className={`size-11 rounded-xl ${stat.bg} border border-slate-200 flex items-center justify-center shrink-0`}>
+                <stat.icon className={`size-5.5 ${stat.color}`} />
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold">{stats.approved}</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-full">
-                <CheckCircle className="size-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Refunded</p>
-                <p className="text-2xl font-bold">${stats.totalRefunded.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-full">
-                <DollarSign className="size-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by return #, order #, customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search & Filter Bar */}
+      <div className="bg-white rounded-xl p-3.5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+        <div className="relative max-w-sm sm:max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search by return #, order #, customer name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs sm:text-sm font-semibold w-full"
+          />
+        </div>
+        <div className="w-full sm:w-44 shrink-0">
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
+            <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:ring-1 focus:ring-[#E31837] text-xs sm:text-sm font-bold text-slate-700 cursor-pointer">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+              <SelectItem value="all" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">All Statuses</SelectItem>
+              <SelectItem value="pending" className="cursor-pointer text-xs sm:text-sm font-bold text-amber-700">Pending</SelectItem>
+              <SelectItem value="approved" className="cursor-pointer text-xs sm:text-sm font-bold text-blue-700">Approved</SelectItem>
+              <SelectItem value="rejected" className="cursor-pointer text-xs sm:text-sm font-bold text-rose-700">Rejected</SelectItem>
+              <SelectItem value="refunded" className="cursor-pointer text-xs sm:text-sm font-bold text-emerald-700">Refunded</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-      {/* Returns List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Return Requests ({filteredReturns.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredReturns.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="size-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No return requests found</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {/* Header */}
-              <div className="grid grid-cols-12 gap-4 font-semibold text-sm border-b pb-2 px-4">
-                <div className="col-span-2">Return #</div>
-                <div className="col-span-2">Order #</div>
-                <div className="col-span-2">Customer</div>
-                <div className="col-span-2">Items</div>
-                <div className="col-span-1 text-right">Amount</div>
-                <div className="col-span-2">Date</div>
-                <div className="col-span-1 text-center">Status</div>
+      {/* Main Table Card */}
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+        {/* Table Header */}
+        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+          <h3 className="text-sm font-extrabold text-[#0f172a]">Returns List</h3>
+          <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-full">
+            {filteredReturns.length} Total Records
+          </span>
+        </div>
+
+        {filteredReturns.length > 0 ? (
+          <div className="w-full overflow-x-auto bg-white">
+            <div className="min-w-[850px]">
+              {/* Header row */}
+              <div className="flex items-center px-6 py-3.5 border-b border-slate-200 bg-slate-50/80">
+                <div className="w-[30%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Return Details</div>
+                <div className="w-[30%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</div>
+                <div className="w-[20%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</div>
+                <div className="w-[10%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Refund Amount</div>
+                <div className="w-[10%] text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</div>
               </div>
 
-              {/* Rows */}
-              {filteredReturns.map((ret) => (
-                <div
-                  key={ret.id}
-                  className="grid grid-cols-12 gap-4 py-3 border-b hover:bg-slate-50 cursor-pointer px-4"
-                  onClick={() => navigate(`/admin/returns/${ret.id}`)}
-                >
-                  <div className="col-span-2 font-medium">{ret.returnNumber}</div>
-                  <div className="col-span-2 text-sm text-muted-foreground">{ret.orderId}</div>
-                  <div className="col-span-2">
-                    <div className="text-sm font-medium">{ret.customer.name}</div>
-                    <div className="text-xs text-muted-foreground">{ret.customer.email}</div>
-                  </div>
-                  <div className="col-span-2 text-sm">{ret.items.length} item(s)</div>
-                  <div className="col-span-1 text-right font-semibold">
-                    ${ret.refundAmount.toFixed(2)}
-                  </div>
-                  <div className="col-span-2 text-sm text-muted-foreground">
-                    {new Date(ret.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    {getStatusBadge(ret.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+              {/* Data Rows */}
+              <div className="divide-y divide-slate-200">
+                {filteredReturns.map((ret) => (
+                  <div key={ret.id} className="flex items-center px-6 py-4 hover:bg-slate-50/80 transition-colors">
+                    <div className="w-[30%] flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                        <RotateCcw className="size-4" />
+                      </div>
+                      <div>
+                        <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 block w-fit">
+                          {ret.returnNumber}
+                        </span>
+                        <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 mt-1">
+                          <Calendar className="size-3 text-slate-400" />
+                          <span>Order: {ret.orderId} • {new Date(ret.createdAt).toLocaleDateString('en-AU')}</span>
+                        </div>
+                      </div>
+                    </div>
 
-function exportReturns() {
-  const projectId = window.location.hostname.split('.')[0];
-  window.open(
-    `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049/returns/export`,
-    '_blank'
+                    <div className="w-[30%] min-w-0 pr-4">
+                      <p className="font-extrabold text-sm text-[#0f172a] truncate">{ret.customer?.name}</p>
+                      <p className="text-xs font-semibold text-slate-500 truncate">{ret.customer?.email}</p>
+                    </div>
+
+                    <div className="w-[20%]">
+                      {getStatusBadge(ret.status)}
+                    </div>
+
+                    <div className="w-[10%]">
+                      <p className="font-black text-[#0f172a] text-sm">${(ret.refundAmount || 0).toFixed(2)}</p>
+                      <p className="text-xs font-semibold text-slate-500">
+                        {ret.items?.length || 0} {ret.items?.length === 1 ? 'Item' : 'Items'}
+                      </p>
+                    </div>
+
+                    <div className="w-[10%] flex justify-end gap-1.5">
+                      <button
+                        onClick={() => navigate(`/admin/returns/${ret.id}`)}
+                        className="size-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                        title="View Return Details"
+                      >
+                        <Eye className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-12 bg-white">
+            <div className="bg-slate-50 size-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
+              <Package className="size-8 text-slate-400" />
+            </div>
+            <h3 className="text-base font-black text-[#0f172a] mb-1">No return requests found</h3>
+            <p className="text-xs text-slate-500 font-medium">
+              Try adjusting your search query or status filter
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -17,7 +17,13 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return !!localStorage.getItem('auth_token');
+    } catch {
+      return false;
+    }
+  });
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -26,14 +32,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     logger.debug('AdminContext initial load', { hasToken: !!token });
     
     if (token) {
-      // If token exists, assume authenticated (optimistic)
-      // We'll validate on critical actions, not on every page load
       setIsAuthenticated(true);
       
       // Optionally validate in background without blocking
       checkSession().catch(err => {
         logger.debug('Background session check failed, keeping user logged in locally', err);
       });
+    } else {
+      setIsAuthenticated(false);
     }
   }, []);
 

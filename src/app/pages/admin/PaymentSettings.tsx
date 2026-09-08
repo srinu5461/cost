@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Label } from '../../components/ui/label';
 import { 
   Building2, CreditCard, DollarSign, Save, Check, 
-  AlertCircle, RefreshCw, Link as LinkIcon
+  AlertCircle, RefreshCw, Link as LinkIcon, Info, Shield, CheckCircle2
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { notify } from '../../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -47,7 +48,6 @@ interface PaymentSettings {
 export function PaymentSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   
   const [bankDetails, setBankDetails] = useState<BankDetails>({
     bankName: '',
@@ -142,40 +142,13 @@ export function PaymentSettings() {
       });
 
       if (response.ok) {
-        setSuccessMessage('Bank details saved successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        notify.success('Bank details saved successfully!');
       } else {
-        alert('Failed to save bank details');
+        notify.error('Failed to save bank details');
       }
     } catch (error) {
       console.error('Error saving bank details:', error);
-      alert('Failed to save bank details');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveCompanyInfo = async () => {
-    try {
-      setSaving(true);
-      const response = await fetch(`${API_URL}/settings/company-info`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ companyInfo }),
-      });
-
-      if (response.ok) {
-        setSuccessMessage('Company information saved successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        alert('Failed to save company information');
-      }
-    } catch (error) {
-      console.error('Error saving company info:', error);
-      alert('Failed to save company information');
+      notify.error('Failed to save bank details');
     } finally {
       setSaving(false);
     }
@@ -194,14 +167,13 @@ export function PaymentSettings() {
       });
 
       if (response.ok) {
-        setSuccessMessage('Payment settings saved successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        notify.success('Payment settings saved successfully!');
       } else {
-        alert('Failed to save payment settings');
+        notify.error('Failed to save payment settings');
       }
     } catch (error) {
       console.error('Error saving payment settings:', error);
-      alert('Failed to save payment settings');
+      notify.error('Failed to save payment settings');
     } finally {
       setSaving(false);
     }
@@ -209,308 +181,77 @@ export function PaymentSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 w-64 bg-slate-200 rounded"></div>
-            <div className="h-96 bg-slate-200 rounded"></div>
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto py-16 flex flex-col items-center justify-center gap-3 font-sans">
+        <RefreshCw className="size-8 animate-spin text-[#E31837]" />
+        <p className="text-xs font-bold text-slate-500">Loading payment gateways and bank settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Payment & Banking Settings</h1>
-          <p className="text-muted-foreground">
-            Configure payment methods, bank details, and company information for invoices
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <CreditCard className="size-6 text-[#E31837]" />
+            Payment Gateways & Banking
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Configure storefront checkout gateways (eWay, PayPal, Square) and direct bank deposit details for tax invoices
           </p>
         </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800">
-            <Check className="size-5" />
-            <span className="font-medium">{successMessage}</span>
-          </div>
-        )}
+        <button
+          onClick={handleSavePaymentSettings}
+          disabled={saving}
+          className="h-10 px-5 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-50 shrink-0"
+        >
+          {saving ? (
+            <>
+              <RefreshCw className="size-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="size-4" />
+              Save Payment Settings
+            </>
+          )}
+        </button>
+      </div>
 
-        {/* Bank Transfer Details */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building2 className="size-6 text-blue-600" />
-              </div>
-              <div>
-                <CardTitle>Bank Transfer Details</CardTitle>
-                <CardDescription>
-                  Bank account information shown in invoices for direct transfers
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="bankName">Bank Name *</Label>
-                <Input
-                  id="bankName"
-                  value={bankDetails.bankName}
-                  onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
-                  placeholder="e.g., Commonwealth Bank"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="accountName">Account Name *</Label>
-                <Input
-                  id="accountName"
-                  value={bankDetails.accountName}
-                  onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
-                  placeholder="e.g., COSTPLUS100 PTY LTD"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="bsb">BSB Number *</Label>
-                <Input
-                  id="bsb"
-                  value={bankDetails.bsb}
-                  onChange={(e) => setBankDetails({ ...bankDetails, bsb: e.target.value })}
-                  placeholder="e.g., 063-000"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="accountNumber">Account Number *</Label>
-                <Input
-                  id="accountNumber"
-                  value={bankDetails.accountNumber}
-                  onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                  placeholder="e.g., 1234 5678"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="reference">Payment Reference Instructions</Label>
-              <Input
-                id="reference"
-                value={bankDetails.reference}
-                onChange={(e) => setBankDetails({ ...bankDetails, reference: e.target.value })}
-                placeholder="e.g., Please use invoice number as reference"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                This message will appear below the bank details in invoices
-              </p>
-            </div>
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Checkout Integrations:</strong> Active payment options are automatically presented during checkout and embedded in invoice emails for customer convenience.
+        </div>
+      </div>
 
-            <div className="pt-4 flex items-center justify-between border-t">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <AlertCircle className="size-4" />
-                <span>This information appears in all invoice emails</span>
-              </div>
-              <Button onClick={handleSaveBankDetails} disabled={saving}>
-                {saving ? (
-                  <>
-                    <RefreshCw className="size-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="size-4 mr-2" />
-                    Save Bank Details
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Company Information */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <Building2 className="size-6 text-red-600" />
-              </div>
-              <div>
-                <CardTitle>Company Information</CardTitle>
-                <CardDescription>
-                  Business details shown in invoices and quotations
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="companyName">Legal Company Name *</Label>
-                <Input
-                  id="companyName"
-                  value={companyInfo.companyName}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, companyName: e.target.value })}
-                  placeholder="e.g., COSTPLUS100 PTY LTD"
-                />
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        {/* Left Column - Payment Gateways (7 Cols) */}
+        <div className="lg:col-span-7 space-y-5">
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <CreditCard className="size-5 text-[#E31837]" />
+                Storefront Payment Gateways
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
               
-              <div>
-                <Label htmlFor="tradingName">Trading Name *</Label>
-                <Input
-                  id="tradingName"
-                  value={companyInfo.tradingName}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, tradingName: e.target.value })}
-                  placeholder="e.g., Costplus100"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="abn">ABN *</Label>
-                <Input
-                  id="abn"
-                  value={companyInfo.abn}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, abn: e.target.value })}
-                  placeholder="e.g., 12 345 678 901"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="phone">Phone *</Label>
-                <Input
-                  id="phone"
-                  value={companyInfo.phone}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })}
-                  placeholder="e.g., 1300 COSTPLUS"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={companyInfo.email}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })}
-                  placeholder="e.g., info@costplus100.com.au"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  value={companyInfo.website}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, website: e.target.value })}
-                  placeholder="e.g., www.costplus100.com.au"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="address">Street Address *</Label>
-                <Input
-                  id="address"
-                  value={companyInfo.address}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })}
-                  placeholder="e.g., 123 Industrial Drive"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    value={companyInfo.city}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, city: e.target.value })}
-                    placeholder="e.g., Sydney"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="state">State *</Label>
-                  <select
-                    id="state"
-                    value={companyInfo.state}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, state: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="">Select...</option>
-                    <option value="NSW">NSW</option>
-                    <option value="VIC">VIC</option>
-                    <option value="QLD">QLD</option>
-                    <option value="SA">SA</option>
-                    <option value="WA">WA</option>
-                    <option value="TAS">TAS</option>
-                    <option value="NT">NT</option>
-                    <option value="ACT">ACT</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="postcode">Postcode *</Label>
-                  <Input
-                    id="postcode"
-                    value={companyInfo.postcode}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, postcode: e.target.value })}
-                    placeholder="e.g., 2000"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 flex items-center justify-between border-t">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <AlertCircle className="size-4" />
-                <span>Appears in all invoices, quotations, and emails</span>
-              </div>
-              <Button onClick={handleSaveCompanyInfo} disabled={saving}>
-                {saving ? (
-                  <>
-                    <RefreshCw className="size-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="size-4 mr-2" />
-                    Save Company Info
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Methods */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CreditCard className="size-6 text-green-600" />
-              </div>
-              <div>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>
-                  Enable or disable payment options for customers
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg space-y-3">
+              {/* eWay Gateway */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CreditCard className="size-5 text-blue-600" />
+                    <div className="p-2.5 bg-slate-100 rounded-xl">
+                      <CreditCard className="size-5 text-[#2D3748]" />
+                    </div>
                     <div>
-                      <p className="font-medium">eWay Payment Gateway</p>
-                      <p className="text-sm text-muted-foreground">Credit & debit card payments</p>
+                      <p className="font-extrabold text-sm text-[#0f172a]">eWay Payment Gateway</p>
+                      <p className="text-xs font-medium text-slate-500">Credit card & debit card processing (Visa, Mastercard, AMEX)</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -520,15 +261,16 @@ export function PaymentSettings() {
                       onChange={(e) => setPaymentSettings({ ...paymentSettings, enableEway: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
                   </label>
                 </div>
+
                 {paymentSettings.enableEway && (
-                  <div className="pl-8 pt-2 border-t">
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium">Sandbox Mode</p>
-                        <p className="text-xs text-muted-foreground">Use test credentials (for development only)</p>
+                        <p className="text-xs font-extrabold text-slate-700">Sandbox Test Environment</p>
+                        <p className="text-[11px] font-medium text-slate-400">Enable for staging test transactions</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -537,34 +279,35 @@ export function PaymentSettings() {
                           onChange={(e) => setPaymentSettings({ ...paymentSettings, ewaySandboxMode: e.target.checked })}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-amber-500"></div>
                       </label>
                     </div>
-                    {paymentSettings.ewaySandboxMode && (
-                      <div className="mt-2 bg-amber-50 border border-amber-200 rounded p-2">
-                        <p className="text-xs text-amber-800">
-                          <strong>⚠️ Sandbox Mode Active:</strong> Using test eWay environment. Switch to Production mode before going live.
-                        </p>
+
+                    {paymentSettings.ewaySandboxMode ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-center gap-2">
+                        <AlertCircle className="size-3.5 text-amber-600 shrink-0" />
+                        <span className="text-[11px] font-bold text-amber-800">Sandbox Test Mode Active</span>
                       </div>
-                    )}
-                    {!paymentSettings.ewaySandboxMode && (
-                      <div className="mt-2 bg-green-50 border border-green-200 rounded p-2">
-                        <p className="text-xs text-green-800">
-                          <strong>✓ Production Mode Active:</strong> Using live eWay environment with production credentials.
-                        </p>
+                    ) : (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 flex items-center gap-2">
+                        <Check className="size-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-[11px] font-bold text-emerald-800">Live Production Mode Active</span>
                       </div>
                     )}
                   </div>
                 )}
               </div>
 
-              <div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+              {/* PayPal Gateway */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <DollarSign className="size-5 text-blue-600" />
+                    <div className="p-2.5 bg-blue-50 rounded-xl">
+                      <DollarSign className="size-5 text-blue-600" />
+                    </div>
                     <div>
-                      <p className="font-medium">PayPal</p>
-                      <p className="text-sm text-muted-foreground">PayPal account payments</p>
+                      <p className="font-extrabold text-sm text-[#0f172a]">PayPal Express</p>
+                      <p className="text-xs font-medium text-slate-500">PayPal balance & Pay in 4 installment options</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -574,15 +317,16 @@ export function PaymentSettings() {
                       onChange={(e) => setPaymentSettings({ ...paymentSettings, enablePaypal: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
                   </label>
                 </div>
+
                 {paymentSettings.enablePaypal && (
-                  <div className="pl-8 pt-2 border-t">
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium">Sandbox Mode</p>
-                        <p className="text-xs text-muted-foreground">Use test credentials (for development only)</p>
+                        <p className="text-xs font-extrabold text-slate-700">Sandbox Test Environment</p>
+                        <p className="text-[11px] font-medium text-slate-400">Enable for test account checkouts</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -591,34 +335,35 @@ export function PaymentSettings() {
                           onChange={(e) => setPaymentSettings({ ...paymentSettings, paypalSandboxMode: e.target.checked })}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-amber-500"></div>
                       </label>
                     </div>
-                    {paymentSettings.paypalSandboxMode && (
-                      <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
-                        <p className="text-xs text-blue-800">
-                          <strong>⚠️ Sandbox Mode Active:</strong> Using test PayPal environment. Switch to Production mode before going live.
-                        </p>
+
+                    {paymentSettings.paypalSandboxMode ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-center gap-2">
+                        <AlertCircle className="size-3.5 text-amber-600 shrink-0" />
+                        <span className="text-[11px] font-bold text-amber-800">Sandbox Test Mode Active</span>
                       </div>
-                    )}
-                    {!paymentSettings.paypalSandboxMode && (
-                      <div className="mt-2 bg-green-50 border border-green-200 rounded p-2">
-                        <p className="text-xs text-green-800">
-                          <strong>✓ Production Mode Active:</strong> Using live PayPal environment with production credentials.
-                        </p>
+                    ) : (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 flex items-center gap-2">
+                        <Check className="size-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-[11px] font-bold text-emerald-800">Live Production Mode Active</span>
                       </div>
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="p-4 border rounded-lg space-y-3">
+              {/* Square Gateway */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CreditCard className="size-5 text-purple-600" />
+                    <div className="p-2.5 bg-purple-50 rounded-xl">
+                      <CreditCard className="size-5 text-purple-600" />
+                    </div>
                     <div>
-                      <p className="font-medium">Square Payment Gateway</p>
-                      <p className="text-sm text-muted-foreground">Card payments + Google Pay (Australia)</p>
+                      <p className="font-extrabold text-sm text-[#0f172a]">Square Payments</p>
+                      <p className="text-xs font-medium text-slate-500">Credit card & Google Pay / Apple Pay integrations</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -628,128 +373,188 @@ export function PaymentSettings() {
                       onChange={(e) => setPaymentSettings({ ...paymentSettings, enableSquare: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
                   </label>
                 </div>
-                {paymentSettings.enableSquare && (
-                  <div className="pl-8 pt-2 border-t">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Sandbox Mode</p>
-                        <p className="text-xs text-muted-foreground">Use test credentials (for development only)</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={paymentSettings.squareSandboxMode}
-                          onChange={(e) => setPaymentSettings({ ...paymentSettings, squareSandboxMode: e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                      </label>
-                    </div>
-                    {paymentSettings.squareSandboxMode && (
-                      <div className="mt-2 bg-purple-50 border border-purple-200 rounded p-2">
-                        <p className="text-xs text-purple-800">
-                          <strong>⚠️ Sandbox Mode Active:</strong> Using test Square environment. Switch to Production mode before going live.
-                        </p>
-                      </div>
-                    )}
-                    {!paymentSettings.squareSandboxMode && (
-                      <div className="mt-2 bg-green-50 border border-green-200 rounded p-2">
-                        <p className="text-xs text-green-800">
-                          <strong>✓ Production Mode Active:</strong> Using live Square environment with production credentials.
-                        </p>
-                      </div>
-                    )}
-                    <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-3">
-                      <p className="text-xs font-semibold text-blue-900 mb-2">📋 Required Environment Variables:</p>
-                      <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
-                        <li><code className="bg-blue-100 px-1 rounded">SQUARE_APPLICATION_ID</code> - Your Square Application ID</li>
-                        <li><code className="bg-blue-100 px-1 rounded">SQUARE_LOCATION_ID</code> - Your Australian location ID</li>
-                        <li><code className="bg-blue-100 px-1 rounded">SQUARE_ACCESS_TOKEN</code> - Your Square access token (secret)</li>
-                        <li><code className="bg-blue-100 px-1 rounded">SQUARE_REDIRECT_URL</code> - Production redirect URL (e.g., https://costplus100.com.au)</li>
-                        <li><code className="bg-blue-100 px-1 rounded">SQUARE_SANDBOX</code> - Set to "true" for sandbox mode (optional)</li>
-                      </ul>
-                      <p className="text-xs text-blue-700 mt-2">
-                        💡 Set these in your Supabase project's Edge Functions environment variables.
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Building2 className="size-5 text-green-600" />
-                  <div>
-                    <p className="font-medium">Bank Transfer</p>
-                    <p className="text-sm text-muted-foreground">Direct bank deposit (1-3 business days)</p>
+              {/* Bank Transfer Gateway */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-50 rounded-xl">
+                      <Building2 className="size-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-sm text-[#0f172a]">Direct Bank Deposit</p>
+                      <p className="text-xs font-medium text-slate-500">Direct BSB and Account Number invoice payments</p>
+                    </div>
                   </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.enableBankTransfer}
+                      onChange={(e) => setPaymentSettings({ ...paymentSettings, enableBankTransfer: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={paymentSettings.enableBankTransfer}
-                    onChange={(e) => setPaymentSettings({ ...paymentSettings, enableBankTransfer: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                </label>
               </div>
-            </div>
 
-            <div className="pt-4 flex items-center justify-between border-t">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <LinkIcon className="size-4" />
-                <span>Configure payment gateway API keys in environment settings</span>
+              <div className="flex justify-end pt-3 border-t border-slate-100">
+                <button
+                  onClick={handleSavePaymentSettings}
+                  disabled={saving}
+                  className="h-10 px-6 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Save className="size-4" />
+                  {saving ? 'Saving...' : 'Save Gateways'}
+                </button>
               </div>
-              <Button onClick={handleSavePaymentSettings} disabled={saving}>
-                {saving ? (
-                  <>
-                    <RefreshCw className="size-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="size-4 mr-2" />
-                    Save Payment Settings
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Help Section */}
-        <Card className="mt-6 border-blue-200 bg-blue-50">
-          <CardContent className="p-6">
-            <div className="flex gap-4">
-              <AlertCircle className="size-6 text-blue-600 flex-shrink-0 mt-1" />
+          {/* Payment Link Guide */}
+          <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 space-y-2">
+            <h3 className="font-extrabold text-blue-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+              <Info className="size-4 text-blue-600" />
+              How Checkout & Invoice Payments Work
+            </h3>
+            <div className="text-xs font-semibold text-blue-800 space-y-1.5 leading-relaxed">
+              <p><strong>1. Invoice Button:</strong> Tax invoices automatically feature a instant <strong>PAY NOW</strong> link routing customers to online checkout.</p>
+              <p><strong>2. Online Cards:</strong> Customers can clear invoices using eWay, PayPal, or Square card options.</p>
+              <p><strong>3. Direct BSB Deposit:</strong> Direct bank transfer instructions automatically append to invoice PDFs with invoice number references.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Bank Transfer Details (5 Cols) */}
+        <div className="lg:col-span-5 space-y-5">
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <Building2 className="size-5 text-[#E31837]" />
+                Direct Bank Transfer Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">How Payment Links Work</h3>
-                <div className="text-sm text-blue-800 space-y-2">
-                  <p>
-                    <strong>1. Invoice Emails:</strong> When you send an invoice, customers receive an email with a "PAY NOW" button
-                    and bank transfer details.
-                  </p>
-                  <p>
-                    <strong>2. Online Payment:</strong> The button links to your checkout page where customers can pay via
-                    eWay (credit card), PayPal, or Square (card + Google Pay) instantly.
-                  </p>
-                  <p>
-                    <strong>3. Bank Transfer:</strong> Customers can also pay via direct bank deposit using the details shown below the 
-                    payment button. They must include the invoice number as reference.
-                  </p>
-                  <p className="pt-2 border-t border-blue-200">
-                    <strong>💡 Tip:</strong> Make sure your bank details are correct before sending invoices to customers. 
-                    The invoice number is automatically added as the payment reference.
-                  </p>
+                <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                  Bank Name <span className="text-[#E31837]">*</span>
+                </Label>
+                <Input
+                  value={bankDetails.bankName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                  placeholder="Commonwealth Bank"
+                  className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                />
+              </div>
+              
+              <div>
+                <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                  Account Name <span className="text-[#E31837]">*</span>
+                </Label>
+                <Input
+                  value={bankDetails.accountName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                  placeholder="COSTPLUS100 PTY LTD"
+                  className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    BSB Number <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    value={bankDetails.bsb}
+                    onChange={(e) => setBankDetails({ ...bankDetails, bsb: e.target.value })}
+                    placeholder="063-000"
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Account Number <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    value={bankDetails.accountNumber}
+                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                    placeholder="1234 5678"
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              
+              <div>
+                <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                  Payment Reference Instructions
+                </Label>
+                <Input
+                  value={bankDetails.reference}
+                  onChange={(e) => setBankDetails({ ...bankDetails, reference: e.target.value })}
+                  placeholder="Please use invoice number as reference"
+                  className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                />
+                <p className="text-[11px] text-slate-400 font-medium mt-1">
+                  Appears directly below bank details on printed & PDF invoices
+                </p>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-slate-100">
+                <button
+                  onClick={handleSaveBankDetails}
+                  disabled={saving}
+                  className="h-10 px-6 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Save className="size-4" />
+                  {saving ? 'Saving...' : 'Save Bank Details'}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Storefront Payment Badges Preview */}
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <Shield className="size-5 text-[#E31837]" />
+                Storefront Payment Badges
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-3">
+              <p className="text-xs font-semibold text-slate-600">
+                Customer checkout security badge preview:
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {paymentSettings.enableEway && (
+                  <span className="px-3 py-1.5 bg-slate-100 text-slate-800 rounded-lg text-xs font-black border border-slate-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-emerald-600" /> eWay Secured
+                  </span>
+                )}
+                {paymentSettings.enablePaypal && (
+                  <span className="px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg text-xs font-black border border-blue-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-blue-600" /> PayPal Express
+                  </span>
+                )}
+                {paymentSettings.enableSquare && (
+                  <span className="px-3 py-1.5 bg-purple-50 text-purple-800 rounded-lg text-xs font-black border border-purple-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-purple-600" /> Square Pay
+                  </span>
+                )}
+                {paymentSettings.enableBankTransfer && (
+                  <span className="px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-black border border-emerald-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-emerald-600" /> Direct Deposit
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </div>
   );

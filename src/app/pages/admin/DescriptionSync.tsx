@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { RefreshCw, FileText, CheckCircle2, XCircle, AlertCircle, ChevronLeft, ChevronRight, Bug, X } from 'lucide-react';
+import { RefreshCw, FileText, CheckCircle2, XCircle, AlertCircle, ChevronLeft, ChevronRight, Bug, X, Info } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { notify } from '../../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -22,27 +22,25 @@ interface Product {
 }
 
 export default function DescriptionSync() {
-  // State management for description sync
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState<any>(null);
-  
+
   // Debug modal state
   const [debugModalOpen, setDebugModalOpen] = useState(false);
   const [debugData, setDebugData] = useState<any>(null);
   const [debugLoading, setDebugLoading] = useState(false);
-  
+
   // Filters
   const [selectedBrand, setSelectedBrand] = useState('');
   const [skipWithDescription, setSkipWithDescription] = useState(true);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(true);
-  
-  // Client-side pagination (instant!)
+
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 50;
 
@@ -50,8 +48,6 @@ export default function DescriptionSync() {
   const fetchBrands = async () => {
     setBrandsLoading(true);
     try {
-      console.log('🔄 Fetching all brands...');
-      
       const response = await fetch(`${API_URL}/description-sync/brands`, {
         method: 'GET',
         headers: {
@@ -60,29 +56,17 @@ export default function DescriptionSync() {
       });
 
       if (!response.ok) {
-        // Check if it's a server error (502, 503, 504)
         if (response.status >= 502 && response.status <= 504) {
-          throw new Error(`Server temporarily unavailable (${response.status}). Please wait a few minutes and try again.`);
+          throw new Error(`Server temporarily unavailable (${response.status}). Please try again later.`);
         }
         throw new Error(`Failed to fetch brands: ${response.status}`);
       }
 
       const result = await response.json();
-
-      setAvailableBrands(result.brands);
-      console.log(`✅ Loaded ${result.brands.length} brands`);
-
-    } catch (error) {
-      console.error('❌ Error fetching brands:', error);
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Check if it's a server availability issue
-      if (errorMessage.includes('502') || errorMessage.includes('503') || errorMessage.includes('504') || errorMessage.includes('temporarily unavailable')) {
-        alert('⚠️ Server Temporarily Unavailable\n\nThe database backend is down (502 Bad Gateway).\n\nPlease wait 2-5 minutes and refresh the page.\n\nIf the issue persists, the Supabase service may be experiencing an outage.');
-      } else {
-        alert(`Error loading brands: ${errorMessage}`);
-      }
+      setAvailableBrands(result.brands || []);
+    } catch (error: any) {
+      console.error('Error fetching brands:', error);
+      notify.error(error.message || 'Error loading brands');
     } finally {
       setBrandsLoading(false);
     }
@@ -97,19 +81,14 @@ export default function DescriptionSync() {
 
     setLoading(true);
     try {
-      console.log(`🔄 Fetching products for brand: ${brand}...`);
-      
       let allFetchedProducts: Product[] = [];
-      let currentPage = 1;
+      let page = 1;
       let hasMorePages = true;
-      const pageLimit = 1000; // Fetch 1000 at a time
-      
-      // Fetch products in chunks to avoid timeout
+      const pageLimit = 1000;
+
       while (hasMorePages) {
-        console.log(`📥 Fetching page ${currentPage} for ${brand} (limit: ${pageLimit})...`);
-        
         const response = await fetch(
-          `${API_URL}/description-sync/products?brand=${encodeURIComponent(brand)}&page=${currentPage}&limit=${pageLimit}`,
+          `${API_URL}/description-sync/products?brand=${encodeURIComponent(brand)}&page=${page}&limit=${pageLimit}`,
           {
             method: 'GET',
             headers: {
@@ -119,56 +98,33 @@ export default function DescriptionSync() {
         );
 
         if (!response.ok) {
-          // Check if it's a server error (502, 503, 504)
           if (response.status >= 502 && response.status <= 504) {
-            throw new Error(`Server temporarily unavailable (${response.status}). The database backend is down. Please wait a few minutes and try again.`);
+            throw new Error(`Server temporarily unavailable (${response.status}). Please try again.`);
           }
-          throw new Error(`Failed to fetch products page ${currentPage}: ${response.status}`);
+          throw new Error(`Failed to fetch products page ${page}: ${response.status}`);
         }
 
         const result = await response.json();
-        
-        // Add products to our collection
         allFetchedProducts = [...allFetchedProducts, ...result.products];
-        
-        console.log(`✅ Fetched page ${currentPage}: ${result.products.length} products (Total so far: ${allFetchedProducts.length})`);
-        
-        // Check if there are more pages
-        hasMorePages = result.pagination.hasNextPage;
-        currentPage++;
-        
-        // Safety limit to prevent infinite loops
-        if (currentPage > 20) {
-          console.warn('⚠️ Reached safety limit of 20 pages');
-          break;
-        }
+        hasMorePages = result.pagination?.hasNextPage || false;
+        page++;
+
+        if (page > 20) break;
       }
-      
+
       setAllProducts(allFetchedProducts);
-      console.log(`✅ Loaded ${allFetchedProducts.length} products for brand: ${brand}`);
-      
-    } catch (error) {
-      console.error('❌ Error fetching products:', error);
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Check if it's a server availability issue
-      if (errorMessage.includes('502') || errorMessage.includes('503') || errorMessage.includes('504') || errorMessage.includes('temporarily unavailable')) {
-        alert('⚠️ Server Temporarily Unavailable\n\nThe database backend is experiencing issues (502 Bad Gateway).\n\nThis is usually temporary. Please:\n1. Wait 2-5 minutes\n2. Try again\n3. If it persists, check Supabase status page');
-      } else {
-        alert(`Error loading products: ${errorMessage}`);
-      }
+    } catch (error: any) {
+      console.error('Error fetching products:', error);
+      notify.error(error.message || 'Error loading products');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load brands on mount (ONCE!)
   useEffect(() => {
     fetchBrands();
   }, []);
 
-  // Load products when brand changes
   useEffect(() => {
     if (selectedBrand) {
       fetchProductsForBrand(selectedBrand);
@@ -177,34 +133,27 @@ export default function DescriptionSync() {
     }
   }, [selectedBrand]);
 
-  // Apply filters client-side (instant!)
   useEffect(() => {
     let filtered = [...allProducts];
-    
-    // Filter by brand
+
     if (selectedBrand) {
       filtered = filtered.filter(p => p.brand === selectedBrand);
     }
-    
-    // Skip products with description
+
     if (skipWithDescription) {
       filtered = filtered.filter(p => !p.hasDescription);
     }
-    
+
     setFilteredProducts(filtered);
-    setCurrentPage(1); // Reset to page 1 when filters change
-    setSelectedProducts(new Set()); // Clear selection
-    
-    console.log(`🔍 Filtered to ${filtered.length} products (Brand: ${selectedBrand || 'All'}, Skip: ${skipWithDescription})`);
+    setCurrentPage(1);
+    setSelectedProducts(new Set());
   }, [allProducts, selectedBrand, skipWithDescription]);
 
-  // Get current page products (instant client-side pagination!)
-  const totalPages = Math.ceil(filteredProducts.length / limit);
+  const totalPages = Math.ceil(filteredProducts.length / limit) || 1;
   const startIndex = (currentPage - 1) * limit;
   const endIndex = startIndex + limit;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  // Toggle product selection
   const toggleProduct = (productId: string) => {
     const newSelected = new Set(selectedProducts);
     if (newSelected.has(productId)) {
@@ -215,29 +164,25 @@ export default function DescriptionSync() {
     setSelectedProducts(newSelected);
   };
 
-  // Select all on current page
   const selectAll = () => {
     const newSelected = new Set(selectedProducts);
     currentProducts.forEach(p => newSelected.add(p.id));
     setSelectedProducts(newSelected);
   };
 
-  // Deselect all
   const deselectAll = () => {
     setSelectedProducts(new Set());
   };
 
-  // Pagination controls (instant!)
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
-  // Run batch sync
   const runBatchSync = async () => {
     if (selectedProducts.size === 0) {
-      alert('Please select at least one product');
+      notify.error('Please select at least one product');
       return;
     }
 
@@ -249,14 +194,11 @@ export default function DescriptionSync() {
     setSyncResults(null);
 
     try {
-      // 🔥 Convert product IDs to product codes
       const productCodes = Array.from(selectedProducts).map(id => {
         const product = allProducts.find(p => p.id === id);
         return product?.code;
       }).filter(Boolean) as string[];
-      
-      console.log(`🔄 Starting batch sync for ${productCodes.length} products...`);
-      
+
       const response = await fetch(`${API_URL}/description-sync/batch`, {
         method: 'POST',
         headers: {
@@ -264,9 +206,9 @@ export default function DescriptionSync() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          productCodes, // 🔥 Send codes instead of IDs
-          skipWithDescription: false, // Already filtered on UI
-          forceUpdate: true, // 🔥 ALWAYS update, ignore existing data
+          productCodes,
+          skipWithDescription: false,
+          forceUpdate: true,
         }),
       });
 
@@ -275,48 +217,27 @@ export default function DescriptionSync() {
       }
 
       const result = await response.json();
-      console.log('✅ Batch sync complete:', result);
       setSyncResults(result);
 
       if (result.success) {
-        alert(`✅ Batch sync complete!
-
-Descriptions: ${result.summary.descriptionsUpdated}
-Specifications: ${result.summary.specificationsUpdated}
-Age Restricted: ${result.summary.ageRestrictedUpdated}
-Thumbnail Gallery: ${result.summary.imagesUpdated || 0}
-Skipped: ${result.summary.skipped}
-Errors: ${result.summary.errors}
-Duration: ${(result.summary.duration / 1000).toFixed(1)}s
-
-🔄 Reloading products from database...
-
-ℹ️ Thumbnails are clickable in product detail pages to view in main image area.
-⚠️ IMPORTANT: If you have any Product Detail pages open, please refresh them to see updates.`);
-        
-        // Clear selection
+        notify.success(`Batch sync complete! Updated ${result.summary.descriptionsUpdated} descriptions and ${result.summary.specificationsUpdated} specifications.`);
         setSelectedProducts(new Set());
-        
-        // 🔥 CRITICAL: Clear frontend localStorage cache so ProductDetail pages show fresh data
+
         if (result.cacheInvalidated) {
           localStorage.removeItem('cms_data_cache');
           localStorage.removeItem('cms_cache_timestamp');
         }
-
-        // ✅ No need to reload products - they're already loaded!
-        // Just clear selection and we're done
       } else {
-        alert(`❌ Sync failed: ${result.error}`);
+        notify.error(`Sync failed: ${result.error}`);
       }
-    } catch (error) {
-      console.error('❌ Batch sync error:', error);
-      alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: any) {
+      console.error('Batch sync error:', error);
+      notify.error(error.message || 'Sync failed');
     } finally {
       setSyncing(false);
     }
   };
 
-  // Debug modal actions
   const openDebugModal = () => {
     setDebugModalOpen(true);
   };
@@ -326,69 +247,11 @@ Duration: ${(result.summary.duration / 1000).toFixed(1)}s
     setDebugData(null);
   };
 
-  const fetchDebugData = async (type: 'token' | 'database' | 'compare' | 'uropa', code?: string) => {
-    setDebugLoading(true);
-    setDebugData(null);
-
-    try {
-      let url: string;
-      let method: 'GET' | 'POST' = 'GET';
-      let body: any = null;
-
-      switch (type) {
-        case 'token':
-          url = `${API_URL}/description-sync/test-token`;
-          break;
-        case 'database':
-          if (!code) throw new Error('Product code is required');
-          const product = allProducts.find(p => p.code === code);
-          if (!product) throw new Error('Product not found');
-          url = `${API_URL}/description-sync/debug/${product.id}`;
-          break;
-        case 'compare':
-          if (!code) throw new Error('Product code is required');
-          url = `${API_URL}/description-sync/compare/${code}`;
-          break;
-        case 'uropa':
-          if (!code) throw new Error('Product code is required');
-          url = `${API_URL}/description-sync/test-uropa/${code}`;
-          break;
-        default:
-          throw new Error('Invalid debug type');
-      }
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          ...(body ? { 'Content-Type': 'application/json' } : {}),
-        },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Debug failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      setDebugData(result);
-      console.log('✅ Debug data:', result);
-    } catch (error) {
-      console.error('❌ Debug error:', error);
-      alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setDebugLoading(false);
-    }
-  };
-
-  // 🔥 NEW: Debug sync single product
   const debugSyncSingleProduct = async (productCode: string) => {
     setDebugLoading(true);
     openDebugModal();
 
     try {
-      console.log(`🐛 [DEBUG SYNC] Starting sync for ${productCode}...`);
-      
       const response = await fetch(`${API_URL}/description-sync/single/${productCode}`, {
         method: 'POST',
         headers: {
@@ -403,19 +266,16 @@ Duration: ${(result.summary.duration / 1000).toFixed(1)}s
       }
 
       const result = await response.json();
-      console.log('✅ [DEBUG SYNC] Response:', result);
-      
       setDebugData(result);
-      
-      // Reload product list
+
       if (selectedBrand) {
         await fetchProductsForBrand(selectedBrand);
       }
-    } catch (error) {
-      console.error('❌ Debug sync error:', error);
+    } catch (error: any) {
+      console.error('Debug sync error:', error);
       setDebugData({
         error: true,
-        message: error instanceof Error ? error.message : String(error)
+        message: error.message || 'Sync failed'
       });
     } finally {
       setDebugLoading(false);
@@ -423,466 +283,345 @@ Duration: ${(result.summary.duration / 1000).toFixed(1)}s
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Description & Features Sync</h1>
-        <p className="text-gray-600">
-          Sync product descriptions, specifications, age restrictions, and thumbnail gallery from Uropa API
-        </p>
-        <p className="text-sm text-blue-600 mt-1">
-          ℹ️ Thumbnails are clickable in product detail pages to view in main image area
-        </p>
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <FileText className="size-6 text-[#E31837]" />
+            Description & Features Sync
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Sync product descriptions, technical specifications, age restrictions, and thumbnail gallery from Uropa API
+          </p>
+        </div>
       </div>
 
-      {/* 🔥 DEBUG TOOLS */}
-      <Card className="border-2 border-blue-500 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="text-blue-900">🔍 Debug Tools</CardTitle>
-          <CardDescription>
-            Clear cache and debug image structure from Uropa API
-          </CardDescription>
-          <p className="text-xs text-orange-700 mt-2 font-medium">
-            ⚠️ Getting "InvalidBearerTokenError"? Go to Admin &gt; Uropa API Token to update your token.
-          </p>
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Product Content Sync:</strong> Image gallery thumbnails synced from Uropa are clickable in storefront product detail views to switch the main display image.
+        </div>
+      </div>
+
+      {/* Debug & Diagnostic Bar */}
+      <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+          <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <Bug className="size-4 text-blue-600" />
+            Diagnostic & Cache Utilities
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-3">
-            <Button
-              key="clear-cache"
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <button
               onClick={async () => {
                 try {
-                  // Clear browser cache
                   localStorage.clear();
                   sessionStorage.clear();
-                  
-                  // Clear server cache
                   await fetch(`${API_URL}/cms/data?force=true`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${publicAnonKey}` },
                   });
-                  
-                  alert('✅ Cache cleared! Reloading page...');
-                  window.location.reload();
-                } catch (error) {
-                  alert(`Error: ${error}`);
+                  notify.success('Cache cleared! Reloading page...');
+                  setTimeout(() => window.location.reload(), 1000);
+                } catch (error: any) {
+                  notify.error(`Cache clear error: ${error.message}`);
                 }
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-2xs cursor-pointer transition-all flex items-center gap-1.5"
             >
+              <RefreshCw className="size-3.5" />
               Clear All Cache
-            </Button>
-            
-            <Button
-              key="check-database"
+            </button>
+
+            <button
               onClick={async () => {
                 const code = prompt('Enter product code to check (e.g., CB734):');
                 if (!code) return;
-                
                 try {
-                  // Find product ID
                   const product = allProducts.find(p => p.code === code);
                   if (!product) {
-                    alert(`Product ${code} not found in list`);
+                    notify.error(`Product ${code} not found in current loaded brand list`);
                     return;
                   }
-                  
-                  // Fetch raw data from server
                   const response = await fetch(`${API_URL}/description-sync/debug/${product.id}`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${publicAnonKey}` },
                   });
-                  
-                  if (!response.ok) {
-                    throw new Error(`Failed: ${response.status}`);
-                  }
-                  
+                  if (!response.ok) throw new Error(`Failed: ${response.status}`);
                   const result = await response.json();
-
-
-                  // Show in alert
-                  alert(`📊 Product: ${result.productName}\n\n` +
-                    `Description: ${result.data.descriptionLength} chars\n` +
-                    `Specifications: ${result.data.specificationsCount} items\n` +
-                    `Age Restricted: ${result.data.ageRestricted}\n` +
-                    `Last Sync: ${result.data.lastDescriptionSync || 'Never'}\n\n` +
-                    `✅ Check console for full data`);
-                } catch (error) {
-                  alert(`Error: ${error}`);
+                  notify.info(`Product: ${result.productName} | Specs: ${result.data.specificationsCount}`);
+                } catch (error: any) {
+                  notify.error(`Database check error: ${error.message}`);
                 }
               }}
-              variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-100"
+              className="h-9 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs border border-slate-200 cursor-pointer transition-all"
             >
               Check Database
-            </Button>
-            
-            <Button
-              key="compare-db-uropa"
+            </button>
+
+            <button
               onClick={async () => {
                 const code = prompt('Enter product code to compare (e.g., AE157):');
                 if (!code) return;
-                
                 try {
-                  // Fetch comparison using product code directly (not database ID)
                   const response = await fetch(`${API_URL}/description-sync/compare/${code}`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${publicAnonKey}` },
                   });
-                  
-                  if (!response.ok) {
-                    throw new Error(`Failed: ${response.status}`);
-                  }
-                  
+                  if (!response.ok) throw new Error(`Failed: ${response.status}`);
                   const result = await response.json();
-
-
-                  // Show comparison
-                  alert(`📊 ${code} - Uropa API Data\n\n` +
-                    `UROPA API:\n` +
-                    `- Description: ${result.uropa.descriptionLength} chars\n` +
-                    `- Attributes: ${result.uropa.attributesCount} total\n` +
-                    `- Specifications: ${result.uropa.specificationsCount} items\n` +
-                    `- Age Restricted: ${result.uropa.ageRestricted}\n\n` +
-                    `UPDATES:\n` +
-                    `${result.wouldUpdate.join('\n')}\n\n` +
-                    `✅ Check console for full Uropa response`);
-                } catch (error) {
-                  alert(`Error: ${error}`);
+                  notify.info(`Uropa Specs: ${result.uropa?.specificationsCount} | Description: ${result.uropa?.descriptionLength} chars`);
+                } catch (error: any) {
+                  notify.error(`Comparison error: ${error.message}`);
                 }
               }}
-              variant="outline"
-              className="border-yellow-600 text-yellow-600 hover:bg-yellow-100"
+              className="h-9 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs border border-slate-200 cursor-pointer transition-all"
             >
               📊 Compare DB vs Uropa
-            </Button>
-            
-            <Button
-              key="test-uropa-api"
+            </button>
+
+            <button
               onClick={async () => {
                 const code = prompt('Enter product code to test Uropa API (e.g., AE157):');
                 if (!code) return;
-                
                 try {
-                  // Call test endpoint
                   const response = await fetch(`${API_URL}/description-sync/test-uropa/${code}`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${publicAnonKey}` },
                   });
-                  
-                  if (!response.ok) {
-                    throw new Error(`Failed: ${response.status}`);
-                  }
-                  
+                  if (!response.ok) throw new Error(`Failed: ${response.status}`);
                   const result = await response.json();
-
-                  // Log full result to console
-                  console.log('🌐 [Test Uropa API] Full Response:', result);
-                  console.log('🖼️ [Test Uropa API] Image Fields:', result.imageFields);
-                  console.log('🖼️ [Test Uropa API] Image Keys Found:', result.imageKeysFound);
-
-                  // Show API data including image info
-                  const imageKeysStr = result.imageKeysFound?.join(', ') || 'None';
-                  alert(`🌐 Uropa API Test for ${code}\n\n` +
-                    `Description: ${result.description?.length || 0} chars\n` +
-                    `Attributes: ${result.attributesCount} total\n` +
-                    `COMPARISONDATA: ${result.comparisonDataCount} items\n` +
-                    `Age Restricted: ${result.ageRestricted}\n\n` +
-                    `🖼️ IMAGE FIELDS FOUND:\n${imageKeysStr}\n\n` +
-                    `✅ Check console for FULL details and image field analysis`);
-                } catch (error) {
-                  alert(`Error: ${error}`);
+                  notify.info(`API Response for ${code}: ${result.description?.length || 0} chars`);
+                } catch (error: any) {
+                  notify.error(`Uropa test error: ${error.message}`);
                 }
               }}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-100"
+              className="h-9 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-xs border border-emerald-200 cursor-pointer transition-all"
             >
               Test Uropa API
-            </Button>
-
-            <Button
-              key="debug-images"
-              onClick={async () => {
-                const code = prompt('Enter product code (e.g., CD085-A):');
-                if (!code) return;
-
-                try {
-                  const response = await fetch(`${API_URL}/description-sync/debug-images/${code}`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-                  });
-
-                  const result = await response.json();
-
-                  if (!response.ok || !result.success) {
-                    alert(`❌ Error: ${result.error || 'Unknown error'}`);
-                    return;
-                  }
-
-                  console.log('🌐 [UROPA RAW]:', result.uropaRaw);
-                  console.log('💾 [DB RAW]:', result.dbRaw);
-
-                  // Open window with raw JSON comparison
-                  const w = window.open('', '_blank', 'width=1200,height=900');
-                  if (w) {
-                    w.document.write(`
-                      <!DOCTYPE html>
-                      <html>
-                      <head>
-                        <title>RAW JSON - ${code}</title>
-                        <style>
-                          body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
-                          h2 { color: #4ec9b0; margin-top: 30px; }
-                          pre { background: #252526; padding: 15px; border-radius: 5px; overflow: auto; max-height: 500px; border: 1px solid #333; }
-                          .section { margin: 20px 0; }
-                        </style>
-                      </head>
-                      <body>
-                        <h2>🔍 RAW JSON COMPARISON - ${code}</h2>
-
-                        <div class="section">
-                          <h3 style="color: #ce9178;">🌐 UROPA API RAW:</h3>
-                          <pre>${JSON.stringify(result.uropaRaw, null, 2)}</pre>
-                        </div>
-
-                        <div class="section">
-                          <h3 style="color: #569cd6;">💾 DATABASE RAW:</h3>
-                          <pre>${JSON.stringify(result.dbRaw, null, 2)}</pre>
-                        </div>
-                      </body>
-                      </html>
-                    `);
-                    w.document.close();
-                  }
-
-                  alert(`✅ Raw JSON opened in new window!\nCheck console for full data.`);
-                } catch (error) {
-                  alert(`❌ Error: ${error}`);
-                }
-              }}
-              variant="outline"
-              className="border-orange-600 text-orange-600 hover:bg-orange-100"
-            >
-              🖼️ Debug Images
-            </Button>
+            </button>
           </div>
-          <p className="text-xs text-blue-700 mt-3">
-            💡 If products display old data after sync, use "Clear All Cache" and reload the page
-          </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>📝 Description & Specifications Sync</CardTitle>
-          <CardDescription>
-            Sync product descriptions, specifications, age restrictions, and thumbnail gallery from Uropa API.
-            <br />
-            <strong>Updates ONLY:</strong> description, specifications, ageRestricted, images (thumbnail gallery).
-            <br />
-            <span className="text-xs text-gray-500">Note: Does NOT update mainImage or image fields - those are managed separately.</span>
+      {/* Main Filter & Sync Section */}
+      <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <CardTitle className="text-base text-[#0f172a] font-black">
+            📝 Filter & Select Products
+          </CardTitle>
+          <CardDescription className="text-xs text-slate-500 font-medium">
+            Updates description, specifications, age restrictions, and thumbnail gallery. Main product images are preserved.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+        <CardContent className="p-4 sm:p-6 space-y-5">
+          {/* Filter Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
             <div>
-              <Label htmlFor="brand-filter">Select Brand</Label>
+              <Label htmlFor="brand-filter" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Select Brand
+              </Label>
               <select
                 id="brand-filter"
-                className="w-full mt-1 p-2 border rounded"
+                className="w-full mt-1.5 h-10 px-3 border border-slate-200 rounded-xl bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#E31837]/20"
                 value={selectedBrand}
                 onChange={(e) => setSelectedBrand(e.target.value)}
                 disabled={brandsLoading}
               >
-                <option value="">-- Select a brand to load products --</option>
+                <option value="">-- Select brand to load products --</option>
                 {availableBrands.map(brand => (
                   <option key={brand} value={brand}>{brand}</option>
                 ))}
               </select>
               {selectedBrand && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {allProducts.length} products loaded
+                <p className="text-[11px] font-semibold text-slate-500 mt-1">
+                  {allProducts.length} products loaded for brand
                 </p>
               )}
             </div>
-            
+
             <div>
-              <Label htmlFor="skip-description">Skip Products With Description</Label>
-              <div className="flex items-center mt-3">
+              <Label htmlFor="skip-description" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Filter Criterion
+              </Label>
+              <div className="flex items-center mt-3 gap-2">
                 <input
                   type="checkbox"
                   id="skip-description"
                   checked={skipWithDescription}
                   onChange={(e) => setSkipWithDescription(e.target.checked)}
-                  className="w-4 h-4 mr-2"
+                  className="size-4 text-[#E31837] rounded border-slate-300 focus:ring-0 cursor-pointer"
                 />
-                <span className="text-sm">Only show products needing description</span>
+                <label htmlFor="skip-description" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                  Only show products missing descriptions
+                </label>
               </div>
             </div>
-            
+
             <div className="flex items-end">
-              <Button
+              <button
                 onClick={() => selectedBrand && fetchProductsForBrand(selectedBrand)}
                 disabled={loading || !selectedBrand}
-                variant="outline"
-                className="w-full"
+                className="w-full h-10 bg-white hover:bg-slate-100 text-slate-800 rounded-xl font-bold text-xs border border-slate-300 shadow-2xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh from DB
-              </Button>
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh Brand Products
+              </button>
             </div>
           </div>
 
-          {/* Selection Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="text-sm">
-              <strong>{selectedProducts.size}</strong> products selected
+          {/* Selection & Batch Action Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-900 text-white rounded-xl shadow-xs">
+            <div className="text-xs sm:text-sm font-medium">
+              <span className="font-black text-[#E31837] text-base mr-1">{selectedProducts.size}</span>
+              products selected
               {selectedProducts.size > 0 && (
-                <span className="ml-2 text-gray-600">
-                  (max 50 per batch)
-                </span>
+                <span className="text-xs text-slate-400 ml-2">(batch limit: 50)</span>
               )}
             </div>
-            
-            <div className="flex gap-2">
-              <Button
-                key="select-page"
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
                 onClick={selectAll}
-                variant="outline"
-                size="sm"
-                disabled={loading}
+                disabled={loading || currentProducts.length === 0}
+                className="h-8 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold text-xs transition-all disabled:opacity-50 cursor-pointer"
               >
                 Select Page ({currentProducts.length})
-              </Button>
-              
-              <Button
-                key="deselect-all"
+              </button>
+
+              <button
                 onClick={deselectAll}
-                variant="outline"
-                size="sm"
                 disabled={selectedProducts.size === 0}
+                className="h-8 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold text-xs transition-all disabled:opacity-50 cursor-pointer"
               >
                 Deselect All
-              </Button>
-              
-              <Button
-                key="sync-selected"
+              </button>
+
+              <button
                 onClick={runBatchSync}
                 disabled={syncing || selectedProducts.size === 0}
-                className="bg-green-600 hover:bg-green-700"
+                className="h-8 px-4 bg-[#E31837] hover:bg-[#E31837]/90 text-white rounded-lg font-bold text-xs shadow-2xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {syncing ? (
                   <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    <RefreshCw className="size-3.5 animate-spin" />
                     Syncing...
                   </>
                 ) : (
                   <>
-                    <FileText className="w-4 h-4 mr-2" />
+                    <FileText className="size-3.5" />
                     Sync Selected ({Math.min(selectedProducts.size, 50)})
                   </>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
 
           {/* Products Table */}
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
-              <span className="ml-2 text-gray-500">Loading products...</span>
+            <div className="flex items-center justify-center py-16 text-slate-500 space-x-3">
+              <RefreshCw className="size-6 animate-spin text-[#E31837]" />
+              <span className="text-sm font-semibold">Loading product data from server...</span>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No products found matching filters.</p>
-              <p className="text-sm mt-2">Try adjusting your filters or unchecking "Skip Products With Description".</p>
+            <div className="text-center py-16 text-slate-500 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+              <AlertCircle className="size-10 mx-auto mb-3 text-slate-400" />
+              <p className="font-bold text-sm text-slate-700">No products found matching filters</p>
+              <p className="text-xs text-slate-500 mt-1">Select a brand above or adjust filter options.</p>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-100">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider">
                     <tr>
-                      <th className="p-3 text-left w-12">
+                      <th className="p-3 w-10 text-center">
                         <input
                           type="checkbox"
                           checked={currentProducts.length > 0 && currentProducts.every(p => selectedProducts.has(p.id))}
                           onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
-                          className="w-4 h-4"
+                          className="size-4 text-[#E31837] rounded border-slate-300 focus:ring-0 cursor-pointer"
                         />
                       </th>
-                      <th className="p-3 text-left">Code</th>
-                      <th className="p-3 text-left">Product Name</th>
-                      <th className="p-3 text-left">Brand</th>
+                      <th className="p-3">Code</th>
+                      <th className="p-3">Product Name</th>
+                      <th className="p-3">Brand</th>
                       <th className="p-3 text-center">Description</th>
                       <th className="p-3 text-center">Specs</th>
-                      <th className="p-3 text-center">Age Restricted</th>
-                      <th className="p-3 text-left">Last Sync</th>
+                      <th className="p-3 text-center">Age Restr.</th>
+                      <th className="p-3">Last Sync</th>
                       <th className="p-3 text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                     {currentProducts.map((product) => (
                       <tr
                         key={product.id}
-                        className={`border-t hover:bg-gray-50 ${selectedProducts.has(product.id) ? 'bg-blue-50' : ''}`}
+                        className={`hover:bg-slate-50/80 transition-colors ${selectedProducts.has(product.id) ? 'bg-red-50/40' : ''}`}
                       >
-                        <td className="p-3">
+                        <td className="p-3 text-center">
                           <input
                             type="checkbox"
                             checked={selectedProducts.has(product.id)}
                             onChange={() => toggleProduct(product.id)}
-                            className="w-4 h-4"
+                            className="size-4 text-[#E31837] rounded border-slate-300 focus:ring-0 cursor-pointer"
                           />
                         </td>
-                        <td className="p-3 font-mono text-sm">{product.code}</td>
-                        <td className="p-3 text-sm">{product.name}</td>
-                        <td className="p-3 text-sm">{product.brand}</td>
+                        <td className="p-3 font-mono font-bold text-slate-900">{product.code}</td>
+                        <td className="p-3 max-w-xs truncate font-semibold">{product.name}</td>
+                        <td className="p-3 text-slate-600">{product.brand}</td>
                         <td className="p-3 text-center">
                           {product.hasDescription ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              <span className="text-xs text-gray-500">({product.descriptionLength} chars)</span>
-                            </div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="size-3" />
+                              {product.descriptionLength}c
+                            </span>
                           ) : (
-                            <XCircle className="w-4 h-4 text-red-500 mx-auto" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
+                              <XCircle className="size-3" />
+                              Missing
+                            </span>
                           )}
                         </td>
                         <td className="p-3 text-center">
                           {product.hasSpecifications ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              <span className="text-xs text-gray-500">({product.specificationsCount})</span>
-                            </div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="size-3" />
+                              {product.specificationsCount} items
+                            </span>
                           ) : (
-                            <XCircle className="w-4 h-4 text-red-500 mx-auto" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
+                              <XCircle className="size-3" />
+                              None
+                            </span>
                           )}
                         </td>
                         <td className="p-3 text-center">
                           {product.ageRestricted ? (
-                            <AlertCircle className="w-4 h-4 text-orange-600 mx-auto" />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                              18+
+                            </span>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
-                        <td className="p-3 text-xs text-gray-500">
-                          {product.lastDescriptionSync 
-                            ? new Date(product.lastDescriptionSync).toLocaleString()
+                        <td className="p-3 text-[11px] text-slate-500 whitespace-nowrap">
+                          {product.lastDescriptionSync
+                            ? new Date(product.lastDescriptionSync).toLocaleDateString()
                             : 'Never'
                           }
                         </td>
                         <td className="p-3 text-center">
-                          <Button
-                            key="debug-sync"
+                          <button
                             onClick={() => debugSyncSingleProduct(product.code)}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="h-7 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer transition-all"
                           >
-                            <Bug className="w-4 h-4" />
-                            Debug Sync
-                          </Button>
+                            <Bug className="size-3" />
+                            Debug
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -892,248 +631,147 @@ Duration: ${(result.summary.duration / 1000).toFixed(1)}s
             </div>
           )}
 
-          {/* Pagination */}
+          {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm text-gray-600">
-                Showing {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, filteredProducts.length)} of {filteredProducts.length} products
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div className="text-xs font-semibold text-slate-500">
+                Showing {startIndex + 1} - {Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} products
               </div>
-              
-              <div className="flex gap-2">
-                <Button
+
+              <div className="flex items-center gap-2">
+                <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1 || loading}
-                  variant="outline"
-                  size="sm"
+                  className="h-8 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-bold text-xs flex items-center gap-1 disabled:opacity-50 cursor-pointer"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                  Previous
-                </Button>
-                
-                <div className="flex items-center px-4">
+                  <ChevronLeft className="size-3.5" />
+                  Prev
+                </button>
+
+                <span className="text-xs font-bold text-slate-700 px-2">
                   Page {currentPage} of {totalPages}
-                </div>
-                
-                <Button
+                </span>
+
+                <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages || loading}
-                  variant="outline"
-                  size="sm"
+                  className="h-8 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-bold text-xs flex items-center gap-1 disabled:opacity-50 cursor-pointer"
                 >
                   Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                  <ChevronRight className="size-3.5" />
+                </button>
               </div>
             </div>
           )}
 
-          {/* Sync Results */}
+          {/* Sync Results Summary */}
           {syncResults && (
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-              <h3 className="font-semibold text-green-800 mb-2">✅ Last Sync Results</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                <div>
-                  <div className="text-gray-600">Descriptions</div>
-                  <div className="text-lg font-bold text-green-700">{syncResults.summary.descriptionsUpdated}</div>
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-2">
+              <h3 className="font-black text-emerald-900 text-xs sm:text-sm flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-emerald-600" />
+                Last Sync Execution Summary
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                  <div className="text-slate-500 font-medium text-[10px]">Descriptions</div>
+                  <div className="text-base font-black text-emerald-700">{syncResults.summary?.descriptionsUpdated || 0}</div>
                 </div>
-                <div>
-                  <div className="text-gray-600">Specifications</div>
-                  <div className="text-lg font-bold text-green-700">{syncResults.summary.specificationsUpdated}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                  <div className="text-slate-500 font-medium text-[10px]">Specifications</div>
+                  <div className="text-base font-black text-emerald-700">{syncResults.summary?.specificationsUpdated || 0}</div>
                 </div>
-                <div>
-                  <div className="text-gray-600">Thumbnails</div>
-                  <div className="text-lg font-bold text-green-700">{syncResults.summary.imagesUpdated || 0}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                  <div className="text-slate-500 font-medium text-[10px]">Thumbnails</div>
+                  <div className="text-base font-black text-emerald-700">{syncResults.summary?.imagesUpdated || 0}</div>
                 </div>
-                <div>
-                  <div className="text-gray-600">Skipped</div>
-                  <div className="text-lg font-bold text-gray-700">{syncResults.summary.skipped}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                  <div className="text-slate-500 font-medium text-[10px]">Skipped</div>
+                  <div className="text-base font-black text-slate-700">{syncResults.summary?.skipped || 0}</div>
                 </div>
-                <div>
-                  <div className="text-gray-600">Errors</div>
-                  <div className="text-lg font-bold text-red-700">{syncResults.summary.errors}</div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                  <div className="text-slate-500 font-medium text-[10px]">Errors</div>
+                  <div className="text-base font-black text-red-600">{syncResults.summary?.errors || 0}</div>
                 </div>
-              </div>
-              <div className="mt-3 text-xs text-gray-600">
-                Duration: {(syncResults.summary.duration / 1000).toFixed(2)}s
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 🔥 DEBUG MODAL */}
+      {/* Debug Modal Overlay */}
       {debugModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-blue-600 text-white">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Bug className="w-6 h-6" />
-                Debug Sync Results
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col font-sans border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+              <h2 className="text-sm font-black flex items-center gap-2">
+                <Bug className="size-4 text-[#E31837]" />
+                Single Product Sync Diagnostic
               </h2>
               <button
                 onClick={closeDebugModal}
-                className="p-2 hover:bg-blue-700 rounded"
+                className="p-1 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="size-5" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
               {debugLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-                  <span className="ml-3 text-lg">Syncing and fetching data...</span>
+                <div className="flex flex-col items-center justify-center py-12 text-slate-500 space-y-3">
+                  <RefreshCw className="size-8 animate-spin text-[#E31837]" />
+                  <span className="text-sm font-semibold">Executing Uropa API payload extraction...</span>
                 </div>
               ) : debugData?.error ? (
-                <div className="bg-red-50 border-2 border-red-500 rounded-lg p-6">
-                  <h3 className="text-xl font-bold text-red-800 mb-2">❌ Error</h3>
-                  <p className="text-red-700">{debugData.message}</p>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800">
+                  <h3 className="font-bold text-sm mb-1">Diagnostic Error</h3>
+                  <p className="text-xs">{debugData.message}</p>
                 </div>
               ) : debugData ? (
-                <div className="space-y-6">
-                  {/* Summary */}
-                  <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
-                    <h3 className="text-lg font-bold text-green-800 mb-3">✅ Sync Complete</h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Product Code:</span>
-                        <span className="ml-2 font-mono font-bold">{debugData.productCode}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Status:</span>
-                        <span className="ml-2 font-bold text-green-600">{debugData.success ? 'SUCCESS' : 'FAILED'}</span>
-                      </div>
+                <div className="space-y-4 text-xs">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-700">Product Code:</span>
+                      <span className="ml-2 font-mono font-black text-slate-900">{debugData.productCode}</span>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-200 text-emerald-900">
+                      {debugData.success ? 'SUCCESS' : 'FAILED'}
+                    </span>
+                  </div>
+
+                  {/* Database State Before */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-100 p-2.5 font-bold text-slate-800 border-b border-slate-200">
+                      📦 Database State (Before Sync)
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <p><strong>Description Length:</strong> {debugData.before?.descriptionLength || 0} chars</p>
+                      <p><strong>Specifications Count:</strong> {debugData.before?.specificationsCount || 0} items</p>
+                      <p><strong>Age Restricted:</strong> {debugData.before?.ageRestricted ? 'YES' : 'NO'}</p>
                     </div>
                   </div>
 
-                  {/* BEFORE - What's in your database */}
-                  <div className="border-2 border-orange-500 rounded-lg">
-                    <div className="bg-orange-500 text-white p-3">
-                      <h3 className="font-bold text-lg">📦 BEFORE (Your Database)</h3>
+                  {/* Saved After */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-emerald-100 p-2.5 font-bold text-emerald-900 border-b border-emerald-200">
+                      💾 Saved Database State (After Sync)
                     </div>
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <span className="font-semibold">Description:</span>
-                        <span className="ml-2">{debugData.before?.descriptionLength || 0} chars</span>
-                        {debugData.before?.description && (
-                          <pre className="mt-2 p-3 bg-gray-50 rounded text-xs overflow-x-auto">
-                            {debugData.before.description.substring(0, 300)}
-                            {debugData.before.description.length > 300 ? '...' : ''}
-                          </pre>
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Specifications:</span>
-                        <span className="ml-2">{debugData.before?.specificationsCount || 0} items</span>
-                        {debugData.before?.specifications && debugData.before.specifications.length > 0 && (
-                          <ul className="mt-2 space-y-1 bg-gray-50 p-3 rounded text-sm">
-                            {debugData.before.specifications.map((spec: any, idx: number) => (
-                              <li key={idx} className="flex">
-                                <span className="font-semibold min-w-[150px]">{spec.label}:</span>
-                                <span>{spec.value}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Age Restricted:</span>
-                        <span className="ml-2">{debugData.before?.ageRestricted ? '🔞 YES' : '✅ NO'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* UROPA - What Uropa API returned */}
-                  <div className="border-2 border-purple-500 rounded-lg">
-                    <div className="bg-purple-500 text-white p-3">
-                      <h3 className="font-bold text-lg">🌐 UROPA API DATA</h3>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <span className="font-semibold">Total Attributes:</span>
-                        <span className="ml-2">{debugData.uropa?.attributesCount || 0}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">Description:</span>
-                        <span className="ml-2">{debugData.uropa?.descriptionLength || 0} chars</span>
-                        {debugData.uropa?.descriptionSample && (
-                          <pre className="mt-2 p-3 bg-purple-50 rounded text-xs overflow-x-auto">
-                            {debugData.uropa.descriptionSample}
-                          </pre>
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Processed Specifications:</span>
-                        <span className="ml-2">{debugData.uropa?.specificationsCount || 0} items</span>
-                        {debugData.uropa?.specificationsSample && debugData.uropa.specificationsSample.length > 0 && (
-                          <ul className="mt-2 space-y-1 bg-purple-50 p-3 rounded text-sm max-h-96 overflow-y-auto">
-                            {debugData.uropa.specificationsSample.map((spec: any, idx: number) => (
-                              <li key={idx} className="flex">
-                                <span className="font-semibold min-w-[150px]">{spec.label}:</span>
-                                <span>{spec.value}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Age Restricted:</span>
-                        <span className="ml-2">{debugData.uropa?.ageRestricted ? '🔞 YES' : '✅ NO'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* AFTER - What was saved */}
-                  <div className="border-2 border-green-500 rounded-lg">
-                    <div className="bg-green-500 text-white p-3">
-                      <h3 className="font-bold text-lg">💾 AFTER (Saved to Database)</h3>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <span className="font-semibold">Description:</span>
-                        <span className="ml-2">{debugData.after?.descriptionLength || 0} chars</span>
-                        {debugData.after?.description && (
-                          <pre className="mt-2 p-3 bg-green-50 rounded text-xs overflow-x-auto">
-                            {debugData.after.description.substring(0, 300)}
-                            {debugData.after.description.length > 300 ? '...' : ''}
-                          </pre>
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Specifications:</span>
-                        <span className="ml-2">{debugData.after?.specificationsCount || 0} items</span>
-                        {debugData.after?.specifications && debugData.after.specifications.length > 0 && (
-                          <ul className="mt-2 space-y-1 bg-green-50 p-3 rounded text-sm max-h-96 overflow-y-auto">
-                            {debugData.after.specifications.map((spec: any, idx: number) => (
-                              <li key={idx} className="flex">
-                                <span className="font-semibold min-w-[150px]">{spec.label}:</span>
-                                <span>{spec.value}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Age Restricted:</span>
-                        <span className="ml-2">{debugData.after?.ageRestricted ? '🔞 YES' : '✅ NO'}</span>
-                      </div>
+                    <div className="p-3 space-y-2">
+                      <p><strong>Description Length:</strong> {debugData.after?.descriptionLength || 0} chars</p>
+                      <p><strong>Specifications Count:</strong> {debugData.after?.specificationsCount || 0} items</p>
+                      <p><strong>Age Restricted:</strong> {debugData.after?.ageRestricted ? 'YES' : 'NO'}</p>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <p>No debug data available</p>
-                </div>
-              )}
+              ) : null}
             </div>
 
-            {/* Footer */}
-            <div className="p-4 border-t bg-gray-50 flex justify-end">
-              <Button onClick={closeDebugModal} variant="outline">
-                Close
-              </Button>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                onClick={closeDebugModal}
+                className="h-9 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs cursor-pointer"
+              >
+                Close Diagnostic
+              </button>
             </div>
           </div>
         </div>

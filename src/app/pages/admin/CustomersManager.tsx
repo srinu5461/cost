@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, Search, Eye, Edit, Trash2, Loader2, UserPlus, Mail, Phone, DollarSign, Shield } from 'lucide-react';
+import { User, Search, Eye, Edit, Trash2, Loader2, UserPlus, Mail, Phone, DollarSign, Shield, Users } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
-import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -17,10 +16,12 @@ export function CustomersManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [accessFilter, setAccessFilter] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetCustomer, setDeleteTargetCustomer] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -39,94 +40,52 @@ export function CustomersManager() {
   }, []);
 
   useEffect(() => {
-    // Filter customers based on search term
+    let filtered = customers;
+
     if (searchTerm) {
-      const filtered = customers.filter(customer =>
+      filtered = filtered.filter(customer =>
         customer.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.phone?.includes(searchTerm)
       );
-      setFilteredCustomers(filtered);
-    } else {
-      setFilteredCustomers(customers);
     }
-  }, [searchTerm, customers]);
+
+    if (accessFilter === 'cost_price') {
+      filtered = filtered.filter(c => c.can_see_cost_price);
+    } else if (accessFilter === 'cost_plus_hundred') {
+      filtered = filtered.filter(c => c.cost_plus_hundred_access);
+    } else if (accessFilter === 'discount') {
+      filtered = filtered.filter(c => c.discount_percentage > 0);
+    } else if (accessFilter === 'retail') {
+      filtered = filtered.filter(c => !c.can_see_cost_price && !c.cost_plus_hundred_access && (!c.discount_percentage || c.discount_percentage === 0));
+    }
+
+    setFilteredCustomers(filtered);
+  }, [searchTerm, accessFilter, customers]);
 
   const fetchCustomers = async () => {
     try {
       setError(null);
-      console.log('🔄 Fetching customers from API...');
-      console.log('Project ID:', projectId);
-      console.log('API Base URL:', API_URL);
-      console.log('Full endpoint:', `${API_URL}/customers`);
-
-      // First, test if the edge function is reachable at all
-      const testUrl = `${API_URL}/email/test`;
-      try {
-        const testResponse = await fetch(testUrl, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-          signal: AbortSignal.timeout(5000)
-        });
-        console.log('✅ Edge function is reachable (test endpoint responded)');
-      } catch (testError) {
-        console.error('❌ Edge function is NOT reachable:', testError);
-        throw new Error('Cannot reach Supabase Edge Function. Please deploy the "server" function in your Supabase Dashboard.');
-      }
-
       const response = await fetch(`${API_URL}/customers?t=${Date.now()}`, {
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache',
         },
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(10000)
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Response error body:', errorText);
-
-        // Check if this is a 404 (route not found) - means edge function not deployed
-        if (response.status === 404) {
-          throw new Error('Customers endpoint not found (404). The edge function exists but may need redeployment to include the latest routes.');
-        }
-
-        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('✅ API Response received');
-      console.log('✅ Number of customers:', data.customers?.length || 0);
-
-      if (data.customers && data.customers.length > 0) {
-        console.log('Sample customer:', data.customers[0]);
-      }
-
       setCustomers(data.customers || []);
       setFilteredCustomers(data.customers || []);
       setError(null);
     } catch (error) {
-      console.error('❌ Failed to fetch customers:', error);
-      console.error('Error type:', error?.constructor?.name);
-      console.error('Error message:', error instanceof Error ? error.message : String(error));
-
-      let errorMsg = 'Unknown error';
-
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        errorMsg = 'Network error: Cannot reach Supabase Edge Function. The edge function must be deployed through Supabase Dashboard.';
-      } else if (error.name === 'TimeoutError' || error.name === 'AbortError') {
-        errorMsg = 'Request timeout: Edge function took too long to respond or is not deployed.';
-      } else if (error instanceof Error) {
-        errorMsg = error.message;
-      }
-
-      setError(errorMsg);
+      console.error('Failed to fetch customers:', error);
+      setError('Could not load customer database.');
       setCustomers([]);
       setFilteredCustomers([]);
     } finally {
@@ -134,7 +93,7 @@ export function CustomersManager() {
     }
   };
 
-  const handleViewCustomer = async (customer: any) => {
+  const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer);
     setViewDialogOpen(true);
   };
@@ -158,7 +117,6 @@ export function CustomersManager() {
     if (!selectedCustomer) return;
 
     try {
-      // First update basic customer info
       const response = await fetch(`${API_URL}/customers/${selectedCustomer.id}`, {
         method: 'PUT',
         headers: {
@@ -170,10 +128,7 @@ export function CustomersManager() {
 
       if (!response.ok) throw new Error('Failed to update customer');
 
-      const updateResult = await response.json();
-
-      // Then update access levels
-      const accessResponse = await fetch(`${API_URL}/customers/${selectedCustomer.id}/update-access-levels`, {
+      await fetch(`${API_URL}/customers/${selectedCustomer.id}/update-access-levels`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,23 +141,11 @@ export function CustomersManager() {
         }),
       });
 
-      if (!accessResponse.ok) {
-        console.warn('Failed to update access levels, but customer info was updated');
-      }
-
-      const accessResult = await accessResponse.json();
-
-      // Close dialog first
       setEditDialogOpen(false);
-      
-      // Refresh the customer list to show updated data
       await fetchCustomers();
-      
-      // Show success message
-      alert('✅ Customer updated successfully! An email notification has been sent to the customer.');
     } catch (error) {
       console.error('Failed to update customer:', error);
-      alert('❌ Failed to update customer');
+      alert('Failed to update customer');
     }
   };
 
@@ -222,13 +165,7 @@ export function CustomersManager() {
         throw new Error(data.error || 'Failed to add customer');
       }
 
-      const result = await response.json();
-      console.log('Customer created successfully:', result);
-
-      // Refresh customers list
       await fetchCustomers();
-      
-      // Close dialog and reset form
       setAddDialogOpen(false);
       setFormData({
         firstName: '',
@@ -240,356 +177,297 @@ export function CustomersManager() {
         discountPercentage: 0,
         costPlusHundredAccess: false
       });
-      
-      // Show success message
-      alert(`✅ ${result.message || 'Customer created successfully!'}`);
     } catch (error: any) {
       console.error('Failed to add customer:', error);
-      alert(`❌ ${error.message || 'Failed to add customer'}`);
+      alert(error.message || 'Failed to add customer');
     }
   };
 
-  const handleDeleteCustomer = (customer: any) => {
-    setSelectedCustomer(customer);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!selectedCustomer) return;
+  const confirmDeleteCustomer = async () => {
+    if (!deleteTargetCustomer) return;
+    setDeleting(true);
 
     try {
-      const response = await fetch(`${API_URL}/customers/${selectedCustomer.id}`, {
+      const response = await fetch(`${API_URL}/customers/${deleteTargetCustomer.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
         },
       });
 
-      console.log('Delete response status:', response.status);
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Delete response error:', errorData);
-        throw new Error(errorData.error || 'Failed to delete customer');
+        throw new Error('Failed to delete customer');
       }
 
-      const result = await response.json();
-      console.log('Delete successful:', result);
-
+      setDeleteTargetCustomer(null);
       await fetchCustomers();
-      setDeleteDialogOpen(false);
-      setSelectedCustomer(null);
     } catch (error) {
       console.error('Failed to delete customer:', error);
-      alert('Failed to delete customer: ' + (error as Error).message);
+      alert('Failed to delete customer');
+    } finally {
+      setDeleting(false);
     }
   };
 
+  const stats = {
+    total: customers.length,
+    costPrice: customers.filter(c => c.can_see_cost_price).length,
+    costPlusHundred: customers.filter(c => c.cost_plus_hundred_access).length,
+    discount: customers.filter(c => c.discount_percentage > 0).length,
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto pb-8 space-y-5">
+        <div className="animate-pulse space-y-4">
+          <div className="h-20 w-full bg-slate-100 rounded-xl border border-slate-200"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-slate-100 rounded-xl border border-slate-200"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto pb-8 space-y-5">
+      {/* Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Customers Management</h1>
-          <p className="text-muted-foreground">
-            View and manage all registered customers
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight">Customers</h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Manage your customers and their access levels
           </p>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} className="bg-[#E31837] hover:bg-[#E31837]/90">
-          <UserPlus className="size-4 mr-2" />
+        <button 
+          onClick={() => {
+            setFormData({
+              firstName: '',
+              lastName: '',
+              email: '',
+              phone: '',
+              password: '',
+              canSeeCostPrice: false,
+              discountPercentage: 0,
+              costPlusHundredAccess: false
+            });
+            setAddDialogOpen(true);
+          }}
+          className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer w-full sm:w-auto"
+        >
+          <UserPlus className="size-4" />
           Add Customer
-        </Button>
+        </button>
       </div>
 
-      {/* Stats Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <User className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customers.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New This Month</CardTitle>
-            <UserPlus className="size-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {customers.filter(c => {
-                const createdDate = new Date(c.created_at);
-                const now = new Date();
-                return createdDate.getMonth() === now.getMonth() &&
-                       createdDate.getFullYear() === now.getFullYear();
-              }).length}
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'TOTAL CUSTOMERS', value: stats.total, icon: Users, color: 'text-slate-600', bg: 'bg-slate-50' },
+          { label: 'WHOLESALE (COST)', value: stats.costPrice, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'COST + $100 ACCESS', value: stats.costPlusHundred, icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'DISCOUNT ACCOUNTS', value: stats.discount, icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{stat.value}</p>
+              </div>
+              <div className={`size-11 rounded-xl ${stat.bg} border border-slate-200 flex items-center justify-center shrink-0`}>
+                <stat.icon className={`size-5.5 ${stat.color}`} />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
-            <User className="size-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customers.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email, or phone..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Button onClick={fetchCustomers} variant="outline">
-              Refresh
-            </Button>
           </div>
-        </CardHeader>
-      </Card>
+        ))}
+      </div>
 
-      {/* Customers Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Customers ({filteredCustomers.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-12">
-              <Loader2 className="size-8 animate-spin mx-auto text-[#E31837] mb-2" />
-              <p className="text-muted-foreground">Loading customers...</p>
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 flex items-center gap-3 text-xs font-bold">
+          <Shield className="size-5 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white rounded-xl p-3.5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+        <div className="relative max-w-sm sm:max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search customers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs sm:text-sm font-semibold w-full"
+          />
+        </div>
+        <div className="w-full sm:w-48 shrink-0">
+          <Select value={accessFilter} onValueChange={(val) => setAccessFilter(val)}>
+            <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:ring-1 focus:ring-[#E31837] text-xs sm:text-sm font-bold text-slate-700 cursor-pointer">
+              <SelectValue placeholder="All Access Levels" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+              <SelectItem value="all" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">All Access Levels</SelectItem>
+              <SelectItem value="cost_price" className="cursor-pointer text-xs sm:text-sm font-bold text-emerald-700">Cost Price (Wholesale)</SelectItem>
+              <SelectItem value="cost_plus_hundred" className="cursor-pointer text-xs sm:text-sm font-bold text-purple-700">Cost + $100</SelectItem>
+              <SelectItem value="discount" className="cursor-pointer text-xs sm:text-sm font-bold text-blue-700">Discounted</SelectItem>
+              <SelectItem value="retail" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-600">Standard Retail</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Main Table Card */}
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+        {/* Table Header */}
+        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+          <h3 className="text-sm font-extrabold text-[#0f172a]">Customers List</h3>
+          <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-full">
+            {filteredCustomers.length} Total Records
+          </span>
+        </div>
+
+        {filteredCustomers.length === 0 ? (
+          <div className="text-center p-12 bg-white">
+            <div className="bg-slate-50 size-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
+              <User className="size-8 text-slate-400" />
             </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <div className="bg-red-100 size-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="size-8 text-red-600" />
+            <h3 className="text-base font-black text-[#0f172a] mb-1">No customers found</h3>
+            <p className="text-xs text-slate-500 font-medium">Try adjusting your search query or filter</p>
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto bg-white">
+            <div className="min-w-[900px]">
+              {/* Header row */}
+              <div className="flex items-center px-6 py-3.5 border-b border-slate-200 bg-slate-50/80">
+                <div className="w-[30%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer</div>
+                <div className="w-[20%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Contact Info</div>
+                <div className="w-[25%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Access Level</div>
+                <div className="w-[15%] text-[11px] font-bold text-slate-500 uppercase tracking-wider">Joined Date</div>
+                <div className="w-[10%] text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</div>
               </div>
-              <h3 className="font-semibold text-lg mb-2">Failed to Load Customers</h3>
-              <p className="text-muted-foreground mb-4 max-w-md mx-auto text-sm">{error}</p>
 
-              <div className="bg-blue-50 border-2 border-blue-300 p-6 rounded-lg max-w-2xl mx-auto mb-6">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="bg-blue-500 text-white rounded-full p-2 flex-shrink-0">
-                    <span className="text-2xl">🚀</span>
+              {/* Rows */}
+              <div className="divide-y divide-slate-200">
+                {filteredCustomers.map((customer) => (
+                  <div key={customer.id} className="flex items-center px-6 py-4 hover:bg-slate-50/80 transition-colors">
+                    <div className="w-[30%] flex items-center gap-4">
+                      <div className="size-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shadow-xs shrink-0">
+                        <span className="font-extrabold text-slate-600 text-sm">
+                          {customer.first_name?.[0]}{customer.last_name?.[0]}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-sm text-[#0f172a]">{customer.first_name} {customer.last_name}</div>
+                        <div className="text-[11px] font-semibold text-slate-400">ID: {customer.id}</div>
+                      </div>
+                    </div>
+                    <div className="w-[20%]">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1">
+                        <Mail className="size-3.5 text-slate-400" />
+                        <span className="truncate">{customer.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                        <Phone className="size-3 text-slate-400" />
+                        <span>{customer.phone || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <div className="w-[25%]">
+                      {customer.can_see_cost_price ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                          <DollarSign className="size-3" />
+                          Cost Price
+                        </span>
+                      ) : customer.cost_plus_hundred_access ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                          <DollarSign className="size-3" />
+                          Cost + $100
+                        </span>
+                      ) : customer.discount_percentage > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                          <DollarSign className="size-3" />
+                          {customer.discount_percentage}% OFF
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                          Retail (Normal)
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-[15%] text-xs font-semibold text-slate-500">
+                      {new Date(customer.created_at).toLocaleDateString('en-AU', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </div>
+                    <div className="w-[10%] flex justify-end gap-1.5">
+                      <button
+                        onClick={() => handleViewCustomer(customer)}
+                        className="size-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                        title="View Details"
+                      >
+                        <Eye className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleEditCustomer(customer)}
+                        className="size-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                        title="Edit Customer"
+                      >
+                        <Edit className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTargetCustomer(customer)}
+                        className="size-8 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-600 hover:text-rose-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                        title="Delete Customer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-blue-900 font-semibold text-lg mb-2">
-                      Deploy Required
-                    </p>
-                    <p className="text-blue-800 text-sm mb-3">
-                      The Supabase Edge Function needs to be deployed for the Customers API to work.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg p-4 mb-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-3">📋 Deployment Steps:</p>
-                  <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
-                    <li>Open <a href={`https://supabase.com/dashboard/project/${projectId}/functions`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold">Supabase Dashboard → Edge Functions</a></li>
-                    <li>Find the <strong>"server"</strong> function in the list</li>
-                    <li>Click the <strong>"Deploy"</strong> button</li>
-                    <li>Wait 30-60 seconds for deployment to complete</li>
-                    <li>Return here and click "Test Connection" below</li>
-                  </ol>
-                </div>
-
-                <div className="text-xs text-blue-700 bg-blue-100 rounded p-3">
-                  <strong>💡 Tip:</strong> You only need to deploy once. After deployment, all backend changes (customers, orders, emails, etc.) will work.
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-center">
-                <Button
-                  onClick={fetchCustomers}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Test Connection
-                </Button>
-                <Button
-                  onClick={() => window.open(`https://supabase.com/dashboard/project/${projectId}/functions`, '_blank')}
-                  variant="outline"
-                >
-                  Open Supabase Dashboard
-                </Button>
+                ))}
               </div>
             </div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="text-center py-12">
-              <User className="size-12 mx-auto text-slate-300 mb-3" />
-              <p className="text-muted-foreground">No customers found</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Access Level</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCustomers.map((customer) => (
-                    <TableRow key={`${customer.source || 'unknown'}_${customer.id}`}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="bg-[#2D3748] size-8 rounded-full flex items-center justify-center">
-                            <User className="size-4 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {customer.first_name} {customer.last_name}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Mail className="size-4 text-muted-foreground" />
-                          {customer.email}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Phone className="size-4 text-muted-foreground" />
-                          {customer.phone}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {customer.can_see_cost_price ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                            <DollarSign className="size-3" />
-                            Cost Price
-                          </span>
-                        ) : customer.cost_plus_hundred_access ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">
-                            <DollarSign className="size-3" />
-                            Cost + $100
-                          </span>
-                        ) : customer.discount_percentage > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-                            <DollarSign className="size-3" />
-                            {customer.discount_percentage}% OFF
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">
-                            Normal
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(customer.created_at).toLocaleDateString('en-AU', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewCustomer(customer)}
-                          >
-                            <Eye className="size-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditCustomer(customer)}
-                          >
-                            <Edit className="size-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteCustomer(customer)}
-                          >
-                            <Trash2 className="size-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
 
       {/* View Customer Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Customer Details</DialogTitle>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white border border-slate-200 rounded-xl shadow-xl">
+          <DialogHeader className="p-5 border-b border-slate-200 bg-slate-50/50">
+            <DialogTitle className="text-lg font-black text-[#0f172a]">Customer Details</DialogTitle>
           </DialogHeader>
           {selectedCustomer && (
-            <div className="space-y-4">
+            <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">Customer ID</Label>
-                  <p className="font-mono">#{selectedCustomer.id}</p>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Customer ID</Label>
+                  <p className="font-mono text-xs font-bold text-[#0f172a] bg-slate-50 p-2.5 rounded-lg border border-slate-200">#{selectedCustomer.id}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Joined Date</Label>
-                  <p className="font-medium">
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Joined Date</Label>
+                  <p className="text-xs font-bold text-[#0f172a] bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                     {new Date(selectedCustomer.created_at).toLocaleDateString('en-AU')}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">First Name</Label>
-                  <p className="font-medium">{selectedCustomer.first_name}</p>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">First Name</Label>
+                  <p className="text-xs font-bold text-[#0f172a] bg-slate-50 p-2.5 rounded-lg border border-slate-200">{selectedCustomer.first_name}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Last Name</Label>
-                  <p className="font-medium">{selectedCustomer.last_name}</p>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Last Name</Label>
+                  <p className="text-xs font-bold text-[#0f172a] bg-slate-50 p-2.5 rounded-lg border border-slate-200">{selectedCustomer.last_name}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedCustomer.email}</p>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Email</Label>
+                  <p className="text-xs font-bold text-[#0f172a] bg-slate-50 p-2.5 rounded-lg border border-slate-200">{selectedCustomer.email}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-muted-foreground">Phone</Label>
-                  <p className="font-medium">{selectedCustomer.phone}</p>
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-muted-foreground">Access Level</Label>
-                  <div className="mt-2">
-                    {selectedCustomer.can_see_cost_price ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-                        <DollarSign className="size-4" />
-                        Cost Price (Wholesale)
-                      </span>
-                    ) : selectedCustomer.cost_plus_hundred_access ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-800 text-sm font-semibold rounded-full">
-                        <DollarSign className="size-4" />
-                        Cost + $100 (Category Specific)
-                      </span>
-                    ) : selectedCustomer.discount_percentage > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
-                        <DollarSign className="size-4" />
-                        Discount {selectedCustomer.discount_percentage}% OFF
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 text-sm font-semibold rounded-full">
-                        Normal (Retail)
-                      </span>
-                    )}
-                  </div>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Phone</Label>
+                  <p className="text-xs font-bold text-[#0f172a] bg-slate-50 p-2.5 rounded-lg border border-slate-200">{selectedCustomer.phone || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -599,161 +477,152 @@ export function CustomersManager() {
 
       {/* Add Customer Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Customer</DialogTitle>
-            <DialogDescription>Create a new customer account</DialogDescription>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white border border-slate-200 rounded-xl shadow-xl">
+          <DialogHeader className="p-5 border-b border-slate-200 bg-slate-50/50">
+            <DialogTitle className="text-lg font-black text-[#0f172a]">Add New Customer</DialogTitle>
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-wider">Create a new customer account</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>First Name *</Label>
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">First Name *</Label>
                 <Input
                   value={formData.firstName}
                   onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                   required
+                  className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
                 />
               </div>
               <div>
-                <Label>Last Name *</Label>
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Last Name *</Label>
                 <Input
                   value={formData.lastName}
                   onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                   required
+                  className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
                 />
               </div>
             </div>
             <div>
-              <Label>Email *</Label>
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email *</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
+                className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
               />
             </div>
             <div>
-              <Label>Phone *</Label>
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Phone *</Label>
               <Input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 required
+                className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
               />
             </div>
             <div>
-              <Label>Password *</Label>
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Password *</Label>
               <Input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 required
+                className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
               />
             </div>
-            <div>
-              <Label>Can See Cost Price</Label>
+            <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
               <Switch
                 checked={formData.canSeeCostPrice}
                 onCheckedChange={(e) => setFormData({...formData, canSeeCostPrice: e})}
               />
-            </div>
-            <div>
-              <Label>Discount Percentage</Label>
-              <Input
-                type="number"
-                value={formData.discountPercentage}
-                onChange={(e) => setFormData({...formData, discountPercentage: parseFloat(e.target.value)})}
-                placeholder="Enter discount percentage"
-              />
+              <Label className="text-xs font-bold text-[#0f172a] uppercase tracking-wider cursor-pointer m-0">Can See Cost Price</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+          <DialogFooter className="p-5 border-t border-slate-200 bg-slate-50/50 sm:justify-end gap-2">
+            <button 
+              type="button" 
+              onClick={() => setAddDialogOpen(false)}
+              className="h-10 px-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
               Cancel
-            </Button>
-            <Button onClick={handleAddCustomer} className="bg-[#E31837] hover:bg-[#E31837]/90">
+            </button>
+            <button 
+              onClick={handleAddCustomer} 
+              className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
               Add Customer
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Customer Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Edit Customer</DialogTitle>
-            <DialogDescription>Update customer information</DialogDescription>
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-white border border-slate-200 rounded-xl shadow-xl flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-5 border-b border-slate-200 bg-slate-50/50">
+            <DialogTitle className="text-lg font-black text-[#0f172a]">Edit Customer</DialogTitle>
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-wider">Update customer information</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+          <div className="p-5 space-y-4 overflow-y-auto flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>First Name *</Label>
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">First Name *</Label>
                 <Input
                   value={formData.firstName}
                   onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                   required
+                  className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
                 />
               </div>
               <div>
-                <Label>Last Name *</Label>
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Last Name *</Label>
                 <Input
                   value={formData.lastName}
                   onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                   required
+                  className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
                 />
               </div>
             </div>
             <div>
-              <Label>Email *</Label>
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email *</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
+                className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
               />
             </div>
             <div>
-              <Label>Phone *</Label>
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Phone *</Label>
               <Input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 required
+                className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white text-xs font-semibold"
               />
             </div>
-            <div>
-              <Label>New Password (leave blank to keep current)</Label>
-              <Input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                placeholder="Enter new password"
-              />
-            </div>
-            
-            {/* Access Levels Section */}
-            <div className="border-t pt-4 mt-4">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <Shield className="size-4 text-[#E31837]" />
+
+            {/* Access Levels */}
+            <div className="border-t border-slate-200 pt-4 mt-4">
+              <h3 className="text-xs font-extrabold mb-3 flex items-center gap-2 text-[#0f172a]">
+                <Shield className="size-4 text-slate-400" />
                 Customer Pricing Level
               </h3>
               
-              <div className="space-y-4 bg-slate-50 p-4 rounded-lg border-2 border-slate-200">
-                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800">
-                  <strong>Important:</strong> Choose ONE pricing level per customer. Cost Price and Discount Percentage are mutually exclusive.
-                </div>
-                
-                <div className="flex items-start justify-between gap-4 p-3 bg-white rounded-lg border-2 border-slate-200">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
                   <div className="space-y-1 flex-1">
-                    <Label className="text-base font-semibold text-[#E31837]">
-                      🏭 Cost Price Level (Wholesale/Trade)
+                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider">
+                      Cost Price Level
                     </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Customer can <strong>BUY at cost price</strong>. All other discounts, multibuys, and promotions are <strong>disabled</strong> for this customer.
-                    </p>
-                    <p className="text-xs text-slate-500 italic">
-                      Best for: Wholesale accounts, trade partners, resellers
+                    <p className="text-xs font-medium text-slate-500 leading-relaxed mt-0.5">
+                      Customer buys at cost price.
                     </p>
                   </div>
                   <Switch
@@ -762,7 +631,6 @@ export function CustomersManager() {
                       setFormData({
                         ...formData,
                         canSeeCostPrice: checked,
-                        // If enabling cost price, disable discount percentage and cost+100
                         discountPercentage: checked ? 0 : formData.discountPercentage,
                         costPlusHundredAccess: checked ? false : formData.costPlusHundredAccess
                       });
@@ -770,17 +638,13 @@ export function CustomersManager() {
                   />
                 </div>
 
-                <div className="flex items-start justify-between gap-4 p-3 bg-white rounded-lg border-2 border-slate-200">
+                <div className="flex items-start justify-between gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
                   <div className="space-y-1 flex-1">
-                    <Label className="text-base font-semibold text-purple-600 flex items-center gap-2">
-                      <DollarSign className="size-4" />
-                      Cost + $100 Pricing (Category Specific)
+                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider">
+                      Cost + $100 Pricing
                     </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Customer pays <strong>Cost + $100</strong> for products in: <strong>Refrigeration, Ice Machines, Commercial Kitchen Machines</strong>. Other categories use regular pricing.
-                    </p>
-                    <p className="text-xs text-slate-500 italic">
-                      Best for: Special accounts, specific category pricing agreements
+                    <p className="text-xs font-medium text-slate-500 leading-relaxed mt-0.5">
+                      Customer pays Cost + $100 on specified categories.
                     </p>
                   </div>
                   <Switch
@@ -789,99 +653,42 @@ export function CustomersManager() {
                       setFormData({
                         ...formData,
                         costPlusHundredAccess: checked,
-                        // If enabling cost+100, disable cost price and discount
                         canSeeCostPrice: checked ? false : formData.canSeeCostPrice,
                         discountPercentage: checked ? 0 : formData.discountPercentage
                       });
                     }}
                   />
                 </div>
-
-                <div className="flex items-start justify-between gap-4 p-3 bg-white rounded-lg border-2 border-slate-200">
-                  <div className="space-y-1 flex-1">
-                    <Label className="text-base font-semibold text-blue-600 flex items-center gap-2">
-                      <DollarSign className="size-4" />
-                      Discount Percentage Level (VIP/Loyalty)
-                    </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Customer gets <strong>percentage discount</strong> applied at checkout. This discount is <strong>added to</strong> existing multibuys and promotions.
-                    </p>
-                    <p className="text-xs text-slate-500 italic">
-                      Best for: VIP customers, loyalty programs, regular buyers
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={formData.discountPercentage}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        setFormData({
-                          ...formData,
-                          discountPercentage: value,
-                          // If setting discount, disable cost price and cost+100
-                          canSeeCostPrice: value > 0 ? false : formData.canSeeCostPrice,
-                          costPlusHundredAccess: value > 0 ? false : formData.costPlusHundredAccess
-                        });
-                      }}
-                      placeholder="0"
-                      className="w-20 text-center"
-                      disabled={formData.canSeeCostPrice || formData.costPlusHundredAccess}
-                    />
-                    <span className="text-sm font-medium">%</span>
-                  </div>
-                </div>
-                
-                <div className="p-3 bg-slate-100 rounded-lg border border-slate-300">
-                  <Label className="text-sm font-semibold text-slate-700">
-                    🛒 Current Level:
-                  </Label>
-                  <p className="text-sm mt-1 font-medium">
-                    {formData.canSeeCostPrice ? (
-                      <span className="text-[#E31837]">Cost Price (Wholesale)</span>
-                    ) : formData.discountPercentage > 0 ? (
-                      <span className="text-blue-600">Discount {formData.discountPercentage}% (VIP)</span>
-                    ) : (
-                      <span className="text-slate-600">Normal (Retail)</span>
-                    )}
-                  </p>
-                </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+          <DialogFooter className="p-5 border-t border-slate-200 bg-slate-50/50 sm:justify-end gap-2">
+            <button 
+              type="button" 
+              onClick={() => setEditDialogOpen(false)}
+              className="h-10 px-5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
               Cancel
-            </Button>
-            <Button onClick={handleUpdateCustomer} className="bg-[#E31837] hover:bg-[#E31837]/90">
+            </button>
+            <button 
+              onClick={handleUpdateCustomer} 
+              className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
               Update Customer
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Customer</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {selectedCustomer?.first_name} {selectedCustomer?.last_name}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmDelete} variant="destructive">
-              Delete Customer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTargetCustomer}
+        onClose={() => setDeleteTargetCustomer(null)}
+        onConfirm={confirmDeleteCustomer}
+        title="Delete Customer Account"
+        description={`Are you sure you want to delete ${deleteTargetCustomer?.first_name || ''} ${deleteTargetCustomer?.last_name || ''}? This action cannot be undone.`}
+        loading={deleting}
+      />
     </div>
   );
 }

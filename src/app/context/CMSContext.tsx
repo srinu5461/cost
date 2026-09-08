@@ -808,6 +808,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${publicAnonKey}`,
           'X-API-Key': publicAnonKey,
         },
         body: JSON.stringify(homepage),
@@ -816,6 +817,9 @@ export function CMSProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         throw new Error('Failed to update homepage');
       }
+
+      // Clear local cache so updated homepage reflects immediately
+      clearCacheUtil();
     } catch (error) {
       console.error('Error updating homepage:', error);
       await loadData();

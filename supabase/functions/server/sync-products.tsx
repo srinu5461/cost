@@ -36,125 +36,204 @@ const initBucket = async () => {
 // Initialize on module load
 await initBucket();
 
-// POST /make-server-d1fbc049/sync-products - Process one chunk per request (frontend calls repeatedly)
+// POST /make-server-d1fbc049/sync-products - Sync all products to chunked JSON files
 app.post('/make-server-d1fbc049/sync-products', async (c) => {
-  const kvSupabase = createClient(supabaseUrl, supabaseServiceKey);
-  const FETCH_BATCH = 500;
-  const CHUNK_SIZE = 1000;
-
-  let body: any = {};
-  try { body = await c.req.json(); } catch {}
-
-  const offset: number = body.offset ?? 0;
-  const chunkIndex: number = body.chunkIndex ?? 0;
-  const totalSoFar: number = body.totalSoFar ?? 0;
-  const uploadedChunks: string[] = body.uploadedChunks ?? [];
-  const startedAt: string = body.startedAt ?? new Date().toISOString();
-
-  if (offset === 0) {
-    await kvSupabase.from('kv_store_577b3f26').upsert({
-      key: 'sync:cdn-status',
-      value: { status: 'running', startedAt }
-    });
-  }
-
   try {
-    const products: any[] = [];
-    let dbOffset = offset;
+    console.log('Starting product sync to chunked JSON files...');
 
-    while (products.length < CHUNK_SIZE) {
-      const { data: batch, error } = await kvSupabase
+    const kvSupabase = createClient(supabaseUrl, supabaseServiceKey);
+    const BATCH_SIZE = 500;
+    const CHUNK_SIZE = 1000; // Products per chunk file
+    const MAX_CHUNK_SIZE_MB = 4; // Keep chunks under 4MB to be safe
+
+    let totalCount = 0;
+    let chunkIndex = 0;
+    let currentChunk: any[] = [];
+    const uploadedChunks: string[] = [];
+
+    let offset = 0;
+
+    while (true) {
+      const { data: batch, error: fetchError } = await kvSupabase
         .from('kv_store_577b3f26')
         .select('value')
         .like('key', 'products:%')
-        .range(dbOffset, dbOffset + FETCH_BATCH - 1);
+        .range(offset, offset + BATCH_SIZE - 1);
 
-      if (error) throw new Error(`DB fetch error: ${error.message}`);
+      if (fetchError) {
+        throw new Error(`Database fetch error: ${fetchError.message}`);
+      }
+
       if (!batch || batch.length === 0) break;
 
       for (const item of batch) {
-        const p = item.value;
-        if (!p || typeof p !== 'object') continue;
-        if (!p.name || p.name === 'Unnamed Product') continue;
-        if (!p.code && !p.id && !p.sku) continue;
-        if (p.price === undefined || p.price === null) continue;
-        if (p.sections || p.categories || p.sectionsConfig) continue;
-        products.push(p);
+        const product = item.value;
+
+        // Filter out non-product entries (sections, categories, metadata)
+        // Skip if not a valid object
+        if (!product || typeof product !== 'object') {
+          continue;
+        }
+
+        // Skip if no valid name
+        if (!product.name || product.name === '' || product.name === 'Unnamed Product') {
+          continue;
+        }
+
+        // Skip if no identifier
+        if (!product.code && !product.id && !product.sku) {
+          continue;
+        }
+
+        // Skip if no price
+        if (product.price === undefined || product.price === null) {
+          continue;
+        }
+
+        // Skip metadata objects (sections, categories, etc.)
+        if (product.sections || product.categories || product.sectionsConfig) {
+          console.log(`Skipping metadata object with sections/categories`);
+          continue;
+        }
+
+        currentChunk.push(product);
+        totalCount++;
+
+        // Check if chunk is ready to upload
+        if (currentChunk.length >= CHUNK_SIZE) {
+          const chunkFileName = `products-chunk-${chunkIndex}.json.gz`;
+          await uploadChunk(currentChunk, chunkFileName);
+          uploadedChunks.push(chunkFileName);
+          console.log(`Uploaded chunk ${chunkIndex} with ${currentChunk.length} products`);
+
+          currentChunk = [];
+          chunkIndex++;
+        }
       }
 
-      dbOffset += batch.length;
-      if (batch.length < FETCH_BATCH) break;
+      if (batch.length < BATCH_SIZE) break;
+      offset += BATCH_SIZE;
     }
 
-    if (products.length === 0) {
-      const newTotal = totalSoFar;
-      const manifest = {
-        totalProducts: newTotal,
-        totalChunks: uploadedChunks.length,
-        chunks: uploadedChunks,
-        timestamp: new Date().toISOString()
-      };
-      await supabase.storage.from(BUCKET_NAME).upload(
-        'manifest.json',
-        new TextEncoder().encode(JSON.stringify(manifest)),
-        { contentType: 'application/json', cacheControl: '3600', upsert: true }
-      );
-      await kvSupabase.from('kv_store_577b3f26').upsert({
-        key: 'sync:cdn-status',
-        value: { status: 'completed', totalCount: newTotal, chunks: uploadedChunks.length, completedAt: new Date().toISOString() }
+    // Upload remaining products
+    if (currentChunk.length > 0) {
+      const chunkFileName = `products-chunk-${chunkIndex}.json.gz`;
+      await uploadChunk(currentChunk, chunkFileName);
+      uploadedChunks.push(chunkFileName);
+      console.log(`Uploaded final chunk ${chunkIndex} with ${currentChunk.length} products`);
+    }
+
+    if (totalCount === 0) {
+      return c.json({
+        success: false,
+        error: 'No products found in database',
+        count: 0
+      }, 404);
+    }
+
+    // Create manifest file
+    const manifest = {
+      totalProducts: totalCount,
+      totalChunks: uploadedChunks.length,
+      chunks: uploadedChunks,
+      timestamp: new Date().toISOString()
+    };
+
+    const manifestContent = new TextEncoder().encode(JSON.stringify(manifest));
+    await supabase.storage
+      .from(BUCKET_NAME)
+      .upload('manifest.json', manifestContent, {
+        contentType: 'application/json',
+        cacheControl: '3600',
+        upsert: true
       });
-      return c.json({ success: true, done: true, totalCount: newTotal, chunks: uploadedChunks.length });
-    }
 
-    const chunkFileName = `products-chunk-${chunkIndex}.json.gz`;
-    await uploadChunk(products, chunkFileName);
-    uploadedChunks.push(chunkFileName);
-    const newTotal = totalSoFar + products.length;
-    console.log(`Chunk ${chunkIndex}: ${products.length} products (total: ${newTotal})`);
-
-    await kvSupabase.from('kv_store_577b3f26').upsert({
-      key: 'sync:cdn-status',
-      value: { status: 'running', totalCount: newTotal, chunksUploaded: uploadedChunks.length, startedAt }
-    });
+    console.log(`Sync complete: ${totalCount} products in ${uploadedChunks.length} chunks`);
 
     return c.json({
       success: true,
-      done: false,
-      nextOffset: dbOffset,
-      chunkIndex: chunkIndex + 1,
-      totalSoFar: newTotal,
-      uploadedChunks,
-      startedAt,
-      message: `Chunk ${chunkIndex} done — ${newTotal.toLocaleString()} products so far`
+      message: 'Products synced successfully',
+      count: totalCount,
+      chunks: uploadedChunks.length,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    await kvSupabase.from('kv_store_577b3f26').upsert({
-      key: 'sync:cdn-status',
-      value: { status: 'failed', error: String(error), failedAt: new Date().toISOString() }
-    });
-    console.error('Sync chunk failed:', error);
-    return c.json({ success: false, error: String(error) }, 500);
+    console.error('Product sync error:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error during sync',
+      details: String(error)
+    }, 500);
   }
 });
 
-// GET /make-server-d1fbc049/sync-products/status - Check sync progress
-app.get('/make-server-d1fbc049/sync-products/status', async (c) => {
+// POST /make-server-d1fbc049/sync-featured — build featured-products.json CDN file
+// Call this after saving featured products in admin, or on a schedule
+app.post('/make-server-d1fbc049/sync-featured', async (c) => {
   try {
     const kvSupabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { data } = await kvSupabase
-      .from('kv_store_577b3f26')
-      .select('value')
-      .eq('key', 'sync:cdn-status')
-      .single();
 
-    return c.json({ success: true, status: data?.value || { status: 'never_run' } });
+    // Get featured/popular/promo IDs from KV
+    const sections = await kv.get('featured_sections') as any || {};
+    const featuredIds: string[] = sections.featured || [];
+    const popularIds: string[] = sections.popular || [];
+    const promoIds: string[] = sections.promotion || [];
+    const allIds = [...new Set([...featuredIds, ...popularIds, ...promoIds])];
+
+    if (allIds.length === 0) {
+      return c.json({ success: false, error: 'No featured/popular/promo IDs configured' });
+    }
+
+    // Fetch just those products from KV
+    const featuredProducts: any[] = [];
+    for (const id of allIds) {
+      const cleanId = id.replace(/^P_/i, ''); // strip P_ prefix if present
+      const product = await kv.get(`products:P_${cleanId}`) || await kv.get(`products:${cleanId}`) || await kv.get(`products:${id}`);
+      if (product && typeof product === 'object' && product.name) {
+        featuredProducts.push(product);
+      }
+    }
+
+    if (featuredProducts.length === 0) {
+      return c.json({ success: false, error: 'No featured products found in database' });
+    }
+
+    // Upload as plain JSON (small file, no need to gzip)
+    const content = new TextEncoder().encode(JSON.stringify({
+      featuredIds,
+      popularIds,
+      promoIds,
+      products: featuredProducts,
+      timestamp: new Date().toISOString(),
+    }));
+
+    await supabase.storage
+      .from(BUCKET_NAME)
+      .upload('featured-products.json', content, {
+        contentType: 'application/json',
+        cacheControl: '300', // 5 min cache
+        upsert: true,
+      });
+
+    console.log(`[Featured Sync] Uploaded ${featuredProducts.length} featured products`);
+
+    return c.json({
+      success: true,
+      count: featuredProducts.length,
+      featuredIds: featuredIds.length,
+      popularIds: popularIds.length,
+      promoIds: promoIds.length,
+      timestamp: new Date().toISOString(),
+    });
+
   } catch (error) {
+    console.error('[Featured Sync] Error:', error);
     return c.json({ success: false, error: String(error) }, 500);
   }
 });
 
-// Helper function to compress and upload a chunk
+
 async function uploadChunk(products: any[], fileName: string) {
   const jsonContent = JSON.stringify(products);
   const jsonBytes = new TextEncoder().encode(jsonContent);
@@ -190,7 +269,7 @@ async function uploadChunk(products: any[], fileName: string) {
     .from(BUCKET_NAME)
     .upload(fileName, compressed, {
       contentType: 'application/gzip',
-      cacheControl: '3600',
+      cacheControl: '0',
       upsert: true
     });
 
@@ -300,6 +379,19 @@ app.get('/make-server-d1fbc049/products-url', async (c) => {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
+  }
+});
+
+// GET /make-server-d1fbc049/featured-url — get public URL for featured-products.json
+app.get('/make-server-d1fbc049/featured-url', async (c) => {
+  try {
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl('featured-products.json');
+
+    return c.json({ success: true, url: `${publicUrl}?t=${Date.now()}` });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
   }
 });
 

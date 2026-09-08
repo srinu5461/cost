@@ -15,10 +15,13 @@ import {
   TrendingUp,
   Database,
   Link as LinkIcon,
-  Info
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { Link } from 'react-router';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
+import { notify } from '../../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -37,7 +40,6 @@ export default function UropaTokenAuth() {
   const [verifying, setVerifying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [config, setConfig] = useState<UropaConfig | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
@@ -61,7 +63,6 @@ export default function UropaTokenAuth() {
           setApiUrl(data.config.apiUrl || 'https://p1-api.nisbets.com.au/occ/v2/uropa-au');
           setSaved(true);
           
-          // Auto-test the API connection if token exists
           if (data.config.token) {
             testCurrentToken(data.config.token, data.config.apiUrl);
           }
@@ -69,6 +70,7 @@ export default function UropaTokenAuth() {
       }
     } catch (error) {
       console.error('Failed to load config:', error);
+      notify.error('Failed to load Uropa configuration');
     } finally {
       setLoading(false);
     }
@@ -76,8 +78,6 @@ export default function UropaTokenAuth() {
 
   const testCurrentToken = async (tokenToTest?: string, apiUrlToTest?: string) => {
     const testToken = tokenToTest || token;
-    const testApiUrl = apiUrlToTest || apiUrl;
-    
     if (!testToken) return;
     
     try {
@@ -88,8 +88,6 @@ export default function UropaTokenAuth() {
       });
 
       const data = await response.json();
-      console.log('API Test Result:', data);
-      
       setTestResult(data);
     } catch (error) {
       console.error('Test error:', error);
@@ -102,12 +100,11 @@ export default function UropaTokenAuth() {
 
   const verifyToken = async () => {
     if (!token || !apiUrl) {
-      setMessage({ type: 'error', text: 'Please enter both API URL and Token' });
+      notify.error('Please enter both API URL and Token');
       return;
     }
 
     setVerifying(true);
-    setMessage(null);
     setTestResult(null);
 
     try {
@@ -128,10 +125,7 @@ export default function UropaTokenAuth() {
       const result = await response.json();
       
       if (result.valid) {
-        setMessage({ 
-          type: 'success', 
-          text: `✅ Token verified successfully! Connected to Uropa API.` 
-        });
+        notify.success('Token verified successfully! Connected to Uropa API.');
         setTestResult({ 
           success: true, 
           message: 'Successfully connected to Uropa API. Your credentials are working correctly!' 
@@ -143,12 +137,9 @@ export default function UropaTokenAuth() {
         });
         throw new Error(result.error || 'Invalid token');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Verification error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error instanceof Error ? error.message : 'Failed to verify token' 
-      });
+      notify.error(error.message || 'Failed to verify token');
     } finally {
       setVerifying(false);
     }
@@ -156,12 +147,11 @@ export default function UropaTokenAuth() {
 
   const saveConfig = async () => {
     if (!token || !apiUrl) {
-      setMessage({ type: 'error', text: 'Please enter both API URL and Token' });
+      notify.error('Please enter both API URL and Token');
       return;
     }
 
     setLoading(true);
-    setMessage(null);
 
     try {
       const response = await fetch(`${API_URL}/uropa/config`, {
@@ -181,28 +171,20 @@ export default function UropaTokenAuth() {
       const data = await response.json();
       setSaved(true);
       setConfig(data.config);
-      setMessage({ 
-        type: 'success', 
-        text: `✅ Configuration saved successfully! You can now use the Price Sync feature.` 
-      });
-    } catch (error) {
+      notify.success('Uropa API configuration saved successfully!');
+    } catch (error: any) {
       console.error('Save error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error instanceof Error ? error.message : 'Failed to save configuration' 
-      });
+      notify.error(error.message || 'Failed to save configuration');
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteConfig = async () => {
-    if (!confirm('Are you sure you want to delete the Uropa API configuration?')) {
-      return;
-    }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-    setLoading(true);
-    setMessage(null);
+  const confirmDeleteConfig = async () => {
+    setDeleting(true);
 
     try {
       const response = await fetch(`${API_URL}/uropa/config`, {
@@ -221,15 +203,13 @@ export default function UropaTokenAuth() {
       setConfig(null);
       setSaved(false);
       setTestResult(null);
-      setMessage({ type: 'success', text: 'Configuration deleted successfully' });
+      setShowDeleteModal(false);
+      notify.success('Configuration deleted successfully');
     } catch (error) {
       console.error('Delete error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: 'Failed to delete configuration' 
-      });
+      notify.error('Failed to delete configuration');
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -248,10 +228,10 @@ export default function UropaTokenAuth() {
 
       const data = await response.json();
       setDebugInfo(data.debug);
-      
+      notify.info('Storage debug information fetched');
     } catch (error) {
       console.error('Debug error:', error);
-      setMessage({ type: 'error', text: 'Failed to debug token storage' });
+      notify.error('Failed to debug token storage');
     } finally {
       setDebugging(false);
     }
@@ -259,427 +239,331 @@ export default function UropaTokenAuth() {
 
   if (loading && !config && !token) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="max-w-7xl mx-auto py-16 flex flex-col items-center justify-center gap-3 font-sans">
         <RefreshCw className="size-8 animate-spin text-[#E31837]" />
+        <p className="text-xs font-bold text-slate-500">Loading Uropa API configuration...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl mb-2 flex items-center gap-3">
-          <Key className="size-8" />
-          Uropa API Configuration
-        </h1>
-        <p className="text-muted-foreground">
-          Configure your Uropa API endpoint and authentication token for price synchronization
-        </p>
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <Key className="size-6 text-[#E31837]" />
+            Uropa API Authentication
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Configure Uropa API endpoints and Bearer tokens for automatic product price synchronization
+          </p>
+        </div>
       </div>
 
-      {/* Status Message */}
-      {message && (
-        <Card className={message.type === 'success' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              {message.type === 'success' ? (
-                <CheckCircle className="size-5 text-green-600" />
-              ) : (
-                <AlertCircle className="size-5 text-red-600" />
-              )}
-              <p className={message.type === 'success' ? 'text-green-900' : 'text-red-900'}>
-                {message.text}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Wholesale Synchronization:</strong> The Uropa API connects CostPlus100 directly to Nisbets/Uropa wholesale feeds for real-time cost updates and product mapping.
+        </div>
+      </div>
 
-      {/* Environment Variables Info */}
-      {(config?.hasEnvToken || config?.hasEnvApiUrl) && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Info className="size-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-blue-900 font-medium">🔐 Environment Variables Detected</p>
-                <p className="text-sm text-blue-700 mt-1">
-                  {config.hasEnvToken && '✅ UROPA_API_TOKEN found in environment'}
-                  {config.hasEnvToken && config.hasEnvApiUrl && ' • '}
-                  {config.hasEnvApiUrl && '✅ UROPA_API_URL found in environment'}
-                </p>
-                <p className="text-xs text-blue-600 mt-2">
-                  Note: Manually configured values will override environment variables.
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        {/* Left Column (7 Cols) */}
+        <div className="lg:col-span-7 space-y-5">
+          
+          {/* Configuration Form */}
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <Key className="size-5 text-[#E31837]" />
+                API Credentials
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              
+              {/* API URL Field */}
+              <div className="space-y-1.5">
+                <Label htmlFor="apiUrl" className="text-xs font-extrabold text-[#0f172a]">Uropa API URL</Label>
+                <div className="relative">
+                  <LinkIcon className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Input
+                    id="apiUrl"
+                    type="text"
+                    placeholder="https://p1-api.nisbets.com.au/occ/v2/uropa-au"
+                    value={apiUrl}
+                    onChange={(e) => setApiUrl(e.target.value)}
+                    className="h-9 pl-9 font-mono text-xs border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                </div>
+                <p className="text-[11px] font-medium text-slate-400">
+                  Base endpoint URL for Uropa OCC API
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Quick Links */}
-      {saved && (
-        <Card className="border-slate-700 bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-          <CardHeader>
-            <CardTitle className="text-white">🚀 Uropa-Powered Tools</CardTitle>
-            <CardDescription className="text-slate-200">
-              Your API is configured! You can now use these tools:
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Link to="/admin/uropa-price-sync">
-                <Button 
-                  className="w-full justify-start bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                  variant="outline"
-                >
-                  <div className="bg-blue-500 p-2 rounded-lg mr-3">
-                    <TrendingUp className="size-5" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">Price Sync Manager</div>
-                    <div className="text-xs text-slate-300">Compare & update prices</div>
-                  </div>
-                </Button>
-              </Link>
-              
-              <Link to="/admin/products">
-                <Button 
-                  className="w-full justify-start bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                  variant="outline"
-                >
-                  <div className="bg-green-500 p-2 rounded-lg mr-3">
-                    <Database className="size-5" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">Product Manager</div>
-                    <div className="text-xs text-slate-300">Manage all products</div>
-                  </div>
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Status */}
-      {config && saved && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="size-5 text-green-600" />
-              <div className="flex-1">
-                <p className="text-green-900 font-medium">✅ Uropa API Connected</p>
-                <p className="text-sm text-green-700">
-                  API URL: <code className="bg-green-100 px-2 py-0.5 rounded">{config.apiUrl}</code>
-                </p>
-                {config.hasEnvToken ? (
-                  <p className="text-xs text-green-600 mt-1">
-                    Token: 🔐 <strong>Using UROPA_API_TOKEN from environment</strong> | 
-                    Last verified: {config.lastVerified ? new Date(config.lastVerified).toLocaleString() : 'Never'}
-                  </p>
-                ) : (
-                  <p className="text-xs text-green-600 mt-1">
-                    Token: <code className="bg-green-100 px-1 rounded">{token ? `${token.substring(0, 15)}...` : '(none)'}</code> | 
-                    Last verified: {config.lastVerified ? new Date(config.lastVerified).toLocaleString() : 'Never'}
+              {/* Token Field */}
+              <div className="space-y-1.5">
+                <Label htmlFor="token" className="text-xs font-extrabold text-[#0f172a]">API Bearer Token</Label>
+                <div className="relative">
+                  <Key className="size-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Input
+                    id="token"
+                    type="text"
+                    placeholder="Enter your Uropa API token"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    className="h-9 pl-9 font-mono text-xs border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                </div>
+                {token && (
+                  <p className="text-[11px] font-bold text-slate-600">
+                    Token length: {token.length} characters
                   </p>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Test Connection */}
-      {saved && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="size-5 text-blue-600" />
-              Test API Connection
-            </CardTitle>
-            <CardDescription>
-              Test if your Uropa API credentials are working correctly
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button
-              onClick={verifyToken}
-              disabled={verifying}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {verifying ? (
-                <>
-                  <RefreshCw className="size-4 mr-2 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <Shield className="size-4 mr-2" />
-                  🔌 Test Connection
-                </>
-              )}
-            </Button>
-
-            {testResult && (
-              <div className={`p-4 rounded-lg border-2 ${
-                testResult.success 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-red-50 border-red-200'
-              }`}>
-                <div className="flex items-start gap-2">
-                  {testResult.success ? (
-                    <CheckCircle className="size-5 text-green-600 mt-0.5 flex-shrink-0" />
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
+                <button
+                  onClick={verifyToken} 
+                  disabled={verifying || !token || !apiUrl}
+                  className="h-9 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all border border-slate-200 flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
+                >
+                  {verifying ? (
+                    <><RefreshCw className="size-3.5 animate-spin" />Verifying...</>
                   ) : (
-                    <AlertCircle className="size-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <><CheckCircle className="size-3.5 text-emerald-600" />Verify Credentials</>
                   )}
-                  <div className="flex-1">
-                    <p className={`text-sm font-medium whitespace-pre-line ${
-                      testResult.success ? 'text-green-800' : 'text-red-800'
-                    }`}>
-                      {testResult.message}
-                    </p>
-                    {testResult.success && (
-                      <div className="mt-3 pt-3 border-t border-green-300">
-                        <p className="text-sm text-green-900 font-semibold mb-2">
-                          ✅ Connection successful! Ready to use Price Sync
-                        </p>
-                        <Link to="/admin/uropa-price-sync">
-                          <Button className="bg-green-600 hover:bg-green-700 mt-2">
-                            <TrendingUp className="size-4 mr-2" />
-                            Go to Price Sync Manager
-                            <ArrowRight className="size-4 ml-2" />
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
+                </button>
+
+                <button
+                  onClick={saveConfig} 
+                  disabled={loading || !token || !apiUrl}
+                  className="h-9 px-5 bg-[#E31837] hover:bg-[#c4122c] text-white rounded-xl font-bold transition-all shadow-2xs flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? (
+                    <><RefreshCw className="size-3.5 animate-spin" />Saving...</>
+                  ) : (
+                    <><Save className="size-3.5" />{saved ? 'Update Config' : 'Save Config'}</>
+                  )}
+                </button>
+
+                <button
+                  onClick={debugToken} 
+                  disabled={debugging}
+                  className="h-9 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs ml-auto transition-all border border-slate-200 cursor-pointer disabled:opacity-50"
+                >
+                  {debugging ? 'Checking...' : '🔍 Debug Storage'}
+                </button>
+
+                {config && (
+                  <button
+                    onClick={() => setShowDeleteModal(true)} 
+                    disabled={loading || deleting}
+                    className="h-9 px-3 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-xl font-bold text-xs transition-all border border-red-200 cursor-pointer disabled:opacity-50"
+                    title="Delete Configuration"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Debug Info Display */}
+              {debugInfo && (
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs font-medium space-y-2">
+                  <h4 className="font-extrabold text-[#0f172a] flex items-center gap-2">
+                    <Info className="size-4 text-[#E31837]" />
+                    Debug Storage Overview
+                  </h4>
+                  <div className="space-y-2 text-[11px]">
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                      <p className="font-bold text-slate-700">KV Token (uropa_api_token):</p>
+                      {debugInfo.kvToken?.exists ? (
+                        <p className="text-emerald-700 font-mono mt-0.5">✅ Exists ({debugInfo.kvToken.length} chars)</p>
+                      ) : (
+                        <p className="text-red-600 font-bold mt-0.5">❌ Not found in KV</p>
+                      )}
+                    </div>
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                      <p className="font-bold text-slate-700">Environment Variable (UROPA_API_TOKEN):</p>
+                      {debugInfo.envToken?.exists ? (
+                        <p className="text-blue-700 font-mono mt-0.5">✅ Exists in Env</p>
+                      ) : (
+                        <p className="text-slate-500 font-bold mt-0.5">❌ Not set in Env</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Configuration Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Configuration</CardTitle>
-          <CardDescription>
-            Configure both the Uropa API endpoint URL and authentication token
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* API URL Field */}
-          <div className="space-y-2">
-            <Label htmlFor="apiUrl">Uropa API URL</Label>
-            <div className="flex items-center gap-2">
-              <LinkIcon className="size-4 text-muted-foreground flex-shrink-0" />
-              <Input
-                id="apiUrl"
-                type="text"
-                placeholder="https://api.uropa.com.au"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                className="flex-1 font-mono text-sm"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              The base URL for the Uropa API endpoint (Default: https://p1-api.nisbets.com.au/occ/v2/uropa-au)
-            </p>
-          </div>
-
-          {/* Token Field */}
-          <div className="space-y-2">
-            <Label htmlFor="token">API Token</Label>
-            <div className="flex items-center gap-2">
-              <Key className="size-4 text-muted-foreground flex-shrink-0" />
-              <Input
-                id="token"
-                type="text"
-                placeholder="Enter your Uropa API token"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                className="flex-1 font-mono text-sm"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Your Uropa API authentication token (Bearer token)
-            </p>
-            {token && (
-              <p className="text-xs text-blue-600 font-medium">
-                Token length: {token.length} characters
-              </p>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button 
-              onClick={verifyToken} 
-              disabled={verifying || !token || !apiUrl}
-              variant="outline"
-            >
-              {verifying ? (
-                <>
-                  <RefreshCw className="size-4 mr-2 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="size-4 mr-2" />
-                  Verify Credentials
-                </>
               )}
-            </Button>
+            </CardContent>
+          </Card>
 
-            <Button 
-              onClick={saveConfig} 
-              disabled={loading || !token || !apiUrl}
-              className="bg-[#E31837] hover:bg-[#E31837]/90"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="size-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="size-4 mr-2" />
-                  💾 {saved ? 'Update Configuration' : 'Save Configuration'}
-                </>
-              )}
-            </Button>
-
-            <Button 
-              onClick={debugToken} 
-              disabled={debugging}
-              variant="secondary"
-              size="sm"
-            >
-              {debugging ? (
-                <>
-                  <RefreshCw className="size-4 mr-2 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                <>
-                  🔍 Debug Token Storage
-                </>
-              )}
-            </Button>
-
-            {config && (
-              <Button 
-                onClick={deleteConfig} 
-                disabled={loading}
-                variant="destructive"
-              >
-                <Trash2 className="size-4 mr-2" />
-                Delete
-              </Button>
-            )}
-          </div>
-
-          {/* Debug Info Display */}
-          {debugInfo && (
-            <div className="mt-4 p-4 bg-slate-100 rounded-lg border border-slate-300">
-              <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <Info className="size-4" />
-                Debug Token Storage Info
-              </h4>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="font-medium text-slate-700">📦 KV Storage (uropa_api_token):</p>
-                  {debugInfo.kvToken?.exists ? (
-                    <div className="ml-4 mt-1 bg-green-50 p-2 rounded border border-green-200">
-                      <p className="text-green-900">✅ EXISTS</p>
-                      <p className="text-xs text-green-700 mt-1">Length: {debugInfo.kvToken.length} chars</p>
-                      <p className="text-xs text-green-700 font-mono">{debugInfo.kvToken.preview}</p>
-                    </div>
+          {/* Test Connection Card */}
+          {saved && (
+            <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                  <Shield className="size-5 text-[#E31837]" />
+                  Test API Connection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 space-y-3">
+                <button
+                  onClick={verifyToken}
+                  disabled={verifying}
+                  className="h-9 px-5 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {verifying ? (
+                    <><RefreshCw className="size-3.5 animate-spin" />Testing...</>
                   ) : (
-                    <div className="ml-4 mt-1 bg-red-50 p-2 rounded border border-red-200">
-                      <p className="text-red-900">❌ NOT FOUND</p>
-                    </div>
+                    <><Shield className="size-3.5" />Test Connection</>
                   )}
-                </div>
-                
-                <div>
-                  <p className="font-medium text-slate-700">📦 KV Config (uropa_config_577b3f26):</p>
-                  {debugInfo.kvConfig?.exists ? (
-                    <div className="ml-4 mt-1 bg-green-50 p-2 rounded border border-green-200">
-                      <p className="text-green-900">✅ EXISTS</p>
-                      <p className="text-xs text-green-700 mt-1">
-                        Has Token: {debugInfo.kvConfig.hasToken ? '✅' : '❌'} | 
-                        Has API URL: {debugInfo.kvConfig.hasApiUrl ? '✅' : '❌'}
-                      </p>
-                      {debugInfo.kvConfig.tokenPreview && (
-                        <p className="text-xs text-green-700 font-mono mt-1">{debugInfo.kvConfig.tokenPreview}</p>
+                </button>
+
+                {testResult && (
+                  <div className={`p-4 rounded-xl border ${
+                    testResult.success 
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+                      : 'bg-red-50 border-red-200 text-red-900'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      {testResult.success ? (
+                        <CheckCircle className="size-5 text-emerald-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="size-5 text-red-600 shrink-0 mt-0.5" />
                       )}
-                      {debugInfo.kvConfig.apiUrl && (
-                        <p className="text-xs text-green-700 mt-1">API: {debugInfo.kvConfig.apiUrl}</p>
-                      )}
+                      <div className="flex-1 text-xs font-semibold">
+                        <p>{testResult.message}</p>
+                        {testResult.success && (
+                          <div className="mt-3 pt-2.5 border-t border-emerald-200">
+                            <Link to="/admin/uropa-price-sync">
+                              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-800 hover:text-emerald-950 underline">
+                                Open Price Sync Manager <ArrowRight className="size-3.5" />
+                              </span>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="ml-4 mt-1 bg-red-50 p-2 rounded border border-red-200">
-                      <p className="text-red-900">❌ NOT FOUND</p>
-                    </div>
-                  )}
-                </div>
-                
-                <div>
-                  <p className="font-medium text-slate-700">🌐 Environment Variable (UROPA_API_TOKEN):</p>
-                  {debugInfo.envToken?.exists ? (
-                    <div className="ml-4 mt-1 bg-blue-50 p-2 rounded border border-blue-200">
-                      <p className="text-blue-900">✅ EXISTS (Fallback)</p>
-                      <p className="text-xs text-blue-700 mt-1">Length: {debugInfo.envToken.length} chars</p>
-                      <p className="text-xs text-blue-700 font-mono">{debugInfo.envToken.preview}</p>
-                    </div>
-                  ) : (
-                    <div className="ml-4 mt-1 bg-slate-50 p-2 rounded border border-slate-200">
-                      <p className="text-slate-700">❌ NOT SET</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-slate-300">
-                  <p className="font-medium text-slate-700 mb-2">Priority Order (which token gets used):</p>
-                  <ol className="ml-4 space-y-1 text-xs text-slate-600">
-                    {debugInfo.priorityOrder?.map((item: string, idx: number) => (
-                      <li key={idx}>{item}</li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-            </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Help Section */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardHeader>
-          <CardTitle className="text-amber-900">📝 Configuration Help</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-amber-900">
-          <div>
-            <p className="font-semibold mb-1">🔗 API URL:</p>
-            <p>The base endpoint for Uropa API. Default is usually <code className="bg-amber-100 px-2 py-0.5 rounded">https://api.uropa.com.au</code></p>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">🔑 API Token:</p>
-            <p>Your authentication token provided by Uropa. This should be a short string (not the long Nisbets scraping token).</p>
-          </div>
-          <div className="pt-2 border-t border-amber-300">
-            <p className="font-semibold mb-1">💡 Pro Tip:</p>
-            <p>You can also set these as environment variables in Supabase:</p>
-            <ul className="list-disc ml-5 mt-2 space-y-1">
-              <li><code className="bg-amber-100 px-2 py-0.5 rounded">UROPA_API_TOKEN</code> - Your API token</li>
-              <li><code className="bg-amber-100 px-2 py-0.5 rounded">UROPA_API_URL</code> - Your API URL</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Right Column (5 Cols) */}
+        <div className="lg:col-span-5 space-y-5">
+          
+          {/* Current Status */}
+          {config && saved && (
+            <Card className="bg-emerald-50/90 border border-emerald-200 shadow-xs rounded-xl overflow-hidden">
+              <CardContent className="p-4 sm:p-5 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-sm">
+                  <CheckCircle className="size-5 text-emerald-600" />
+                  Uropa API Connected
+                </div>
+                
+                <div className="space-y-2 text-xs font-semibold">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">API URL</span>
+                    <code className="block bg-white/80 border border-emerald-200 text-emerald-900 px-2.5 py-1.5 rounded-lg font-mono text-[11px] truncate">
+                      {config.apiUrl}
+                    </code>
+                  </div>
+                  
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">Token Status</span>
+                    <div className="bg-white/80 border border-emerald-200 p-2.5 rounded-lg text-emerald-900 text-[11px]">
+                      {config.hasEnvToken ? (
+                        <p className="font-bold">🔐 UROPA_API_TOKEN set in environment</p>
+                      ) : (
+                        <p className="font-mono">Token: {token ? `${token.substring(0, 14)}...` : '(none)'}</p>
+                      )}
+                      <p className="text-[10px] text-emerald-700 mt-1">Verified: {config.lastVerified ? new Date(config.lastVerified).toLocaleString() : 'Never'}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quick Tools */}
+          {saved && (
+            <Card className="bg-[#2D3748] text-white border-none shadow-xs rounded-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-white/10">
+                <CardTitle className="text-sm font-extrabold flex items-center gap-2 text-white">
+                  <TrendingUp className="size-4 text-[#E31837]" />
+                  Uropa-Powered Tools
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-2">
+                <Link to="/admin/uropa-price-sync" className="block">
+                  <div className="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
+                        <TrendingUp className="size-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold">Price Sync Manager</div>
+                        <div className="text-[10px] text-slate-400">Compare & update prices</div>
+                      </div>
+                    </div>
+                    <ArrowRight className="size-4 text-slate-400" />
+                  </div>
+                </Link>
+
+                <Link to="/admin/products" className="block">
+                  <div className="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                        <Database className="size-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold">Product Manager</div>
+                        <div className="text-[10px] text-slate-400">Manage equipment catalog</div>
+                      </div>
+                    </div>
+                    <ArrowRight className="size-4 text-slate-400" />
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Configuration Help */}
+          <Card className="bg-amber-50/70 border border-amber-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-amber-200/60 bg-amber-100/40">
+              <CardTitle className="text-xs font-extrabold text-amber-900 flex items-center gap-2">
+                <Info className="size-4 text-amber-600" />
+                Configuration Guidelines
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3 text-xs font-medium text-amber-950">
+              <div>
+                <p className="font-extrabold text-amber-900 mb-0.5">🔗 API Endpoint URL:</p>
+                <p className="text-[11px]">The base OCC endpoint for Nisbets/Uropa AU (<code className="font-mono bg-amber-100 px-1 rounded">https://p1-api.nisbets.com.au/occ/v2/uropa-au</code>)</p>
+              </div>
+              <div>
+                <p className="font-extrabold text-amber-900 mb-0.5">🔑 Bearer Token:</p>
+                <p className="text-[11px]">Your wholesale API authentication token used to sign requests.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteConfig}
+        title="Delete API Configuration"
+        description="Are you sure you want to delete the Uropa API configuration? This will clear saved credentials."
+        loading={deleting}
+      />
     </div>
   );
 }

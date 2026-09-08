@@ -11,6 +11,8 @@ import { Maintenance } from '../pages/Maintenance';
 import { logger } from '../utils/env';
 import { Toaster } from './ui/sonner';
 
+import { CartDrawer } from './CartDrawer';
+
 // v2.0 - Added AdminProvider to fix admin authentication
 // v2.1 - Added timeout protection for maintenance check to prevent hang
 export function ProviderWrapper() {
@@ -102,6 +104,7 @@ export function ProviderWrapper() {
         <CMSProvider>
           <AdminProvider>
             <CartProvider>
+              <CartDrawer />
               <Toaster
                 position="top-right"
                 richColors

@@ -3,3 +3,45 @@
 @import './theme.css';
 @import './legal.css';
 @import './content.css';
+
+/* Force Hero Banner Carousel to stretch 100% full height matching left sidebar */
+[data-banner-type="carousel"],
+[data-banner-type="carousel"] .slick-slider,
+[data-banner-type="carousel"] .slick-list,
+[data-banner-type="carousel"] .slick-track,
+[data-banner-type="carousel"] .slick-slide,
+[data-banner-type="carousel"] .slick-slide > div,
+[data-banner-type="carousel"] .slick-slide > div > a,
+[data-banner-type="carousel"] img {
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+/* ⚡ ENFORCE SMOOTH TOUCH SWIPING & FINGER DRAGGING ON ALL CAROUSELS ⚡ */
+.slick-slider,
+.slick-list,
+.slick-track,
+.slick-slide {
+  touch-action: pan-x pan-y !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.slick-slide img {
+  pointer-events: auto;
+  -webkit-user-drag: none;
+}
+
+.slick-list {
+  cursor: grab;
+}
+
+.slick-list:active {
+  cursor: grabbing;
+}
+
+/* ⚡ GLOBAL HIGH-DEFINITION CRISP IMAGE RENDERING ⚡ */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+}

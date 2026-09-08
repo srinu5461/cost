@@ -1,11 +1,12 @@
 // Legal Pages Manager - Admin panel for editing Terms, Return Policy, and Privacy Policy
 import { useState, useEffect, useMemo } from 'react';
-import { Save, FileText, RefreshCw, Shield, AlertCircle, CheckCircle, Eye, Download } from 'lucide-react';
+import { Save, FileText, RefreshCw, Shield, AlertCircle, CheckCircle, Eye, Download, Info, Sparkles, ExternalLink, Clock } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { Label } from '../../components/ui/label';
-import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { notify } from '../../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -16,7 +17,6 @@ interface PageContent {
   lastUpdated: string;
 }
 
-// Default content for each page (same as frontend defaults)
 const DEFAULT_CONTENT = {
   'terms-and-conditions': `
     <h2>1. Introduction</h2>
@@ -41,7 +41,7 @@ const DEFAULT_CONTENT = {
       <li>You are at least 18 years old</li>
       <li>The information you provide is accurate and complete</li>
     </ul>
-    <p>We accept payment via credit card, debit card, and bank transfer through our secure eWay payment gateway.</p>
+    <p>We accept payment via credit card, debit card, and bank transfer through our secure payment gateway.</p>
     
     <h2>5. Shipping and Delivery</h2>
     <p>Delivery times are estimates only and may vary depending on location and product availability. We ship Australia-wide with standard delivery taking 3-5 business days for most items.</p>
@@ -158,7 +158,7 @@ const DEFAULT_CONTENT = {
     <ul>
       <li>Name and contact details (email, phone, address)</li>
       <li>Billing and shipping information</li>
-      <li>Payment card details (processed securely through eWay)</li>
+      <li>Payment card details</li>
       <li>Purchase history and preferences</li>
       <li>Communication preferences</li>
     </ul>
@@ -184,7 +184,6 @@ const DEFAULT_CONTENT = {
       <li>Improve our website and services</li>
       <li>Prevent fraud and enhance security</li>
       <li>Comply with legal obligations</li>
-      <li>Analyze usage patterns and trends</li>
     </ul>
     
     <h2>4. Information Sharing and Disclosure</h2>
@@ -196,53 +195,15 @@ const DEFAULT_CONTENT = {
     </ul>
     
     <h2>5. Data Security</h2>
-    <p>We implement industry-standard security measures to protect your information, including:</p>
-    <ul>
-      <li>Encryption of sensitive data (SSL/TLS)</li>
-      <li>Secure payment processing through eWay</li>
-      <li>Regular security audits and updates</li>
-      <li>Access controls and authentication</li>
-      <li>Secure data storage with Supabase</li>
-    </ul>
-    <p>However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.</p>
+    <p>We implement industry-standard security measures to protect your information, including encryption of sensitive data (SSL/TLS), access controls, and secure storage.</p>
     
-    <h2>6. Your Rights and Choices</h2>
-    <p>Under Australian privacy law, you have the right to:</p>
-    <ul>
-      <li>Access your personal information</li>
-      <li>Correct inaccurate information</li>
-      <li>Request deletion of your information</li>
-      <li>Opt-out of marketing communications</li>
-      <li>Object to certain data processing</li>
-    </ul>
-    <p>To exercise these rights, contact us at admin@costplus100.com.au</p>
-    
-    <h2>7. Cookies and Tracking</h2>
-    <p>We use cookies and similar technologies to:</p>
-    <ul>
-      <li>Remember your preferences</li>
-      <li>Understand how you use our website</li>
-      <li>Improve website functionality</li>
-      <li>Deliver personalized content</li>
-    </ul>
-    <p>You can control cookies through your browser settings, but disabling cookies may affect website functionality.</p>
-    
-    <h2>8. Children's Privacy</h2>
-    <p>Our services are not directed to children under 13. We do not knowingly collect information from children. If we become aware that we have collected personal information from a child, we will delete it immediately.</p>
-    
-    <h2>9. Changes to This Policy</h2>
-    <p>We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy on our website and updating the "Last Updated" date.</p>
-    
-    <h2>10. Contact Us</h2>
+    <h2>6. Contact Us</h2>
     <p>For questions about this Privacy Policy or our data practices, contact us:</p>
     <ul>
       <li>Email: admin@costplus100.com.au</li>
       <li>Phone: (08) 6165 8444</li>
       <li>Address: Perth, Western Australia</li>
     </ul>
-    
-    <h2>11. Australian Privacy Principles</h2>
-    <p>We comply with the Australian Privacy Principles (APPs) contained in the Privacy Act 1988 (Cth). For more information about your privacy rights, visit the Office of the Australian Information Commissioner (OAIC) at www.oaic.gov.au</p>
   `,
   'delivery-information': `
     <h2>Store Pickup Available</h2>
@@ -260,7 +221,6 @@ const DEFAULT_CONTENT = {
 
     <p><strong>✓</strong> Small item satchel rate automatically offered where possible</p>
 
-    <h3 style="background-color: #f1f5f9; padding: 0.75rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem;">Metro Areas Delivery</h3>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
       <thead>
         <tr style="background-color: #f1f5f9;">
@@ -291,287 +251,6 @@ const DEFAULT_CONTENT = {
         </tr>
       </tbody>
     </table>
-
-    <h2>Delivery Charges & Times For Other Areas</h2>
-    
-    <h3 style="background-color: #fef9c3; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">New South Wales - Regional</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #fefce8;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Towns</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">Next Day - 2 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$30</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #fefce8;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">Next Day - 5 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$60</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$30</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3 style="background-color: #ccfbf1; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">Queensland - Regional</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #f0fdfa;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Towns</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">Next Day - 6 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$60</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$30</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #f0fdfa;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">Next Day - 11 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$120</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$90</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3 style="background-color: #fed7aa; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">Victoria - Regional</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #ffedd5;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Towns</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">Next Day - 2 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$40</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$10</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #ffedd5;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">Next Day - 6 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$60</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$30</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3 style="background-color: #fde68a; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">South Australia</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #fef3c7;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Towns</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">2 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$40</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$10</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #fef3c7;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">2-4 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$60</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$30</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3 style="background-color: #e9d5ff; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">Northern Territory</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #f3e8ff;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">DARWIN</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">4 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$150</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$120</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #f3e8ff;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">4-12 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$170</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$140</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3 style="background-color: #bbf7d0; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">Western Australia</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #dcfce7;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">PERTH</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">5 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$100</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$70</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #dcfce7;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">5-14 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$120</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$90</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3 style="background-color: #a5f3fc; padding: 0.5rem 1rem; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem; display: inline-block;">Tasmania</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
-      <thead>
-        <tr style="background-color: #f1f5f9;">
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Location</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Delivery Times</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Under $300</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">$300-$700</th>
-          <th style="border: 1px solid #cbd5e1; padding: 0.75rem; text-align: left;">Over $700</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #cffafe;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">HOBART / LAUNCESTON</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">4 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$60</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$30</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-        <tr style="background-color: #cffafe;">
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: 600;">Regional Areas</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem;">4-12 Days</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$80</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold;">$50</td>
-          <td style="border: 1px solid #cbd5e1; padding: 0.75rem; font-weight: bold; color: #15803d;">FREE</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h2>Important Delivery Information</h2>
-    
-    <div style="background-color: #f1f5f9; padding: 1rem; border-left: 4px solid #E31837; margin-bottom: 1rem; border-radius: 0.25rem;">
-      <p style="font-weight: 600; margin-bottom: 0.5rem;">Matrix Applicability:</p>
-      <p>This Matrix is not applicable for the delivery on Refrigeration, Chairs and some heavier items. Please contact our Customer Service team at <a href="mailto:info@costplus100.com.au" style="color: #E31837; font-weight: bold;">info@costplus100.com.au</a> for pricing on large or heavy items.</p>
-    </div>
-
-    <ul>
-      <li>For large items a supplementary delivery charge may apply dependant on location</li>
-      <li><strong>Delivery hours are between 9am and 5pm (weekdays only)</strong></li>
-      <li>All delivery prices above are GST exclusive</li>
-      <li>The freight times offered are to be used as a guide only; Costplus100 will not be held responsible for any time delay.</li>
-      <li>Estimate based on items in stock [✓ In Stock]</li>
-      <li>Please note any items on backorder will be despatched together when all items arrive in our warehouse</li>
-    </ul>
-
-    <div style="background-color: #fffbeb; padding: 1rem; border-left: 4px solid #f59e0b; margin-top: 1.5rem; margin-bottom: 1rem; border-radius: 0.25rem;">
-      <p style="font-weight: 600; margin-bottom: 0.5rem; color: #78350f;">Kerbside Delivery:</p>
-      <p style="color: #92400e;">
-        Delivery of cooking machines, refrigeration, flat-pack items and most furniture products will be made to kerbside locations only. 
-        It does not include negotiating lifts or stairs. Customers are responsible for ensuring that products ordered will fit through doorways 
-        and into their premises. We cannot accept responsibility if it will not fit. Any carriage charges caused by an aborted delivery are 
-        the customer's responsibility.
-      </p>
-    </div>
-
-    <div style="background-color: #eff6ff; padding: 1rem; border-left: 4px solid #3b82f6; margin-top: 1rem; margin-bottom: 1rem; border-radius: 0.25rem;">
-      <p style="font-weight: 600; margin-bottom: 0.5rem; color: #1e3a8a;">Warehouse Pickup:</p>
-      <p style="color: #1e40af;">
-        If you are picking up your item from our warehouse please confirm actual box dimensions with our team before arrival, 
-        and ensure you have an adequate vehicle to safely collect and transport. Warehouse staff reserve the right to refuse any vehicle 
-        that is not fit to safely transport such items. All refrigeration equipment must also be transported in an upright fashion.
-      </p>
-    </div>
-
-    <div style="background-color: #f1f5f9; padding: 1rem; border-left: 4px solid #64748b; margin-top: 1rem; border-radius: 0.25rem;">
-      <p>
-        All customers arranging their own collections (whether personally or their own courier) are required to check order and packaging 
-        thoroughly before departure. All responsibility for condition will be transferred from Costplus100 to customer at this point in time.
-      </p>
-    </div>
-
-    <h2>Returns & Extended Delivery</h2>
-
-    <h3>Hassle Free 30 Day Returns</h3>
-    <p>
-      Goods delivered may be returned for a refund, exchange or replacement within 30 days provided they are returned unused, 
-      in a saleable condition and in their original packaging. Certain large or bulky items may be subject to hygiene purposes. 
-      Certain goods cannot be returned in accordance with the Australian consumer law. Goods will need to be returned with adequate 
-      postal packaging for health and safety reasons. Certain last-in-line or special-to-order goods may also be non-returnable. 
-      Those goods will be accordingly on the Uropa website or Catalogue. The cost of return may be refunded in whole or in part to 
-      the customer at Uropas' discretion. For more information, please see our Terms and Conditions.
-    </p>
-
-    <h3>Extended Delivery Items</h3>
-    <p>
-      Some of the items on our website have an extended delivery lead time of 1-2 days in addition to delivery times mentioned above. 
-      This includes large, heavy or bulky items as they require additional handling. It also includes products that are temporarily out 
-      of stock, and Items that are supplied direct from the manufacturer.
-    </p>
-
-    <h3>Offshore And Remote Deliveries</h3>
-    <p>
-      For remote and off-shore area delivery times, please call for details. A supplementary delivery cost for heavy equipment may apply.
-    </p>
-
-    <h2>Questions About Delivery?</h2>
-    <p style="text-align: center; margin-bottom: 1rem;">
-      Our customer service team is here to help with any questions about shipping, delivery times, or freight costs.
-    </p>
-    <p style="text-align: center;">
-      <a href="mailto:info@costplus100.com.au" style="background-color: #E31837; color: white; padding: 0.75rem 2rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; display: inline-block;">
-        Email Us
-      </a>
-    </p>
   `,
 };
 
@@ -579,7 +258,6 @@ export default function LegalPagesManager() {
   const [activeTab, setActiveTab] = useState<PageType>('terms-and-conditions');
   const [saving, setSaving] = useState(false);
   const [initializing, setInitializing] = useState(false);
-  const [message, setMessage] = useState('');
   const [preview, setPreview] = useState(false);
   
   const [pages, setPages] = useState<Record<PageType, PageContent>>({
@@ -617,15 +295,8 @@ export default function LegalPagesManager() {
     }
   };
 
-  // Initialize all pages with default content
   const initializeDefaultContent = async () => {
-    if (!confirm('This will load default content for all legal pages. Any unsaved changes will be lost. Continue?')) {
-      return;
-    }
-
     setInitializing(true);
-    setMessage('');
-
     try {
       const pageTypes: PageType[] = ['terms-and-conditions', 'return-refund-policy', 'privacy-policy', 'delivery-information'];
       
@@ -647,12 +318,11 @@ export default function LegalPagesManager() {
         }
       }
 
-      setMessage('✅ All legal pages initialized with default content successfully!');
-      setTimeout(() => setMessage(''), 5000);
-      loadAllPages(); // Reload to show new content
+      notify.success('All legal pages initialized with default content!');
+      loadAllPages();
     } catch (error) {
       console.error('Initialize error:', error);
-      setMessage('❌ Error initializing pages. Please try again.');
+      notify.error('Error initializing legal pages');
     } finally {
       setInitializing(false);
     }
@@ -660,7 +330,6 @@ export default function LegalPagesManager() {
 
   const savePage = async () => {
     setSaving(true);
-    setMessage('');
     try {
       const response = await fetch(`${API_URL}/legal/${activeTab}`, {
         method: 'POST',
@@ -675,16 +344,14 @@ export default function LegalPagesManager() {
       });
 
       if (response.ok) {
-        setMessage('Page saved successfully!');
-        setTimeout(() => setMessage(''), 3000);
-        // Reload to get the updated lastUpdated timestamp
+        notify.success('Page content saved successfully!');
         loadAllPages();
       } else {
-        setMessage('Failed to save page');
+        notify.error('Failed to save page content');
       }
     } catch (error) {
       console.error('Save error:', error);
-      setMessage('Error saving page');
+      notify.error('Error saving page content');
     } finally {
       setSaving(false);
     }
@@ -700,7 +367,6 @@ export default function LegalPagesManager() {
     }));
   };
 
-  // Quill editor configuration
   const modules = useMemo(() => ({
     toolbar: [
       [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
@@ -745,7 +411,7 @@ export default function LegalPagesManager() {
     'delivery-information': {
       icon: FileText,
       title: 'Delivery Information',
-      description: 'Details about our delivery process and times',
+      description: 'Details about our delivery process and freight rates',
       publicUrl: '/delivery-information',
     },
   };
@@ -754,202 +420,271 @@ export default function LegalPagesManager() {
   const Icon = currentPage.icon;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#2D3748] mb-2">Legal Pages Manager</h1>
-          <p className="text-gray-600">Edit and manage your legal documents and policies</p>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <Shield className="size-6 text-[#E31837]" />
+            Legal Pages Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Edit and manage store legal documents, terms, privacy policy, return policy, and delivery information
+          </p>
         </div>
-        <Button
+
+        <button
           onClick={initializeDefaultContent}
           disabled={initializing}
-          className="bg-green-600 hover:bg-green-700"
+          className="h-10 px-4 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold transition-all shadow-2xs text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
         >
-          <Download className="size-4 mr-2" />
+          <Download className={`size-4 text-[#E31837] ${initializing ? 'animate-spin' : ''}`} />
           {initializing ? 'Initializing...' : 'Load Default Content'}
-        </Button>
+        </button>
       </div>
 
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-          message.includes('✅') 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          {message.includes('✅') ? (
-            <CheckCircle className="size-5" />
-          ) : (
-            <AlertCircle className="size-5" />
-          )}
-          <span>{message}</span>
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Live Legal Document Sync:</strong> Any updates made here instantly publish to your storefront live policies and terms pages.
         </div>
-      )}
+      </div>
 
-      {/* Show warning if pages are empty */}
+      {/* Empty Warning */}
       {!pages[activeTab].content && (
-        <div className="mb-6 p-4 rounded-lg flex items-center gap-3 bg-orange-50 text-orange-800 border border-orange-200">
-          <AlertCircle className="size-5" />
-          <div>
-            <p className="font-semibold">No content found for this page!</p>
-            <p className="text-sm">Click "Load Default Content" button above to initialize all legal pages with professional default content.</p>
+        <div className="p-4 rounded-xl flex items-center gap-3 bg-amber-50 text-amber-900 border border-amber-200 shadow-xs">
+          <AlertCircle className="size-5 text-amber-600 shrink-0" />
+          <div className="text-xs sm:text-sm">
+            <strong className="font-extrabold block">No content found for this document!</strong>
+            Click <strong>Load Default Content</strong> above to initialize professional legal policy templates.
           </div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+      {/* Navigation Pills */}
+      <div className="flex flex-wrap gap-2">
         {(Object.keys(pageInfo) as PageType[]).map((pageType) => {
           const PageIcon = pageInfo[pageType].icon;
+          const isActive = activeTab === pageType;
           return (
             <button
               key={pageType}
               onClick={() => setActiveTab(pageType)}
-              className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${
-                activeTab === pageType
-                  ? 'text-[#E31837] border-b-2 border-[#E31837]'
-                  : 'text-gray-600 hover:text-gray-900'
+              className={`px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-2 border cursor-pointer ${
+                isActive
+                  ? 'bg-[#2D3748] text-white border-[#2D3748] shadow-xs'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <PageIcon className="size-4" />
+              <PageIcon className={`size-4 ${isActive ? 'text-[#E31837]' : 'text-slate-400'}`} />
               {pageInfo[pageType].title}
             </button>
           );
         })}
       </div>
 
-      {/* Page Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-[#E31837] p-3 rounded-lg">
-              <Icon className="size-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-[#2D3748]">{currentPage.title}</h2>
-              <p className="text-gray-600 mt-1">{currentPage.description}</p>
-              {pages[activeTab].lastUpdated && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Last updated: {new Date(pages[activeTab].lastUpdated).toLocaleDateString('en-AU', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setPreview(!preview)}
-              variant="outline"
-              size="sm"
-            >
-              <Eye className="size-4 mr-2" />
-              {preview ? 'Edit' : 'Preview'}
-            </Button>
-            <Button
-              onClick={() => window.open(currentPage.publicUrl, '_blank')}
-              variant="outline"
-              size="sm"
-            >
-              View Live Page
-            </Button>
-          </div>
-        </div>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+        {/* Main Editor Card */}
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            {/* Editor Sub-Header */}
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white border border-slate-200 p-2 rounded-xl shadow-2xs">
+                    <Icon className="size-5 text-[#E31837]" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-extrabold text-[#0f172a]">{currentPage.title}</h2>
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-medium">
+                      <span>{currentPage.description}</span>
+                      {pages[activeTab].lastUpdated && (
+                        <span className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-extrabold text-[#0f172a] uppercase">
+                          <Clock className="size-3 text-[#E31837]" />
+                          {new Date(pages[activeTab].lastUpdated).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-      {/* Editor/Preview */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        {preview ? (
-          <>
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-900">
-              <strong>Preview Mode:</strong> This is how your content will appear to customers
-            </div>
-            <div 
-              className="legal-content prose prose-slate max-w-none"
-              dangerouslySetInnerHTML={{ __html: pages[activeTab].content }}
-            />
-          </>
-        ) : (
-          <>
-            <Label className="mb-2 block text-lg font-semibold">Page Content</Label>
-            <p className="text-sm text-gray-600 mb-4">
-              {activeTab === 'delivery-information' 
-                ? 'Edit the HTML directly. Tables and complex formatting are preserved. Use Preview to see how it looks.'
-                : 'Use the formatting toolbar to style your content. The content will be displayed professionally on the customer-facing pages.'}
-            </p>
-            <div className="mb-6">
-              {activeTab === 'delivery-information' ? (
-                // Plain HTML editor for delivery information (preserves tables)
-                <textarea
-                  value={pages[activeTab].content}
-                  onChange={(e) => updateContent(e.target.value)}
-                  className="w-full h-[600px] p-4 border border-gray-300 rounded-lg font-mono text-sm"
-                  placeholder="Enter HTML content here..."
-                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setPreview(!preview)}
+                    className={`h-9 px-3.5 rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                      preview 
+                        ? 'bg-[#2D3748] text-white hover:bg-[#1a202c]' 
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {preview ? (
+                      <>
+                        <FileText className="size-3.5 text-[#E31837]" />
+                        Edit Mode
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="size-3.5 text-blue-600" />
+                        Preview
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => window.open(currentPage.publicUrl, '_blank')}
+                    className="h-9 px-3.5 bg-white border border-slate-200 text-[#E31837] hover:bg-rose-50 rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    Live Page
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+
+            {/* Editor Canvas / Preview */}
+            <CardContent className="p-0 bg-white">
+              {preview ? (
+                <div className="p-4 bg-slate-100/60 min-h-[480px]">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden flex flex-col max-w-4xl mx-auto ring-1 ring-slate-900/5">
+                    {/* Browser Header Bar */}
+                    <div className="bg-slate-100 px-3.5 py-2 border-b border-slate-200 flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400 border border-red-500/20" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-amber-500/20" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400 border border-green-500/20" />
+                      </div>
+                      <div className="mx-auto bg-white rounded-md px-8 py-0.5 text-[10px] text-slate-400 font-bold border border-slate-200/80 shadow-2xs">
+                        costplus100.com.au{currentPage.publicUrl}
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 sm:p-10 flex-1 bg-white overflow-y-auto">
+                      <div 
+                        className="legal-content prose prose-slate max-w-none text-slate-800 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: pages[activeTab].content }}
+                      />
+                    </div>
+                  </div>
+                </div>
               ) : (
-                // Rich text editor for other pages
-                <ReactQuill
-                  value={pages[activeTab].content}
-                  onChange={updateContent}
-                  modules={modules}
-                  formats={formats}
-                  className="bg-white"
-                  style={{ height: '500px', marginBottom: '50px' }}
-                />
+                <div className="flex flex-col">
+                  {activeTab === 'delivery-information' ? (
+                    <div className="p-4 space-y-3">
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-semibold text-amber-800 flex items-center gap-2">
+                        <AlertCircle className="size-4 text-amber-600 shrink-0" />
+                        <span>Raw HTML Editor: Required to preserve freight tables and styled delivery callouts.</span>
+                      </div>
+                      <textarea
+                        value={pages[activeTab].content}
+                        onChange={(e) => updateContent(e.target.value)}
+                        className="w-full min-h-[480px] p-4 border border-slate-200 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-[#E31837] focus:border-[#E31837] focus:outline-none"
+                        placeholder="Enter HTML document content here..."
+                      />
+                    </div>
+                  ) : (
+                    <div className="quill-editor-wrapper">
+                      <ReactQuill
+                        value={pages[activeTab].content}
+                        onChange={updateContent}
+                        modules={modules}
+                        formats={formats}
+                        style={{ minHeight: '480px' }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between p-4 bg-slate-50 border-t border-slate-100">
+                    <button
+                      onClick={() => loadAllPages()}
+                      className="h-9 px-4 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                    >
+                      Reset Changes
+                    </button>
+                    <button
+                      onClick={savePage}
+                      disabled={saving}
+                      className="h-9 px-6 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                    >
+                      <Save className="size-4" />
+                      {saving ? 'Saving...' : 'Save Document Changes'}
+                    </button>
+                  </div>
+                </div>
               )}
-            </div>
-
-            <div className={`flex justify-end gap-3 pt-4 border-t ${activeTab === 'delivery-information' ? 'mt-6' : 'mt-16'}`}>
-              <Button
-                onClick={() => loadAllPages()}
-                variant="outline"
-              >
-                Reset Changes
-              </Button>
-              <Button
-                onClick={savePage}
-                disabled={saving}
-                className="bg-[#E31837] hover:bg-[#E31837]/90"
-              >
-                <Save className="size-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Tips */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">📝 Writing Tips</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Use clear, simple language</li>
-            <li>• Break content into sections</li>
-            <li>• Use headings and bullet points</li>
-            <li>• Keep paragraphs short</li>
-          </ul>
+            </CardContent>
+          </Card>
         </div>
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h3 className="font-semibold text-green-900 mb-2">✅ Legal Requirements</h3>
-          <ul className="text-sm text-green-800 space-y-1">
-            <li>• Comply with Australian law</li>
-            <li>• Include contact information</li>
-            <li>• Specify return timeframes</li>
-            <li>• Explain data collection</li>
-          </ul>
-        </div>
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h3 className="font-semibold text-purple-900 mb-2">⚡ Best Practices</h3>
-          <ul className="text-sm text-purple-800 space-y-1">
-            <li>• Review and update regularly</li>
-            <li>• Get legal review if needed</li>
-            <li>• Make easily accessible</li>
-            <li>• Use professional tone</li>
-          </ul>
+
+        {/* Sidebar Guidelines */}
+        <div className="space-y-4">
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-xs font-black text-[#0f172a] uppercase tracking-wider flex items-center gap-2">
+                <FileText className="size-4 text-[#E31837]" />
+                Writing Guidelines
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2 text-xs font-medium text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-[#E31837] font-bold">•</span>
+                <span>Use clear, simple business language</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#E31837] font-bold">•</span>
+                <span>Break terms into numbered sections</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#E31837] font-bold">•</span>
+                <span>Highlight GST and shipping rules clearly</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-xs font-black text-[#0f172a] uppercase tracking-wider flex items-center gap-2">
+                <Shield className="size-4 text-emerald-600" />
+                Legal Compliance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2 text-xs font-medium text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">•</span>
+                <span>Comply with Australian Consumer Law</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">•</span>
+                <span>Include support contact details</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">•</span>
+                <span>Specify 30-day return eligibility rules</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#0f172a] border-none shadow-md rounded-xl overflow-hidden text-white">
+            <CardHeader className="pb-3 border-b border-slate-800 bg-slate-900/60">
+              <CardTitle className="text-white text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className="size-4 text-[#E31837]" />
+                Storefront Best Practices
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2 text-xs text-slate-300 font-medium">
+              <div className="flex items-start gap-2">
+                <span className="text-[#E31837] font-bold">•</span>
+                <span>Keep policies accessible in footer</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#E31837] font-bold">•</span>
+                <span>Review freight rates annually</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#E31837] font-bold">•</span>
+                <span>Ensure store pickup terms are clear</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

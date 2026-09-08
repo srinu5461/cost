@@ -4,11 +4,14 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
 import { 
   FileText, Plus, Search, Eye, CheckCircle, XCircle, Clock, 
-  Calendar, DollarSign, User, Package
+  Calendar, DollarSign, User, Package, Trash2
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
+
+import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -25,7 +28,7 @@ interface Quotation {
   subtotal: number;
   tax: number;
   total: number;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
   validUntil: string;
   createdAt: string;
   notes?: string;
@@ -37,6 +40,8 @@ export function Quotations() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; quotationNumber: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchQuotations();
@@ -62,18 +67,40 @@ export function Quotations() {
     }
   };
 
+  const confirmDeleteQuotation = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API_URL}/quotations/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${publicAnonKey}` }
+      });
+      if (res.ok) {
+        setQuotations(prev => prev.filter(q => q.id !== deleteTarget.id));
+        setDeleteTarget(null);
+      } else {
+        alert('Failed to delete quotation');
+      }
+    } catch (err) {
+      console.error('Error deleting quotation:', err);
+      alert('Failed to delete quotation');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50"><Clock className="size-3 mr-1" />Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-none rounded-full px-3 py-1 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5"><Clock className="size-3" />Pending</Badge>;
       case 'accepted':
-        return <Badge variant="outline" className="bg-green-50"><CheckCircle className="size-3 mr-1" />Accepted</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-none rounded-full px-3 py-1 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5"><CheckCircle className="size-3" />Accepted</Badge>;
       case 'rejected':
-        return <Badge variant="outline" className="bg-red-50"><XCircle className="size-3 mr-1" />Rejected</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-none rounded-full px-3 py-1 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5"><XCircle className="size-3" />Rejected</Badge>;
       case 'expired':
-        return <Badge variant="outline" className="bg-gray-50"><Calendar className="size-3 mr-1" />Expired</Badge>;
+        return <Badge className="bg-slate-200 text-slate-700 border-none rounded-full px-3 py-1 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5"><Calendar className="size-3" />Expired</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge className="bg-slate-100 text-slate-700 border-none rounded-full px-3 py-1 font-bold text-[11px] uppercase tracking-wider">{status}</Badge>;
     }
   };
 
@@ -114,180 +141,183 @@ export function Quotations() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Quotations</h1>
-              <p className="text-muted-foreground">
-                Manage customer quotations and convert to orders
-              </p>
-            </div>
-            <Button onClick={() => navigate('/admin/quotations/create')}>
-              <Plus className="size-4 mr-2" />
-              Create Quotation
-            </Button>
-          </div>
-
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Quotations</p>
-                    <p className="text-2xl font-bold">{stats.total}</p>
-                  </div>
-                  <FileText className="size-8 text-blue-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Pending</p>
-                    <p className="text-2xl font-bold">{stats.pending}</p>
-                  </div>
-                  <Clock className="size-8 text-yellow-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Accepted</p>
-                    <p className="text-2xl font-bold">{stats.accepted}</p>
-                  </div>
-                  <CheckCircle className="size-8 text-green-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Value</p>
-                    <p className="text-2xl font-bold">${stats.totalValue.toFixed(2)}</p>
-                  </div>
-                  <DollarSign className="size-8 text-green-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search quotations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border rounded-md"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-              <option value="expired">Expired</option>
-            </select>
-          </div>
+    <div className="max-w-7xl mx-auto pb-8 space-y-5">
+      {/* Header */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight">Quotations</h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Manage customer quotations and convert to orders</p>
         </div>
+        <button 
+          onClick={() => navigate('/admin/quotations/create')}
+          className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer w-full sm:w-auto"
+        >
+          <Plus className="size-4" />
+          Create Quotation
+        </button>
+      </div>
 
-        {/* Quotations List */}
-        {filteredQuotations.length > 0 ? (
-          <div className="space-y-4">
-            {filteredQuotations.map((quotation) => (
-              <Card key={quotation.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold">{quotation.quotationNumber}</h3>
-                        {getStatusBadge(quotation.status)}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <User className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{quotation.customer.name}</p>
-                            <p className="text-muted-foreground">{quotation.customer.email}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Package className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{quotation.items.length} Items</p>
-                            <p className="text-muted-foreground">
-                              {quotation.items.reduce((sum, item) => sum + item.quantity, 0)} units
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="size-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">${quotation.total.toFixed(2)}</p>
-                            <p className="text-muted-foreground">Total (incl. GST)</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                        <span>Created: {new Date(quotation.createdAt).toLocaleDateString()}</span>
-                        <span>Valid Until: {new Date(quotation.validUntil).toLocaleDateString()}</span>
-                      </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Quotations', value: stats.total, icon: FileText, color: 'text-slate-600', bg: 'bg-slate-50' },
+          { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Accepted', value: stats.accepted, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Total Value', value: `$${stats.totalValue.toFixed(2)}`, icon: DollarSign, color: 'text-[#E31837]', bg: 'bg-rose-50' },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{stat.value}</p>
+              </div>
+              <div className={`size-11 rounded-xl ${stat.bg} border border-slate-100 flex items-center justify-center shrink-0`}>
+                <stat.icon className={`size-5.5 ${stat.color}`} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white rounded-xl p-3.5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+        <div className="relative max-w-sm sm:max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search quotations by # or customer..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs sm:text-sm font-semibold w-full"
+          />
+        </div>
+        <div className="w-full sm:w-44 shrink-0">
+          <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val)}>
+            <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:ring-1 focus:ring-[#E31837] text-xs sm:text-sm font-bold text-slate-700 cursor-pointer">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+              <SelectItem value="all" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">All Status</SelectItem>
+              <SelectItem value="pending" className="cursor-pointer text-xs sm:text-sm font-bold text-amber-700">Pending</SelectItem>
+              <SelectItem value="accepted" className="cursor-pointer text-xs sm:text-sm font-bold text-emerald-700">Accepted</SelectItem>
+              <SelectItem value="rejected" className="cursor-pointer text-xs sm:text-sm font-bold text-rose-700">Rejected</SelectItem>
+              <SelectItem value="expired" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-600">Expired</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Quotations List */}
+      {filteredQuotations.length > 0 ? (
+        <div className="space-y-3">
+          {filteredQuotations.map((quotation) => (
+            <div key={quotation.id} className="bg-white rounded-xl p-4 shadow-xs hover:shadow-sm transition-all border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
+                  <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                    {quotation.quotationNumber}
+                  </span>
+                  {getStatusBadge(quotation.status)}
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 text-slate-400 shrink-0">
+                      <User className="size-3.5" />
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => navigate(`/admin/quotations/${quotation.id}`)}
-                      >
-                        <Eye className="size-4 mr-2" />
-                        View
-                      </Button>
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-[#0f172a] truncate">{quotation.customer.name}</p>
+                      <p className="text-[11px] font-semibold text-slate-500 truncate">{quotation.customer.email}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 text-slate-400 shrink-0">
+                      <Package className="size-3.5" />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-slate-700">{quotation.items.length} Items</p>
+                      <p className="text-[11px] font-semibold text-slate-500">
+                        {quotation.items.reduce((sum, item) => sum + item.quantity, 0)} units total
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="bg-rose-50 p-1.5 rounded-lg border border-rose-100 text-[#E31837] shrink-0">
+                      <DollarSign className="size-3.5" />
+                    </div>
+                    <div>
+                      <p className="font-black text-[#0f172a] text-sm">${quotation.total.toFixed(2)}</p>
+                      <p className="text-[11px] font-semibold text-slate-500">Total (incl. GST)</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 mt-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                    <Calendar className="size-3 text-slate-400" />
+                    <span>Created: {new Date(quotation.createdAt).toLocaleDateString('en-AU')}</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                    <Clock className="size-3 text-slate-400" />
+                    <span>Valid: {new Date(quotation.validUntil).toLocaleDateString('en-AU')}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button 
+                  onClick={() => navigate(`/admin/quotations/${quotation.id}`)}
+                  className="size-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="View Details"
+                >
+                  <Eye className="size-3.5" />
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget({ id: quotation.id, quotationNumber: quotation.quotationNumber });
+                  }}
+                  className="size-8 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-600 hover:text-rose-700 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                  title="Delete Quotation"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl p-10 text-center shadow-xs border border-slate-200">
+          <div className="bg-slate-50 size-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+            <FileText className="size-8 text-slate-300" />
           </div>
-        ) : (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <FileText className="size-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No quotations found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery || filterStatus !== 'all' 
-                  ? 'Try adjusting your filters' 
-                  : 'Create your first quotation to get started'}
-              </p>
-              <Button onClick={() => navigate('/admin/quotations/create')}>
-                <Plus className="size-4 mr-2" />
-                Create Quotation
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          <h3 className="text-base font-black text-[#0f172a] mb-1">No quotations found</h3>
+          <p className="text-xs text-slate-500 font-medium mb-5">
+            {searchQuery || filterStatus !== 'all' 
+              ? 'Try adjusting your filters to find what you\'re looking for' 
+              : 'Create your first quotation to get started'}
+          </p>
+          <button 
+            onClick={() => navigate('/admin/quotations/create')}
+            className="h-10 px-6 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 mx-auto cursor-pointer"
+          >
+            <Plus className="size-4" />
+            Create Quotation
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteQuotation}
+        title="Delete Quotation"
+        description={deleteTarget ? `Are you sure you want to delete quotation ${deleteTarget.quotationNumber}? This action cannot be undone.` : ''}
+        loading={deleting}
+      />
     </div>
   );
 }

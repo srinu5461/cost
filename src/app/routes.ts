@@ -28,6 +28,10 @@ const Brands = lazy(() => import('./pages/Brands').then(m => ({ default: m.Brand
   console.error('Failed to load Brands:', err);
   return { default: () => null };
 }));
+const Categories = lazy(() => import('./pages/Categories').then(m => ({ default: m.Categories })).catch(err => {
+  console.error('Failed to load Categories:', err);
+  return { default: () => null };
+}));
 const Cart = lazy(() => import('./pages/Cart').then(m => ({ default: m.Cart })).catch(err => {
   console.error('Failed to load Cart:', err);
   return { default: () => null };
@@ -38,6 +42,10 @@ const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Con
 }));
 const DeliveryInformation = lazy(() => import('./pages/DeliveryInformation').then(m => ({ default: m.DeliveryInformation })).catch(err => {
   console.error('Failed to load DeliveryInformation:', err);
+  return { default: () => null };
+}));
+const FAQ = lazy(() => import('./pages/FAQ').catch(err => {
+  console.error('Failed to load FAQ:', err);
   return { default: () => null };
 }));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })).catch(err => {
@@ -68,6 +76,10 @@ const ResetPassword = lazy(() => import('./pages/customer/ResetPassword').then(m
 }));
 const ChangePassword = lazy(() => import('./pages/customer/ChangePassword').then(m => ({ default: m.ChangePassword })).catch(err => {
   console.error('Failed to load ChangePassword:', err);
+  return { default: () => null };
+}));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })).catch(err => {
+  console.error('Failed to load Profile:', err);
   return { default: () => null };
 }));
 
@@ -125,8 +137,9 @@ const UropaPriceSync = lazy(() => import('./pages/admin/UropaPriceSync').catch(e
   return { default: () => null };
 }));
 const DescriptionSync = lazy(() => import('./pages/admin/DescriptionSync').then(m => ({ default: m.default })));
-// Eager load ImageScraper to avoid Suspense errors
+// Eager load ImageScraper and NotificationsManager to avoid Suspense errors
 import ImageScraper from './pages/admin/ImageScraper';
+import { NotificationsManager } from './pages/admin/NotificationsManager';
 const SpecialsManager = lazy(() => import('./pages/admin/SpecialsManager').then(m => ({ default: m.SpecialsManager })));
 const DebugProduct = lazy(() => import('./pages/admin/DebugProduct').then(m => ({ default: m.DebugProduct })));
 const PriceDebug = lazy(() => import('./pages/admin/PriceDebug').catch(err => {
@@ -222,8 +235,10 @@ export const router = createBrowserRouter(
           { path: 'products', Component: Products },
           { path: 'products/c/:categorySlug', Component: Products },
           { path: 'products/:id', Component: ProductDetail },
+          { path: 'product/:id', Component: ProductDetail },
           { path: 'brands', Component: Brands },
           { path: 'brands/:brandName', Component: Brands },
+          { path: 'categories', Component: Categories },
           { path: 'promotions', Component: Promotions },
           { path: 'cart', Component: Cart },
           { path: 'checkout', Component: Checkout },
@@ -231,6 +246,7 @@ export const router = createBrowserRouter(
           { path: 'order-confirmation', Component: OrderConfirmation },
           { path: 'about', Component: About },
           { path: 'contact', Component: Contact },
+          { path: 'faq', Component: FAQ },
           { path: 'delivery-information', Component: DeliveryInformation },
           { path: 'terms-and-conditions', Component: TermsAndConditions },
           { path: 'return-refund-policy', Component: ReturnRefundPolicy },
@@ -239,6 +255,15 @@ export const router = createBrowserRouter(
           { path: 'email-test', Component: EmailTest },
           { path: 'product-query', Component: ProductQuery },
           { path: 'db-diagnostic', Component: DbDiagnostic },
+          { path: 'login', Component: CustomerLogin },
+          { path: 'register', Component: CustomerLogin },
+          { path: 'customer/login', Component: CustomerLogin },
+          { path: 'customer/dashboard', Component: CustomerDashboard },
+          { path: 'customer/forgot-password', Component: ForgotPassword },
+          { path: 'customer/reset-password', Component: ResetPassword },
+          { path: 'customer/change-password', Component: ChangePassword },
+          { path: 'profile', Component: Profile },
+          { path: 'categories', Component: Categories },
           { path: '*', Component: NotFound },
         ],
       },
@@ -307,29 +332,10 @@ export const router = createBrowserRouter(
               { path: 'system-health-check', Component: SystemHealthCheck },
               { path: 'database-diagnostics', Component: DatabaseDiagnostics },
               { path: 'favicon-sitemap-test', Component: FaviconSitemapTest },
+              { path: 'notifications', Component: NotificationsManager },
             ],
           },
         ],
-      },
-      {
-        path: 'customer/login',
-        Component: CustomerLogin,
-      },
-      {
-        path: 'customer/dashboard',
-        Component: CustomerDashboard,
-      },
-      {
-        path: 'customer/forgot-password',
-        Component: ForgotPassword,
-      },
-      {
-        path: 'customer/reset-password',
-        Component: ResetPassword,
-      },
-      {
-        path: 'customer/change-password',
-        Component: ChangePassword,
       },
     ],
   },

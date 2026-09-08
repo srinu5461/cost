@@ -166,92 +166,92 @@ const REGIONAL_ZONES: Record<string, any> = {
 const SHIPPING_RATES: Record<string, any> = {
   SYDNEY_METRO: [
     { maxAmount: 300, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 } // Free over $300
   ],
   MELBOURNE_METRO: [
     { maxAmount: 300, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   BRISBANE_METRO: [
     { maxAmount: 300, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   NSW_REGIONAL_TOWN: [
     { maxAmount: 300, cost: 30 },
-    { maxAmount: 700, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: 700, cost: 0 },
+    { maxAmount: Infinity, cost: 0 }
   ],
   NSW_REGIONAL_AREA: [
     { maxAmount: 300, cost: 60 },
     { maxAmount: 700, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   QLD_REGIONAL_TOWN: [
     { maxAmount: 300, cost: 60 },
     { maxAmount: 700, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   QLD_REGIONAL_AREA: [
     { maxAmount: 300, cost: 120 },
     { maxAmount: 700, cost: 90 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   VIC_REGIONAL_TOWN: [
     { maxAmount: 300, cost: 40 },
     { maxAmount: 700, cost: 10 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   VIC_REGIONAL_AREA: [
     { maxAmount: 300, cost: 60 },
     { maxAmount: 700, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   SA_REGIONAL_TOWN: [
     { maxAmount: 300, cost: 40 },
     { maxAmount: 700, cost: 10 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   SA_REGIONAL_AREA: [
     { maxAmount: 300, cost: 60 },
     { maxAmount: 700, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   NT_DARWIN: [
     { maxAmount: 300, cost: 150 },
     { maxAmount: 700, cost: 120 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   NT_REGIONAL: [
     { maxAmount: 300, cost: 170 },
     { maxAmount: 700, cost: 140 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   WA_PERTH: [
     { maxAmount: 300, cost: 100 },
     { maxAmount: 700, cost: 70 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   WA_REGIONAL: [
     { maxAmount: 300, cost: 120 },
     { maxAmount: 700, cost: 90 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
-
+  
   TAS_HOBART_LAUNCESTON: [
     { maxAmount: 300, cost: 60 },
     { maxAmount: 700, cost: 30 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ],
   TAS_REGIONAL: [
     { maxAmount: 300, cost: 80 },
     { maxAmount: 700, cost: 50 },
-    { maxAmount: Infinity, cost: 30 }
+    { maxAmount: Infinity, cost: 0 }
   ]
 };
 
@@ -294,23 +294,43 @@ export function getShippingZone(postcode: string): { zone: string; zoneName: str
   return null;
 }
 
+const HEAVY_ITEM_PRICE_THRESHOLD = 500;
+
 /**
- * Checks if cart contains categories that require shipping quote
+ * Checks if cart contains heavy-category items over $500 that require a shipping quote
  */
-export function requiresShippingQuote(categories: string[]): { required: boolean; matchedCategories: string[] } {
+export function requiresShippingQuote(
+  categories: string[],
+  cartItems?: Array<{ category: string; price: number }>
+): { required: boolean; matchedCategories: string[] } {
   const matchedCategories: string[] = [];
-  
+
   for (const category of categories) {
-    // Check if category contains any of the quote-required keywords
     for (const quoteCategory of QUOTE_REQUIRED_CATEGORIES) {
-      if (category.toLowerCase().includes(quoteCategory.toLowerCase()) || 
-          quoteCategory.toLowerCase().includes(category.toLowerCase())) {
-        matchedCategories.push(category);
+      if (
+        category.toLowerCase().includes(quoteCategory.toLowerCase()) ||
+        quoteCategory.toLowerCase().includes(category.toLowerCase())
+      ) {
+        // Only require quote if at least one item in this category is over $500
+        if (cartItems && cartItems.length > 0) {
+          const hasExpensiveItem = cartItems.some(
+            item =>
+              (item.category.toLowerCase().includes(quoteCategory.toLowerCase()) ||
+               quoteCategory.toLowerCase().includes(item.category.toLowerCase())) &&
+              item.price >= HEAVY_ITEM_PRICE_THRESHOLD
+          );
+          if (hasExpensiveItem) {
+            matchedCategories.push(category);
+          }
+        } else {
+          // No item-level data — fall back to requiring quote for the category
+          matchedCategories.push(category);
+        }
         break;
       }
     }
   }
-  
+
   return {
     required: matchedCategories.length > 0,
     matchedCategories
@@ -321,9 +341,10 @@ export function requiresShippingQuote(categories: string[]): { required: boolean
  * Calculates shipping cost based on postcode and cart total
  */
 export function calculateShipping(
-  postcode: string, 
-  cartTotal: number, 
-  categories: string[]
+  postcode: string,
+  cartTotal: number,
+  categories: string[],
+  cartItems?: Array<{ category: string; price: number }>
 ): {
   success: boolean;
   requiresQuote: boolean;
@@ -335,7 +356,7 @@ export function calculateShipping(
   matchedCategories?: string[];
 } {
   // Check if requires quote first
-  const quoteCheck = requiresShippingQuote(categories);
+  const quoteCheck = requiresShippingQuote(categories, cartItems);
   
   if (quoteCheck.required) {
     return {
@@ -396,6 +417,8 @@ export function calculateShipping(
     zone: zoneInfo.zone,
     zoneName: zoneInfo.zoneName,
     deliveryDays: zoneInfo.deliveryDays,
-    message: `Shipping to ${zoneInfo.zoneName}: $${shippingCost.toFixed(2)} (${zoneInfo.deliveryDays})`
+    message: shippingCost === 0 
+      ? `Free shipping to ${zoneInfo.zoneName} (${zoneInfo.deliveryDays})` 
+      : `Shipping to ${zoneInfo.zoneName}: $${shippingCost.toFixed(2)} (${zoneInfo.deliveryDays})`
   };
 }

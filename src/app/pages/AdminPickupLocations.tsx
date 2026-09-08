@@ -13,9 +13,14 @@ import {
   Clock,
   MapPinned,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Info,
+  Building2,
+  Search
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
+import { notify } from '../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -47,6 +52,7 @@ export function AdminPickupLocations() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -75,7 +81,7 @@ export function AdminPickupLocations() {
       }
     } catch (error) {
       console.error('Error fetching pickup locations:', error);
-      alert('Failed to load pickup locations');
+      notify.error('Failed to load pickup locations');
     } finally {
       setLoading(false);
     }
@@ -106,13 +112,13 @@ export function AdminPickupLocations() {
       if (data.success) {
         await fetchLocations();
         resetForm();
-        alert(editingId ? 'Location updated successfully!' : 'Location added successfully!');
+        notify.success(editingId ? 'Location updated successfully!' : 'Location added successfully!');
       } else {
-        alert(data.error || 'Failed to save location');
+        notify.error(data.error || 'Failed to save location');
       }
     } catch (error) {
       console.error('Error saving pickup location:', error);
-      alert('Failed to save location');
+      notify.error('Failed to save location');
     } finally {
       setSaving(false);
     }
@@ -130,13 +136,15 @@ export function AdminPickupLocations() {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this pickup location?')) {
-      return;
-    }
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDeleteLocation = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
 
     try {
-      const response = await fetch(`${API_URL}/pickup-locations/${id}`, {
+      const response = await fetch(`${API_URL}/pickup-locations/${deleteTargetId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
@@ -146,14 +154,17 @@ export function AdminPickupLocations() {
       const data = await response.json();
 
       if (data.success) {
+        setDeleteTargetId(null);
         await fetchLocations();
-        alert('Location deleted successfully!');
+        notify.success('Pickup location removed');
       } else {
-        alert(data.error || 'Failed to delete location');
+        notify.error(data.error || 'Failed to delete location');
       }
     } catch (error) {
       console.error('Error deleting pickup location:', error);
-      alert('Failed to delete location');
+      notify.error('Failed to delete location');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -169,73 +180,107 @@ export function AdminPickupLocations() {
     setShowAddForm(false);
   };
 
+  const filteredLocations = locations.filter(loc => 
+    loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    loc.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    loc.state.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="max-w-7xl mx-auto py-16 flex flex-col items-center justify-center gap-3 font-sans">
         <Loader2 className="size-8 animate-spin text-[#E31837]" />
+        <p className="text-xs font-bold text-slate-500">Loading pickup locations...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#2D3748]">Pickup Locations</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage pickup locations for customer orders
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <MapPin className="size-6 text-[#E31837]" />
+            Click & Collect Pickup Locations
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Manage warehouse depot pickup locations for local commercial equipment buyers
           </p>
         </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-[#E31837] hover:bg-[#E31837]/90"
+
+        <button 
+          onClick={() => {
+            if (showAddForm && editingId) {
+              resetForm();
+            } else {
+              setShowAddForm(!showAddForm);
+            }
+          }}
+          className="h-10 px-5 bg-[#E31837] hover:bg-[#c4122c] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer shrink-0"
         >
-          <Plus className="size-4 mr-2" />
-          Add Location
-        </Button>
+          <Plus className="size-4" />
+          {showAddForm ? 'Close Form' : 'Add Pickup Location'}
+        </button>
+      </div>
+
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Checkout Click & Collect:</strong> Active warehouses are presented during checkout when buyers choose zero-freight local depot pickup.
+        </div>
       </div>
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <Card className="border-[#E31837]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPinned className="size-5" />
-              {editingId ? 'Edit Location' : 'Add New Location'}
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+              <MapPinned className="size-5 text-[#E31837]" />
+              {editingId ? 'Edit Warehouse Location' : 'Add New Warehouse Location'}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <Label htmlFor="name">Location Name *</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <Label htmlFor="name" className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Location / Warehouse Name <span className="text-[#E31837]">*</span>
+                  </Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Sydney Warehouse"
+                    placeholder="Sydney Commercial Kitchen Warehouse"
                     required
+                    className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <Label htmlFor="address">Address *</Label>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="address" className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Full Street Address <span className="text-[#E31837]">*</span>
+                  </Label>
                   <Input
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="e.g., 123 Industrial Ave, Sydney NSW 2000"
+                    placeholder="123 Industrial Ave, Sydney NSW 2000"
                     required
+                    className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="state">State *</Label>
+                  <Label htmlFor="state" className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    State <span className="text-[#E31837]">*</span>
+                  </Label>
                   <select
                     id="state"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E31837] focus:border-[#E31837]"
+                    className="w-full h-9 px-3 text-xs font-bold border border-slate-200 rounded-md focus:border-[#E31837] focus:ring-[#E31837] outline-none"
                     required
                   >
                     <option value="">Select a state</option>
@@ -248,131 +293,179 @@ export function AdminPickupLocations() {
                 </div>
 
                 <div>
-                  <Label htmlFor="hours">Operating Hours *</Label>
+                  <Label htmlFor="hours" className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Operating Hours <span className="text-[#E31837]">*</span>
+                  </Label>
                   <Input
                     id="hours"
                     value={formData.hours}
                     onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
-                    placeholder="e.g., Mon-Fri: 8AM-5PM"
+                    placeholder="Mon-Fri: 8:00 AM - 5:00 PM"
                     required
+                    className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                   />
                 </div>
-
-                <div className="flex items-center gap-3 pt-8">
-                  <input
-                    type="checkbox"
-                    id="active"
-                    checked={formData.active}
-                    onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                    className="size-4 rounded"
-                  />
-                  <Label htmlFor="active" className="cursor-pointer">
-                    Active (visible to customers)
-                  </Label>
+                
+                <div className="sm:col-span-2 pt-1">
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+                    <div>
+                      <h3 className="font-extrabold text-xs text-[#0f172a]">Active Location Status</h3>
+                      <p className="text-[11px] font-medium text-slate-500">
+                        Enable to make this warehouse selectable during customer checkout
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.active}
+                        onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <Button 
-                  type="submit" 
-                  disabled={saving}
-                  className="bg-[#E31837] hover:bg-[#E31837]/90"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      {editingId ? 'Update Location' : 'Add Location'}
-                    </>
-                  )}
-                </Button>
-                <Button 
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
+                <button 
                   type="button" 
-                  variant="outline" 
                   onClick={resetForm}
+                  className="h-9 px-4 text-xs font-extrabold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
-                </Button>
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  className="h-9 px-5 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  {saving ? (
+                    <><Loader2 className="size-4 animate-spin" />Saving...</>
+                  ) : (
+                    <>{editingId ? 'Update Warehouse' : 'Save Warehouse'}</>
+                  )}
+                </button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Locations List */}
-      <div className="grid grid-cols-1 gap-4">
-        {locations.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <MapPin className="size-12 mx-auto mb-4 opacity-20" />
-              <p>No pickup locations yet. Add your first location above.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          locations.map((location) => (
-            <Card key={location.id} className={!location.active ? 'opacity-60' : ''}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <MapPin className="size-5 text-[#E31837]" />
-                      <h3 className="text-lg font-semibold">{location.name}</h3>
-                      {location.active ? (
-                        <Badge className="bg-green-500">
-                          <CheckCircle2 className="size-3 mr-1" />
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          <XCircle className="size-3 mr-1" />
-                          Inactive
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2 text-sm text-muted-foreground ml-8">
-                      <p className="flex items-center gap-2">
-                        <MapPinned className="size-4" />
-                        {location.address}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <Clock className="size-4" />
-                        {location.hours}
-                      </p>
+      {/* Search Bar */}
+      <div className="bg-white rounded-xl p-3.5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search warehouse by name or state..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 pl-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+          />
+        </div>
+
+        <div className="text-xs font-extrabold text-slate-500">
+          Total Depots: <span className="text-[#0f172a]">{filteredLocations.length}</span>
+        </div>
+      </div>
+
+      {/* Locations Grid */}
+      {filteredLocations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white border border-slate-200 rounded-xl shadow-xs border-dashed text-center p-6">
+          <MapPin className="size-12 mb-3 text-slate-300" />
+          <h3 className="text-base font-extrabold text-[#0f172a] mb-1">No pickup locations found</h3>
+          <p className="text-xs font-medium text-slate-500 mb-5">
+            {searchQuery ? 'Try adjusting your search filters' : 'Add your first warehouse pickup depot using the button above'}
+          </p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="h-9 px-4 bg-[#E31837] hover:bg-[#c4122c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+          >
+            <Plus className="size-4" />
+            Add Pickup Location
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredLocations.map((location) => (
+            <Card 
+              key={location.id} 
+              className={`bg-white rounded-xl shadow-xs border flex flex-col transition-all overflow-hidden group ${
+                location.active ? 'border-slate-200 hover:border-slate-300' : 'border-slate-200/60 opacity-60'
+              }`}
+            >
+              <div className="p-4 sm:p-5 flex flex-col h-full space-y-4">
+                
+                {/* Location Header */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-base font-extrabold text-[#0f172a] tracking-tight mb-1.5">
+                      {location.name}
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                        location.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'
+                      }`}>
+                        {location.active ? 'Active' : 'Inactive'}
+                      </span>
                       {location.state && (
-                        <Badge variant="outline" className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-extrabold border border-blue-200">
                           {location.state}
-                        </Badge>
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                  <div className="flex items-center gap-1">
+                    <button
                       onClick={() => handleEdit(location)}
+                      className="size-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all cursor-pointer"
+                      title="Edit Location"
                     >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(location.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTargetId(location.id)}
+                      className="size-7 rounded-lg text-slate-400 hover:text-[#E31837] hover:bg-red-50 flex items-center justify-center transition-all cursor-pointer"
+                      title="Delete Location"
                     >
-                      <Trash2 className="size-4" />
-                    </Button>
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </div>
                 </div>
-              </CardContent>
+
+                {/* Details Breakdown */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 text-xs font-semibold text-slate-700">
+                  <div className="flex items-start gap-2">
+                    <MapPinned className="size-4 text-[#E31837] shrink-0 mt-0.5" />
+                    <p className="leading-snug text-slate-600 font-medium">
+                      {location.address}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Clock className="size-4 text-slate-400 shrink-0" />
+                    <p className="text-slate-600 font-medium">
+                      {location.hours}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
+      <DeleteConfirmModal
+        isOpen={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={confirmDeleteLocation}
+        title="Delete Pickup Location"
+        description="Are you sure you want to delete this pickup location? This action cannot be undone."
+        loading={deleting}
+      />
     </div>
   );
 }

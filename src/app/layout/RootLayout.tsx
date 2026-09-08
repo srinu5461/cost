@@ -10,35 +10,33 @@ import { SEOHead } from '../components/SEOHead';
 export function RootLayout() {
   const location = useLocation();
 
+  const isAuthPage = 
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname.startsWith('/customer/login') ||
+    location.pathname.startsWith('/customer/register') ||
+    location.pathname.startsWith('/customer/forgot-password') ||
+    location.pathname.startsWith('/customer/reset-password') ||
+    location.pathname.startsWith('/admin/login');
+
   // Force scroll to top on every route change
   useEffect(() => {
-    console.log('[RootLayout] Route changed to:', location.pathname, '- Scrolling to top');
-    console.log('[RootLayout] Before scroll - window.scrollY:', window.scrollY);
-
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-
-    setTimeout(() => {
-      console.log('[RootLayout] After scroll - window.scrollY:', window.scrollY);
-      if (window.scrollY !== 0) {
-        console.error('[RootLayout] SCROLL FAILED - still at position:', window.scrollY);
-      }
-    }, 100);
-  }, [location.pathname, location.search]); // Run whenever path or search params change
+  }, [location.pathname, location.search]);
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-hidden">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw]">
       <SEOHead />
-      <Header />
-      <TrustBadges />
+      {!isAuthPage && <Header />}
       <main className="flex-1 w-full">
         <Suspense fallback={<LoadingScreen />}>
           <Outlet />
         </Suspense>
       </main>
-      <Footer />
-      <AIChatbot />
+      {!isAuthPage && <Footer />}
+      {!isAuthPage && <AIChatbot />}
     </div>
   );
 }

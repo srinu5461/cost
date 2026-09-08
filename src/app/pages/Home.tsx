@@ -5,21 +5,16 @@ import { useCMS } from '../context/CMSContext';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../../hooks/useProducts';
 
-// Convert Supabase Storage URLs to WebP using image transformation API
-function toWebP(url: string, width?: number): string {
-  if (!url || !url.includes('supabase.co/storage')) return url;
-  const params = new URLSearchParams();
-  params.set('format', 'webp');
-  params.set('quality', '80');
-  if (width) params.set('width', String(width));
-  return `${url}?${params.toString()}`;
-}
+
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
-import { ChevronLeft, ChevronRight, ShieldCheck, Truck, CreditCard, HeadphonesIcon, Award, TrendingUp, ArrowRight, Phone, Mail, Search, X, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Menu, ShieldCheck, Truck, CreditCard, HeadphonesIcon, Award, TrendingUp, ArrowRight, Phone, Mail, Search, X, ShoppingCart, Plus, Minus, Armchair, ChefHat, Snowflake, Coffee, Sparkles, Utensils, Umbrella, Baby, Grid3x3, Eye, CheckCircle2, Wine, Package, Shirt, BookOpen, Home as HomeIcon, Tag, User, Crown, Shield, Box, Users, Star, Headphones, DollarSign } from 'lucide-react';
+
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+
+
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { fetchWithRetry, getOptimizedImageUrl } from '../utils/env';
 import { logger } from '../utils/logger';
@@ -30,6 +25,36 @@ import { heroConfig } from '../../config/hero';
 import heroBannerImg from '../../imports/hero-banner.png';
 import { buildCategoryTree } from '../utils/categoryTree';
 import { categoryToSlug } from '../utils/slugify';
+import { staticCategories } from '../../config/categories';
+import { TrustBadges } from '../components/TrustBadges';
+import { FeaturedEquipmentCard } from '../components/FeaturedEquipmentCard';
+import { MultiBuyEquipmentCard } from '../components/MultiBuyEquipmentCard';
+// Convert Supabase Storage URLs to WebP using image transformation API
+function toWebP(url: string, width?: number): string {
+  if (!url || !url.includes('supabase.co/storage')) return url;
+  const params = new URLSearchParams();
+  params.set('format', 'webp');
+  params.set('quality', '95');
+  if (width) params.set('width', String(Math.round(width * 1.5)));
+  return `${url}?${params.toString()}`;
+}
+
+
+const categoryIconMap: Record<string, any> = {
+  Armchair: Armchair,
+  ChefHat: ChefHat,
+  Snowflake: Snowflake,
+  Coffee: Coffee,
+  Wine: Wine,
+  Package: Package,
+  Shirt: Shirt,
+  Sparkles: Sparkles,
+  Utensils: Utensils,
+  Umbrella: Umbrella,
+  Baby: Baby,
+  Grid3x3: Grid3x3,
+};
+
 
 // ⚡ CACHE KEYS
 const CACHE_KEY_HOMEPAGE = 'costplus100_homepage_data';
@@ -43,7 +68,7 @@ const getCachedData = () => {
     const cached = localStorage.getItem(CACHE_KEY_HOMEPAGE);
     const timestamp = localStorage.getItem(CACHE_KEY_TIMESTAMP);
     const version = localStorage.getItem(CACHE_KEY_VERSION);
-    
+
     if (cached && timestamp && version) {
       const age = Date.now() - parseInt(timestamp);
       if (age < CACHE_DURATION) {
@@ -66,75 +91,6 @@ const setCachedData = (data: any) => {
     // Ignore cache errors
   }
 };
-
-function MultiBuyCard({ product, onAddToCart }: { product: any; onAddToCart: (p: any, qty: number) => void }) {
-  const [qty, setQty] = useState(1);
-  const mbPrice = (product.sellingPrice || product.salePrice || product.price) ?? 0;
-  const mbOption = product.multiBuyOptions?.[1];
-  // pick best multibuy tier for current qty
-  const tiers: any[] = product.multiBuyOptions || [];
-  const activeTier = [...tiers].reverse().find((t: any) => qty >= t.quantity);
-  const effectivePrice = activeTier ? activeTier.price : mbPrice;
-
-  return (
-    <div className="group bg-white rounded-xl border border-slate-200 hover:border-yellow-400 hover:shadow-md transition-all overflow-hidden flex flex-col">
-      {/* Image */}
-      <Link to={`/products/${product.id}`} className="block relative aspect-square bg-slate-50 overflow-hidden">
-        {(product.mainImageUrl || product.image) ? (
-          <img src={product.mainImageUrl || product.image} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-2" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">No image</div>
-        )}
-        <div className="absolute top-2 left-2 bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-0.5 rounded-full">Multi-buy</div>
-        {(product.brandLogo || product.brandLogoUrl) && (
-          <img src={product.brandLogo || product.brandLogoUrl} alt={product.brand} className="absolute bottom-1 right-1 h-5 object-contain bg-white/90 rounded px-1 shadow-sm" />
-        )}
-      </Link>
-
-      {/* Info */}
-      <div className="p-3 flex flex-col gap-1.5 flex-1">
-        <Link to={`/products/${product.id}`}>
-          <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2 hover:text-[#E31837] transition-colors">{product.name}</p>
-        </Link>
-        {product.code && (
-          <p className="text-xs text-slate-500">Code: <span className="font-semibold text-slate-700">{product.code}</span></p>
-        )}
-
-        {/* Price */}
-        <div className="mt-auto pt-1">
-          <div className="flex items-baseline gap-1">
-            <span className="text-base font-bold text-[#E31837]">${effectivePrice.toFixed(2)}</span>
-            <span className="text-xs text-slate-400">ex GST</span>
-          </div>
-          {mbOption && (
-            <p className="text-xs text-green-700 font-bold bg-green-50 border border-green-100 rounded px-1.5 py-0.5 mt-0.5 inline-block">
-              {mbOption.quantity}+ packs @ ${mbOption.price?.toFixed(2)} each
-            </p>
-          )}
-        </div>
-
-        {/* Quantity + Add to Cart */}
-        <div className="flex items-center gap-1.5 mt-1">
-          <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden">
-            <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-2 py-1.5 hover:bg-slate-100 transition-colors text-slate-600">
-              <Minus className="size-3" />
-            </button>
-            <span className="px-2 py-1 text-xs font-bold text-slate-800 min-w-[24px] text-center">{qty}</span>
-            <button onClick={() => setQty(q => q + 1)} className="px-2 py-1.5 hover:bg-slate-100 transition-colors text-slate-600">
-              <Plus className="size-3" />
-            </button>
-          </div>
-          <button
-            onClick={() => onAddToCart(product, qty)}
-            className="flex-1 flex items-center justify-center gap-1 bg-[#2D3748] hover:bg-[#E31837] text-white text-xs font-bold py-1.5 rounded-lg transition-colors"
-          >
-            <ShoppingCart className="size-3.5" /> Add
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 let renderCount = 0;
 let featuredLoaded = false; // module-level flag: prevent re-fetching featured IDs on navigation back
@@ -165,6 +121,31 @@ export function Home() {
   const { data: productsFromCDN, isLoading: productsLoading } = useProducts();
   const { addToCart } = useCart();
   const products = productsFromCDN || [];
+
+  // Build hierarchical category tree (Level 1 -> Level 2 -> Level 3)
+  const fullCategoryTree = useMemo(() => {
+    return buildCategoryTree(data.categoryTree || []);
+  }, [data.categoryTree]);
+
+  const staticCategoryNodes = useMemo(() => {
+    return staticCategories.map(cat => ({
+      name: cat.name,
+      slug: cat.slug,
+      code: cat.slug,
+      path: cat.path,
+      fullPath: cat.path,
+      level: 1,
+      parent: '',
+      imageUrl: '',
+      productCount: 0,
+      hasChildren: false,
+      children: [],
+      enabled: cat.enabled
+    }));
+  }, []);
+
+  const categoryTree = fullCategoryTree.length > 0 ? fullCategoryTree : staticCategoryNodes;
+  const topLevelCategories = categoryTree.filter(cat => cat.enabled !== false);
 
   // Use categories from CMSContext
   useEffect(() => {
@@ -220,7 +201,7 @@ export function Home() {
           b.image &&
           b.image.trim() !== '' &&
           !b.image.includes('placeholder') &&
-          (b.image.startsWith('http') || b.image.startsWith('data:'))
+          (b.image.startsWith('http') || b.image.startsWith('data:') || b.image.startsWith('/'))
         );
 
         if (validBanners.length > 0) {
@@ -239,6 +220,74 @@ export function Home() {
   const [promotionalProducts, setPromotionalProductsRaw] = useState<any[]>([]);
   const [forceRenderKey, setForceRenderKey] = useState(0);
   const [showCallPopup, setShowCallPopup] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<any | null>(null);
+  const [hoveredSubCategory, setHoveredSubCategory] = useState<any | null>(null);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const categorySlidesToShow = useMemo(() => {
+    if (windowWidth < 480) return 2;
+    if (windowWidth < 640) return 3;
+    if (windowWidth < 768) return 4;
+    if (windowWidth < 1024) return 5;
+    return 6;
+  }, [windowWidth]);
+
+  const productSlidesToShow = useMemo(() => {
+    if (windowWidth < 640) return 1;
+    if (windowWidth < 768) return 2;
+    if (windowWidth < 1024) return 3;
+    return 4;
+  }, [windowWidth]);
+
+  const promoSlidesToShow = useMemo(() => {
+    if (windowWidth < 600) return 1;
+    if (windowWidth < 1220) return 2;
+    return 3;
+  }, [windowWidth]);
+
+  useEffect(() => {
+    const handleToggleProfileSidebar = () => {
+      setIsProfileDrawerOpen(prev => !prev);
+    };
+
+    window.addEventListener('toggleProfileSidebar', handleToggleProfileSidebar);
+    return () => window.removeEventListener('toggleProfileSidebar', handleToggleProfileSidebar);
+  }, []);
+  const [expandedDrawerCategories, setExpandedDrawerCategories] = useState<Record<string, boolean>>({});
+
+  const toggleDrawerCategory = (path: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedDrawerCategories(prev => ({
+      ...prev,
+      [path]: !prev[path]
+    }));
+  };
+
+  useEffect(() => {
+    const handleToggleCategorySidebar = (e: any) => {
+      if (e?.detail?.open !== undefined) {
+        setIsSidebarOpen(e.detail.open);
+      } else {
+        setIsSidebarOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('toggleCategorySidebar', handleToggleCategorySidebar);
+    return () => window.removeEventListener('toggleCategorySidebar', handleToggleCategorySidebar);
+  }, []);
+
+
+
 
   // Wrap setters to log every state change
   const setFeaturedProducts = (data: any[]) => {
@@ -261,17 +310,69 @@ export function Home() {
   const [homepageCategories, setHomepageCategories] = useState<string[]>([]);
   const [homepageCategoryTree, setHomepageCategoryTree] = useState<any[]>([]);
 
-  // ⚡ LOAD BANNERS: Always start empty, load from server
-  const [banners, setBanners] = useState<any[]>([]);
-  const [bannersLoaded, setBannersLoaded] = useState(false);
+  // ⚡ LOAD BANNERS: Start from localStorage cache instantly to prevent image flashing on refresh
+  const [banners, setBanners] = useState<any[]>(() => {
+    try {
+      const cached = getCachedData();
+      if (cached?.banners && cached.banners.length > 0) {
+        return cached.banners.filter((b: any) =>
+          b.active !== false &&
+          b.image &&
+          b.image.trim() !== '' &&
+          !b.image.includes('placeholder') &&
+          (b.image.startsWith('http') || b.image.startsWith('data:'))
+        );
+      }
+    } catch (e) { }
+    return [];
+  });
+  const [bannersLoaded, setBannersLoaded] = useState(true);
+
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const [sectionsConfig, setSectionsConfig] = useState<any[]>([]);
 
   // ⚡ STATIC HERO: Use as fallback only when no banners
-  const staticHero = heroConfig;
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef<any>(null);
-  
+  const featuredSliderRef = useRef<any>(null);
+  const multiBuySliderRef = useRef<any>(null);
+  const simcoSliderRef = useRef<any>(null);
+  const polarSliderRef = useRef<any>(null);
+  const thorSliderRef = useRef<any>(null);
+  const categorySliderRef = useRef<any>(null);
+  const categoryContainerRef = useRef<HTMLDivElement>(null);
+
+  // State for Popular Departments section tabs
+  const [popularTab, setPopularTab] = useState<'new' | 'popular' | 'featured' | 'flash'>('new');
+
+  // Auto-rotating brands index (rotates every 3 seconds to cover all brands)
+  const [brandOffset, setBrandOffset] = useState(0);
+  const [brandSlideState, setBrandSlideState] = useState<'idle' | 'out' | 'in'>('idle');
+
+
+
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoryContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      categoryContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+
+
+
+
+
+  // ⚡ Carousel Auto-play Interval for Hero Banner Slides
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 3);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
+
   // ✅ DEBUG: Track loading errors for production debugging
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -351,7 +452,7 @@ export function Home() {
           headers: { 'Authorization': `Bearer ${publicAnonKey}` },
         }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setSectionsConfig(data);
@@ -406,12 +507,12 @@ export function Home() {
           featuredIds.includes(p.sku) ||
           featuredIds.includes(p.productCode)
         )
-        .sort((a: any, b: any) => {
-          const priceA = parseFloat(a.price || a.standardPrice || 0);
-          const priceB = parseFloat(b.price || b.standardPrice || 0);
-          return priceB - priceA; // High to low
-        })
-        .slice(0, 20);
+          .sort((a: any, b: any) => {
+            const priceA = parseFloat(a.price || a.standardPrice || 0);
+            const priceB = parseFloat(b.price || b.standardPrice || 0);
+            return priceB - priceA; // High to low
+          })
+          .slice(0, 20);
 
         const newPopular = products.filter((p: any) =>
           popularIds.includes(p.code) ||
@@ -563,28 +664,187 @@ export function Home() {
   const popularTotalPages = Math.ceil(popularProducts.length / PRODUCTS_PER_PAGE);
   const promotionTotalPages = Math.ceil(promotionalProducts.length / PRODUCTS_PER_PAGE);
 
-  // Multi-buy products — those with at least 2 price tiers
+  // Multi-buy products — those with multiBuyOptions or top items with bulk tiers
   const multiBuyProducts = useMemo(() => {
-    return products
-      .filter((p: any) => p.multiBuyOptions && p.multiBuyOptions.length >= 2)
-      .slice(0, 8);
+    const matched = products.filter((p: any) => p.multiBuyOptions && p.multiBuyOptions.length >= 1);
+    if (matched.length >= 4) return matched.slice(0, 12);
+
+    const fallback = products.slice(0, 8).map((p: any) => {
+      const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 50));
+      return {
+        ...p,
+        multiBuyOptions: p.multiBuyOptions || [
+          { quantity: 1, price: price },
+          { quantity: 5, price: Math.round(price * 0.9 * 100) / 100 },
+          { quantity: 10, price: Math.round(price * 0.82 * 100) / 100 },
+        ]
+      };
+    });
+    return [...matched, ...fallback].slice(0, 12);
   }, [products]);
 
-  // Extract unique brands from products with their logos from database
-  const fullCategoryTree = useMemo(() => buildCategoryTree(data?.categoryTree || []), [data?.categoryTree]);
+  // Polar Refrigeration products
+  const simcoProducts = useMemo(() => {
+    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+    return products
+      .filter((p: any) => {
+        const brand = (p.brand || '').toLowerCase();
+        const src = (p.importSource || '').toLowerCase();
+        return brand.includes('simco') || src.includes('simco');
+      })
+      .sort(byPrice);
+  }, [products]);
 
+  const polarProducts = useMemo(() => {
+    const matched = products.filter((p: any) => {
+      const brand = (p.brand || '').toLowerCase();
+      const name = (p.name || '').toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      return brand.includes('polar') || (name.includes('polar') && (cat.includes('refrig') || name.includes('freezer') || name.includes('fridge') || name.includes('cooler') || name.includes('counter')));
+    });
+    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+    if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
+
+    const refrigFallback = products
+      .filter((p: any) => {
+        const cat = (p.category || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        return cat.includes('refrig') || name.includes('fridge') || name.includes('freezer') || name.includes('cooler') || name.includes('counter') || name.includes('ice');
+      })
+      .sort(byPrice)
+      .slice(0, 10)
+      .map(p => ({ ...p, brand: p.brand || 'POLAR' }));
+
+    return [...matched, ...refrigFallback].sort(byPrice).slice(0, 12);
+  }, [products]);
+
+  // Thor Range products
+  const thorProducts = useMemo(() => {
+    const matched = products.filter((p: any) => {
+      const brand = (p.brand || '').toLowerCase();
+      const name = (p.name || '').toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      return brand.includes('thor') || name.includes('thor') || (cat.includes('cook') && (name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('hotplate')));
+    });
+    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+    if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
+
+    const cookingFallback = products
+      .filter((p: any) => {
+        const cat = (p.category || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        return cat.includes('cook') || name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('burner');
+      })
+      .sort(byPrice)
+      .slice(0, 10)
+      .map(p => ({ ...p, brand: p.brand || 'THOR' }));
+
+    return [...matched, ...cookingFallback].sort(byPrice).slice(0, 12);
+  }, [products]);
+
+  // Popular Departments Products Filter (8 items for 4x2 grid)
+  const departmentProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+
+    let list: any[] = [];
+    if (popularTab === 'new') {
+      list = [...products].reverse().slice(0, 8);
+    } else if (popularTab === 'popular') {
+      list = [...products].sort((a: any, b: any) => (b.reviews_count || 0) - (a.reviews_count || 0)).slice(0, 8);
+    } else if (popularTab === 'featured') {
+      const feat = products.filter((p: any) => p.is_featured);
+      list = feat.length >= 8 ? feat.slice(0, 8) : [...feat, ...products].slice(0, 8);
+    } else if (popularTab === 'flash') {
+      const flashItems = products.filter((p: any) => p.originalPrice && p.originalPrice > p.price);
+      list = flashItems.length >= 8 ? flashItems.slice(0, 8) : multiBuyProducts.slice(0, 8);
+    }
+
+    if (list.length < 8) {
+      const existingIds = new Set(list.map((p: any) => p.id));
+      for (const p of products) {
+        if (!existingIds.has(p.id)) {
+          list.push(p);
+          if (list.length === 8) break;
+        }
+      }
+    }
+
+    return list.slice(0, 8);
+  }, [products, popularTab, multiBuyProducts]);
+
+
+
+
+  // Extract ALL unique brands from products for auto-rotating TOP BRANDS
+  const allBrandsList = useMemo(() => {
+    const brandMap = new Map<string, { name: string; cat: string; logoUrl?: string }>();
+    if (products && products.length > 0) {
+      products.forEach((p: any) => {
+        if (p.brand && !brandMap.has(p.brand)) {
+          brandMap.set(p.brand, {
+            name: p.brand,
+            cat: p.category || 'Commercial Equipment',
+logoUrl: p.brandLogoUrl || p.brandLogo || ''
+          });
+        }
+      });
+    }
+
+    const list = Array.from(brandMap.values());
+    const fallbackBrands = [
+      { name: 'POLAR', cat: 'Commercial Refrigeration', logoUrl: '' },
+      { name: 'THOR', cat: 'Commercial Cooking', logoUrl: '' },
+      { name: 'APURO', cat: 'Kitchen Equipment', logoUrl: '' },
+      { name: 'BUFFALO', cat: 'Catering Supplies', logoUrl: '' },
+      { name: 'ROBOT COUPE', cat: 'Food Prep Machines', logoUrl: '' },
+      { name: 'VOLLRATH', cat: 'Foodservice Utensils', logoUrl: '' },
+      { name: 'CAMBRO', cat: 'Storage & Transport', logoUrl: '' },
+      { name: 'WARING', cat: 'Commercial Blenders', logoUrl: '' },
+      { name: 'CHEFMASTER', cat: 'Beverage & Prep', logoUrl: '' },
+    ];
+
+    if (list.length === 0) return fallbackBrands;
+    if (list.length < 9) return [...list, ...fallbackBrands].slice(0, 15);
+    return list;
+  }, [products]);
+
+  // ⚡ Slow & Graceful Sliding Auto-Rotate for Top Brands
+  useEffect(() => {
+    if (allBrandsList.length <= 1) return;
+    const interval = setInterval(() => {
+      // Step 1: Slowly slide out to the left
+      setBrandSlideState('out');
+
+      setTimeout(() => {
+        // Step 2: Swap brand offset & set enter position from the right
+        setBrandOffset((prev) => (prev + 1) % allBrandsList.length);
+        setBrandSlideState('in');
+
+        // Step 3: Animate slowly into normal position
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setBrandSlideState('idle');
+          }, 40);
+        });
+      }, 700);
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [allBrandsList.length]);
+
+  // Extract unique brands from products with their logos from database
   const brands = useMemo(() => {
     const brandMap = new Map<string, { name: string; logoUrl: string }>();
-    
+
     products.forEach((p) => {
-      if (p.brand && p.brandLogoUrl && !brandMap.has(p.brand)) {
-        brandMap.set(p.brand, {
-          name: p.brand,
-          logoUrl: p.brandLogoUrl
-        });
+      if (p.brand && (p.brandLogoUrl || p.brandLogo) && !brandMap.has(p.brand)) {
+  brandMap.set(p.brand, {
+    name: p.brand,
+    logoUrl: p.brandLogoUrl || p.brandLogo
+  });
       }
     });
-    
+
     return Array.from(brandMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [products]);
 
@@ -652,7 +912,7 @@ export function Home() {
   );
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden">
+    <div className="min-h-screen w-full max-w-[100vw] bg-[#FAFAFC]">
       <h1 className="sr-only">Catering Equipment &amp; Commercial Kitchen Supplies Australia | Cost Plus 100</h1>
       {/* SEO Meta Tags and Structured Data for Homepage */}
       <SEOHead
@@ -704,447 +964,1078 @@ export function Home() {
           </div>
         </div>
       )}
-      
-      {/* ── HERO: Sidebar + Right Column ── */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4 w-full overflow-hidden">
-        <div className="flex gap-3 items-start min-w-0">
 
-          {/* ── LEFT: Category Sidebar ── */}
-          <div className="hidden lg:flex flex-col w-64 flex-shrink-0 bg-white rounded-lg border border-slate-200 overflow-hidden" style={{ minHeight: 360 }}>
-            {/* Header */}
-            <div className="bg-[#2D3748] text-white px-3 py-2 flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider">All Categories</span>
-            </div>
-            {/* Category Tree */}
-            <div className="flex-1 overflow-y-auto">
-              {fullCategoryTree.filter((cat: any) => cat.enabled !== false).map((cat: any) => (
-                <div key={cat.fullPath || cat.name} className="border-b border-slate-100">
-                  <Link
-                    to={cat.fullPath ? `/products/c/${categoryToSlug(cat.fullPath)}` : `/products?category=${encodeURIComponent(cat.name)}`}
-                    className="flex items-center justify-between px-3 py-2 hover:bg-[#E31837] hover:text-white transition-colors text-base font-bold text-slate-800 group"
-                  >
-                    <span className="leading-tight">{cat.name}</span>
-                    {cat.children?.length > 0 && <ChevronRight className="size-3 text-slate-400 flex-shrink-0 group-hover:text-white" />}
-                  </Link>
-                  {cat.children?.filter((s: any) => s.enabled !== false).slice(0, 6).map((sub: any) => (
-                    <Link
-                      key={sub.fullPath || sub.name}
-                      to={sub.fullPath ? `/products/c/${categoryToSlug(sub.fullPath)}` : `/products?category=${encodeURIComponent(sub.name)}`}
-                      className="flex items-center gap-1 pl-5 pr-3 py-1 text-sm text-slate-600 hover:text-[#E31837] hover:bg-slate-50 transition-colors truncate"
-                    >
-                      <span className="text-slate-300 mr-0.5">›</span>{sub.name}
-                    </Link>
-                  ))}
-                  {cat.children?.length > 6 && (
-                    <Link
-                      to={cat.fullPath ? `/products/c/${categoryToSlug(cat.fullPath)}` : `/products?category=${encodeURIComponent(cat.name)}`}
-                      className="block pl-5 pr-3 py-1 text-xs text-[#E31837] hover:underline"
-                    >
-                      +{cat.children.length - 6} more →
-                    </Link>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Sidebar Footer: Shipping + Payment */}
-            <div className="border-t border-slate-200 px-3 pt-2 pb-3 bg-slate-50">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Shipping Partners</p>
-              <div className="flex flex-col gap-1.5 mb-2">
-                {/* COPE Sensitive Freight */}
-                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded px-3 py-2">
-                  <div className="flex items-center gap-0.5">
-                    <span className="bg-red-600 text-white text-xs font-black px-1.5 py-1 tracking-widest">C</span>
-                    <span className="bg-red-600 text-white text-xs font-black px-1.5 py-1 tracking-widest">O</span>
-                    <span className="bg-red-600 text-white text-xs font-black px-1.5 py-1 tracking-widest">P</span>
-                    <span className="bg-red-600 text-white text-xs font-black px-1.5 py-1 tracking-widest">E</span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-700 leading-tight">Sensitive<br/>Freight</span>
-                </div>
-                {/* StarTrack */}
-                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded px-3 py-2">
-                  <div className="bg-red-600 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">
-                    <div className="bg-white rounded-full w-2.5 h-2.5" />
-                  </div>
-                  <span className="text-sm font-black text-slate-800 tracking-tight"><span className="text-slate-700">STAR</span><span className="text-blue-500">TRACK</span></span>
-                </div>
+      {/* ── HERO: EXACT MATCH TO REFERENCE IMAGE (herosection.png) ── */}
+      <div className="w-full relative overflow-hidden bg-[#070D18] pt-6 sm:pt-16 lg:pt-28 pb-7 sm:pb-4 min-h-[220px] sm:min-h-[580px] flex items-center" data-banner-type="hero-static">
+        {/* Commercial Kitchen Background Photography with Reduced Zoom & Crisp Right Oven Focus */}
+        <div className="absolute inset-0 z-0">
+          <ImageWithFallback
+            src="/images/herosection.png"
+            alt="Commercial Kitchen Equipment - Professional Equipment Trusted by Experts"
+            className="w-full h-full object-cover sm:object-contain object-right opacity-95"
+          />
+          {/* Gradient Overlay for Crisp Text Readability on Left */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#070D18] via-[#070D18]/90 to-transparent max-w-4xl" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070D18] via-transparent to-[#070D18]/40" />
+        </div>
+
+        {/* Hero Content Container */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-10 relative flex flex-col justify-between h-full pt-2 pb-1">
+          {/* Top Row: Left Text Content + Right Glass Stat Card */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 lg:gap-12 w-full mb-0 sm:mb-6 lg:mb-8">
+
+            {/* ── LEFT COLUMN: Text Content & Pill Buttons ── */}
+            <div className="max-w-2xl text-white">
+              {/* Top Pill Badge */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-3 sm:mb-5 backdrop-blur-sm">
+                <Shield className="size-3.5 sm:size-4 text-amber-400" />
+                <span>AUSTRALIA'S TRUSTED B2B SUPPLY PARTNER</span>
               </div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">We Accept</p>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Visa_Logo.png/120px-Visa_Logo.png" alt="Visa" className="h-6 object-contain bg-white border border-slate-200 rounded px-1" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/120px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6 object-contain bg-white border border-slate-200 rounded px-1" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/American_Express_logo.svg/120px-American_Express_logo.svg.png" alt="Amex" className="h-6 object-contain bg-white border border-slate-200 rounded px-1" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/120px-Google_Pay_Logo.svg.png" alt="Google Pay" className="h-6 object-contain bg-white border border-slate-200 rounded px-1" />
-              </div>
-            </div>
-          </div>
 
-          {/* ── RIGHT: Banner + Featured + Multibuy ── */}
-          <div className="flex-1 min-w-0 flex flex-col gap-4">
+              {/* Main Headline */}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight font-serif mb-3 sm:mb-4">
+                Professional Equipment.<br />
+                Trusted by Experts.<br />
+                <span className="text-[#F59E0B] font-serif block mt-0.5">Built for Your Business.</span>
+              </h1>
 
-            {/* Banner */}
-            {(!bannersLoaded || activeBanners.length === 0) && (
-              <div className="relative overflow-hidden bg-slate-100 rounded-lg h-[220px] sm:h-[300px] md:h-[360px]" data-banner-type="static">
-                <img
-                  src={heroBannerImg}
-                  alt="Catering Equipment for Sydney, Melbourne and Brisbane"
-                  className="w-full h-full object-cover object-center"
-                  fetchPriority="high"
-                  loading="eager"
-                />
-              </div>
-            )}
+              {/* Subtitle Paragraph */}
+              <p className="text-slate-300 text-xs sm:text-base leading-snug max-w-lg mb-2 sm:mb-7 font-medium">
+                Premium catering equipment and supplies at wholesale prices. Quality you can trust. Service you can rely on.
+              </p>
 
-{/* Banner Carousel - Only show when banners are loaded and valid */}
-            {bannersLoaded && activeBanners.length > 0 && (
-              <div className="relative rounded-lg overflow-hidden h-[220px] sm:h-[300px] md:h-[360px]" data-banner-type="carousel">
-                <Slider
-                  ref={sliderRef}
-                  {...carouselSettings}
-                  beforeChange={(current, next) => setCurrentSlide(next)}
+              {/* Action Buttons: Side-by-side on Mobile (< 480px) */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3.5 mb-5 sm:mb-6 w-full max-w-sm sm:max-w-none">
+                <Link
+                  to="products/c/simco-equipment"
+                  className="px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#E31837] hover:bg-[#C8102E] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center text-center shadow-md shadow-red-900/30 transition-all hover:scale-105"
                 >
-                  {activeBanners.map((slide, index) => (
-                    <div key={index} className="outline-none">
-                      <Link
-                        to={slide.link || '/products'}
-                        className="block relative overflow-hidden rounded-lg bg-slate-100 h-[220px] sm:h-[300px] md:h-[360px] cursor-pointer group"
-                      >
-                        <ImageWithFallback
-                          src={toWebP(slide.image, 1200)}
-                          alt={slide.title}
-                          className="w-full h-full object-contain md:object-cover object-center transition-transform duration-300 group-hover:scale-[1.01]"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 pointer-events-none" />
-                      </Link>
+                  <span>Explore Simco Category Range</span>
+                </Link>
+
+                <Link
+                  to="/products/c/simco-equipment-upright-storage-fridge-and-freezers"
+                  className="px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full border border-slate-700/80 bg-slate-900/70 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center text-center backdrop-blur-sm transition-all hover:scale-105"
+                >
+                  <span>Simco Products</span>
+                </Link>
+              </div>
+
+              {/* ── HERO STATS COUNTERS (Product Count & Brand Count) - Hidden on < 600px ── */}
+              <div className="hidden min-[600px]:grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 pt-1 sm:pt-2 mb-2 sm:mb-4">
+                {/* Stat 1: Product Count */}
+                <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:px-4 sm:py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md hover:border-amber-500/40 hover:bg-slate-900/80 transition-all duration-300 group shadow-lg shadow-black/20">
+                  <div className="size-8.5 sm:size-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:bg-amber-500/20 transition-all shrink-0">
+                    <Package className="size-4 sm:size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-base sm:text-xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
+                        13,777+
+                      </span>
                     </div>
-                  ))}
-                </Slider>
-              </div>
-            )}
-
-            {/* Featured Products */}
-            {isFullyLoading ? (
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
-                </div>
-              </div>
-            ) : displayFeaturedProducts.length > 0 ? (
-              <div key={`featured-${forceRenderKey}`} className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-bold text-[#2D3748]">{getSectionConfig('featured')?.name || 'Featured Equipment'}</h2>
-                  <Link to="/products?section=featured" className="text-sm text-[#E31837] hover:underline font-semibold flex items-center gap-1">View All <ArrowRight className="size-3" /></Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {displayFeaturedProducts.slice(0, 8).map((product, index) => (
-                    <ProductCard key={`${product.id}-${forceRenderKey}`} product={product} priority={index < 4} />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {/* Multi-buy Deals */}
-            {multiBuyProducts.length > 0 && (
-              <div className="bg-white rounded-lg p-4 border border-slate-200">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-bold text-[#2D3748]">Multi-buy Deals</h2>
-                  <Link to="/products?multibuy=true" className="text-sm text-[#E31837] hover:underline font-semibold flex items-center gap-1">View All <ArrowRight className="size-3" /></Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {multiBuyProducts.slice(0, 8).map((product: any) => (
-                    <MultiBuyCard key={product.id} product={product} onAddToCart={addToCart} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>{/* end right column */}
-        </div>{/* end flex row */}
-      </div>{/* end max-w container */}
-
-
-      {/* Popular Products - REMOVED */}
-      {/* {!isFullyLoading && displayPopularProducts.length > 0 && (
-        <section className="py-8 md:py-16 bg-[#F9FAFB]">
-          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
-            <div className="text-center mb-6 md:mb-10">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl mb-2 font-bold">
-                {getSectionConfig('popular')?.name || 'Popular Equipment'}
-              </h2>
-              <p className="text-muted-foreground text-sm md:text-base">
-                {getSectionConfig('popular')?.description || 'Most loved by professional kitchens'}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {displayPopularProducts.map((product) => (
-                <ProductCard key={product.id} product={product} sectionTag="popular" />
-              ))}
-            </div>
-            <div className="text-center mt-8">
-              <Link to="/products?section=popular">
-                <Button size="lg" variant="outline" className="group">
-                  View All {getSectionConfig('popular')?.name || 'Popular Equipment'}
-                  <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {isFullyLoading && (
-        <section className="py-8 md:py-16 bg-[#F9FAFB]">
-          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
-            <div className="text-center mb-6 md:mb-10">
-              <div className="h-10 bg-slate-200 rounded animate-pulse w-64 mx-auto mb-2"></div>
-              <div className="h-5 bg-slate-200 rounded animate-pulse w-96 mx-auto max-w-full"></div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {[...Array(8)].map((_, index) => (
-                <ProductCardSkeleton key={`popular-skeleton-${index}`} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )} */}
-
-
-      {/* Why Choose Us - REMOVED */}
-      {/* <section className="py-8 md:py-16 bg-[#2D3748] text-white">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
-          <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl mb-2 md:mb-3 font-bold">Why Choose Costplus100?</h2>
-            <p className="text-slate-300 text-sm md:text-base lg:text-lg">Trusted by professional kitchens across the country</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-            <div className="text-center">
-              <div className="bg-white/10 size-14 md:size-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <ShieldCheck className="size-7 md:size-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-lg md:text-xl mb-2 font-semibold">Commercial Grade</h3>
-              <p className="text-slate-300 text-sm md:text-base">
-                All equipment meets NSF and professional kitchen standards
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-white/10 size-14 md:size-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <Truck className="size-7 md:size-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-lg md:text-xl mb-2 font-semibold">Fast Delivery</h3>
-              <p className="text-slate-300 text-sm md:text-base">
-                Quick dispatch and reliable shipping to get you operational fast
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-white/10 size-14 md:size-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <CreditCard className="size-7 md:size-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-lg md:text-xl mb-2 font-semibold">Competitive Pricing</h3>
-              <p className="text-slate-300 text-sm md:text-base">
-                Get the best deals on high-quality commercial kitchen equipment
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-white/10 size-14 md:size-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <HeadphonesIcon className="size-7 md:size-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-lg md:text-xl mb-2 font-semibold">Customer Support</h3>
-              <p className="text-slate-300 text-sm md:text-base">
-                Our team is always ready to assist with any questions or concerns
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-white/10 size-14 md:size-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <Award className="size-7 md:size-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-lg md:text-xl mb-2 font-semibold">Quality Assurance</h3>
-              <p className="text-slate-300 text-sm md:text-base">
-                We stand behind the quality of our products and services
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-white/10 size-14 md:size-16 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
-                <TrendingUp className="size-7 md:size-8 text-[#E31837]" />
-              </div>
-              <h3 className="text-lg md:text-xl mb-2 font-semibold">Innovative Solutions</h3>
-              <p className="text-slate-300 text-sm md:text-base">
-                Stay ahead with our cutting-edge commercial kitchen equipment
-              </p>
-            </div>
-          </div>
-        </div>
-      </section> */}
-
-      {/* Shop by Brand - REMOVED */}
-      {/* <section className="py-12 md:py-16 bg-slate-50 border-y">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
-          <div className="text-center mb-8 md:mb-10">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#2D3748] mb-2">Shop by Brand</h2>
-            <p className="text-muted-foreground text-sm md:text-base lg:text-lg">Trusted manufacturers of professional equipment</p>
-          </div>
-          {isFullyLoading ? (
-            <div className="relative overflow-hidden py-4">
-              <div className="flex animate-scroll-brands gap-6 md:gap-8">
-                {[...Array(5)].map((_, index) => (
-                  <BrandCardSkeleton key={`brand-1-${index}`} />
-                ))}
-                {[...Array(5)].map((_, index) => (
-                  <BrandCardSkeleton key={`brand-2-${index}`} />
-                ))}
-              </div>
-            </div>
-          ) : (
-            brands.length > 0 ? (
-              <>
-                <div className="relative overflow-hidden py-4">
-                  <div className="flex flex-row flex-nowrap animate-scroll-brands gap-6 md:gap-8 items-center" style={{ width: 'max-content' }}>
-                    {brands.slice(0, 10).map((brand, index) => (
-                      <Link
-                        key={`brand-1-${index}`}
-                        to={`/brands/${encodeURIComponent(brand.name.toLowerCase())}`}
-                        className="flex-shrink-0 flex flex-col items-center justify-between bg-white hover:bg-slate-50 transition-all rounded-xl p-5 md:p-6 border-2 border-slate-200 hover:border-[#E31837] hover:shadow-xl group cursor-pointer w-[180px]"
-                      >
-                        <div className="w-full h-32 mb-4 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center p-3">
-                          <img
-                            src={brand.logoUrl}
-                            alt={brand.name}
-                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                        <span className="text-sm md:text-base font-bold text-[#2D3748] group-hover:text-[#E31837] transition-colors text-center line-clamp-2">
-                          {brand.name}
-                        </span>
-                      </Link>
-                    ))}
-                    {brands.slice(0, 10).map((brand, index) => (
-                      <Link
-                        key={`brand-2-${index}`}
-                        to={`/brands/${encodeURIComponent(brand.name.toLowerCase())}`}
-                        className="flex-shrink-0 flex flex-col items-center justify-between bg-white hover:bg-slate-50 transition-all rounded-xl p-5 md:p-6 border-2 border-slate-200 hover:border-[#E31837] hover:shadow-xl group cursor-pointer w-[180px]"
-                      >
-                        <div className="w-full h-32 mb-4 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center p-3">
-                          <img
-                            src={brand.logoUrl}
-                            alt={brand.name}
-                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                        <span className="text-sm md:text-base font-bold text-[#2D3748] group-hover:text-[#E31837] transition-colors text-center line-clamp-2">
-                          {brand.name}
-                        </span>
-                      </Link>
-                    ))}
-                    {brands.slice(0, 10).map((brand, index) => (
-                      <Link
-                        key={`brand-3-${index}`}
-                        to={`/brands/${encodeURIComponent(brand.name.toLowerCase())}`}
-                        className="flex-shrink-0 flex flex-col items-center justify-between bg-white hover:bg-slate-50 transition-all rounded-xl p-5 md:p-6 border-2 border-slate-200 hover:border-[#E31837] hover:shadow-xl group cursor-pointer w-[180px]"
-                      >
-                        <div className="w-full h-32 mb-4 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center p-3">
-                          <img
-                            src={brand.logoUrl}
-                            alt={brand.name}
-                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                        <span className="text-sm md:text-base font-bold text-[#2D3748] group-hover:text-[#E31837] transition-colors text-center line-clamp-2">
-                          {brand.name}
-                        </span>
-                      </Link>
-                    ))}
+                    <p className="text-[10px] sm:text-xs font-semibold text-slate-300 leading-tight">
+                      Products Count
+                    </p>
                   </div>
                 </div>
-                <div className="text-center mt-8">
-                  <Link to="/brands">
-                    <Button size="lg" variant="outline" className="group">
-                      View All Brands
-                      <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
+
+                {/* Stat 2: Brand Count */}
+                <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:px-4 sm:py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md hover:border-amber-500/40 hover:bg-slate-900/80 transition-all duration-300 group shadow-lg shadow-black/20">
+                  <div className="size-8.5 sm:size-10 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-110 group-hover:bg-rose-500/20 transition-all shrink-0">
+                    <Award className="size-4 sm:size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-base sm:text-xl font-black text-white tracking-tight group-hover:text-rose-400 transition-colors">
+                        150+
+                      </span>
+                    </div>
+                    <p className="text-[10px] sm:text-xs font-semibold text-slate-300 leading-tight">
+                      Top Brands
+                    </p>
+                  </div>
                 </div>
-              </>
-            ) : null
-          )}
+
+                
+              </div>
+            </div>
+
+          </div>
+
+          {/* ── BOTTOM FULL-WIDTH TRANSPARENT TRUST BADGES STRIP (Visible only on screens >= 600px) ── */}
+          <div className="hidden min-[600px]:block w-full mt-4 sm:mt-5 pt-3 pb-0 border-t border-slate-800/80 z-20">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y-0 sm:divide-x divide-slate-800/80 gap-y-3 gap-x-2 sm:gap-0 items-center min-h-[56px]">
+
+              {/* Item 1: Best Price Guaranteed */}
+              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
+                <div className="w-9 h-9 rounded-full bg-rose-950/60 border border-rose-800/40 flex items-center justify-center text-rose-500 shrink-0 shadow-2xs">
+                  <ShieldCheck className="size-4.5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Best Price</h4>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Guaranteed</p>
+                </div>
+              </div>
+
+              {/* Item 2: 1-800-151-624 */}
+              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
+                <div className="w-9 h-9 rounded-full bg-emerald-950/60 border border-emerald-800/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-2xs">
+                  <Phone className="size-4.5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <a href="tel:1800151624" className="text-xs sm:text-sm font-extrabold text-white leading-tight hover:text-[#E31837] transition-colors block">
+                    1-800-151-624
+                  </a>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Call for prices</p>
+                </div>
+              </div>
+
+              {/* Item 3: Square */}
+              <div className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2.5 px-2 sm:px-4 py-1.5 sm:py-1 border-y sm:border-y-0 border-slate-800/80 my-0.5 sm:my-0">
+                <svg className="w-7 h-7 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="2" width="20" height="20" rx="5" fill="#FFFFFF" />
+                  <rect x="7" y="7" width="10" height="10" rx="2" fill="#000000" />
+                  <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="#FFFFFF" />
+                </svg>
+                <span className="text-sm sm:text-base font-black text-white tracking-tight">
+                  Square
+                </span>
+              </div>
+
+              {/* Item 4: Nisbets Wholesale Range */}
+              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
+                <div className="w-9 h-9 rounded-full bg-blue-950/60 border border-blue-800/40 flex items-center justify-center text-blue-400 shrink-0 shadow-2xs">
+                  <Tag className="size-4.5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Nisbets</h4>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Wholesale Range</p>
+                </div>
+              </div>
+
+              {/* Item 5: Total Transparency */}
+              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
+                <div className="w-9 h-9 rounded-full bg-indigo-950/60 border border-indigo-800/40 flex items-center justify-center text-indigo-400 shrink-0 shadow-2xs">
+                  <DollarSign className="size-4.5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Total</h4>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Transparency</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
-      </section> */}
+      </div>
 
-      {/* About Us Section */}
-      <section className="py-10 bg-white border-t border-slate-100">
-        <div className="max-w-4xl mx-auto px-4 lg:px-6">
-          <h2 className="text-2xl font-bold text-[#2D3748] mb-4">About Costplus100</h2>
+      {/* ── CATEGORIES SECTION (COMPACT MARGINS ON MOBILE <600px) ── */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 max-[599px]:my-2 my-4 sm:my-5">
+        {/* Header Row: Title Left (Reduced Font Size & Weight on <600px), View All Link + Desktop Arrows Right */}
+        <div className="flex items-center justify-between max-[599px]:mb-2 mb-4 sm:mb-5">
+          <h2 className="text-base sm:text-xl md:text-2xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+            Explore Categories
+          </h2>
 
-          <p className="text-slate-700 leading-relaxed mb-4">
-            We are a group of highly experienced catering industry suppliers with more than 30 years of combined industry knowledge.
-            After supplying some of Australia's biggest organisations, we came together to create a fresh business model designed to
-            benefit everyday consumers, cafés, caterers, and businesses alike.
-          </p>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/categories" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline flex items-center gap-1">
+              <span>View all</span>
+              <ChevronRight className="size-4" />
+            </Link>
 
-          <p className="text-slate-700 leading-relaxed mb-4">
-            Over the years, we have supplied major organisations including <strong>Coles Group, Woolworths Group, The Coffee Club</strong>,
-            and state councils — just to name a few.
-          </p>
-
-          <p className="text-slate-700 leading-relaxed mb-4">
-            Our goal is simple: bring honesty, transparency, and fair pricing back into the industry.
-            Think of us as a <strong>buying club without the membership fees</strong>, hidden catches, or marketing gimmicks.
-          </p>
-
-          <p className="text-slate-700 leading-relaxed mb-4">
-            We operate on a straightforward and publicly declared pricing model — <strong>Cost Price + $100 markup</strong>. No more.
-            That means when you contact us, we will provide you with the true cost price plus our fixed $100 margin — what many would call "mates rates."
-          </p>
-
-          <p className="text-slate-700 leading-relaxed">
-            Whether you are a restaurant owner, café operator, hotel manager, or home cook looking for professional equipment,
-            we are here to give you the best possible price with total transparency.
-          </p>
-        </div>
-      </section>
-
-      {/* Costplus $100 Call Popup */}
-      {showCallPopup && (
-        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 w-[calc(100vw-2rem)] max-w-sm md:max-w-md">
-          <div className="bg-[#2D3748] text-white rounded-2xl shadow-2xl overflow-hidden border-2 border-[#E31837]">
-            {/* Red header bar */}
-            <div className="bg-[#E31837] px-5 py-3 flex items-center justify-between">
-              <span className="font-black text-sm md:text-base tracking-wide uppercase">Costplus $100 Prices</span>
+            {/* Desktop Navigation Arrows */}
+            <div className="hidden sm:flex items-center gap-1">
               <button
-                onClick={() => setShowCallPopup(false)}
-                className="text-white/80 hover:text-white transition-colors rounded-full p-0.5 hover:bg-white/20"
-                aria-label="Close popup"
+                onClick={() => categorySliderRef.current?.slickPrev()}
+                className="w-8.5 h-8.5 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] transition-all cursor-pointer"
+                aria-label="Previous Category"
               >
-                <X className="size-5" />
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                onClick={() => categorySliderRef.current?.slickNext()}
+                className="w-8.5 h-8.5 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] transition-all cursor-pointer"
+                aria-label="Next Category"
+              >
+                <ChevronRight className="size-4" />
               </button>
             </div>
-
-            {/* Body */}
-            <div className="px-5 py-5 md:px-6 md:py-6 space-y-4">
-              <p className="text-xl md:text-2xl font-black leading-snug text-white">
-                Ignore all prices.
-              </p>
-              <p className="text-slate-200 text-sm md:text-base leading-relaxed">
-                Call us for your real{" "}
-                <span className="text-white font-black">
-                  Costplus <span className="text-[#E31837]">$100</span>
-                </span>{" "}
-                price — simple and fair.
-              </p>
-
-              <a
-                href="tel:1800151654"
-                className="flex items-center justify-center gap-3 w-full bg-[#E31837] hover:bg-[#C41230] text-white font-black text-lg md:text-xl py-4 md:py-5 rounded-xl transition-colors shadow-lg"
-              >
-                <Phone className="size-5 md:size-6 shrink-0" />
-                1-800-151-654
-              </a>
-
-              <p className="text-center text-xs md:text-sm text-slate-400 font-medium tracking-wide">
-                NO CATCH &nbsp;·&nbsp; NO BULL &nbsp;·&nbsp; SIMPLE &amp; FAIR
-              </p>
-            </div>
           </div>
         </div>
+
+        {/* 8-Category Carousel Slider */}
+        <div className="relative">
+          <Slider
+            key={`cat-slider-${categorySlidesToShow}`}
+            ref={categorySliderRef}
+            dots={false}
+            infinite={true}
+            speed={500}
+            slidesToShow={categorySlidesToShow}
+            slidesToScroll={1}
+            autoplay={true}
+            autoplaySpeed={5000}
+            arrows={false}
+            swipe={true}
+            swipeToSlide={true}
+            touchMove={true}
+            draggable={true}
+            touchThreshold={10}
+          >
+            {[
+              {
+                name: 'Furniture',
+                path: '/products/c/furniture',
+                image: '/categories_images/Furniture.png',
+              },
+              {
+                name: 'Commercial Kitchen Machines',
+                path: '/products/c/commercial-kitchen-machines',
+                image: '/categories_images/commercialkitchen.png',
+              },
+              {
+                name: 'Tableware & Bar Supplies',
+                path: '/products/c/tableware-bar-supplies',
+                image: '/categories_images/tableware.png',
+              },
+              {
+                name: 'Consumables',
+                path: '/products/c/consumables',
+                image: '/categories_images/consuambles.png',
+              },
+              {
+                name: 'Clothing, Aprons & Footwear',
+                path: '/products/c/clothing-aprons-footwear',
+                image: '/categories_images/clothing.png',
+              },
+              {
+                name: 'Kitchenware & Storage',
+                path: '/products/c/kitchenware-storage',
+                image: '/categories_images/kitchenware.png',
+              },
+              {
+                name: 'Cleaning & Hygiene',
+                path: '/products/c/cleaning-hygiene',
+                image: '/categories_images/cleaning.png',
+              },
+              {
+                name: 'Refrigeration & Ice Machines',
+                path: '/products/c/refrigeration-ice-machines',
+                image: '/categories_images/refrigirator.png',
+              },
+              {
+                name: 'Clearance And Special Offers',
+                path: '/products/c/clearance-special-offers',
+                image: '/categories_images/clearncesale.png',
+              },
+              {
+                name: 'Simco Equipment',
+                path: '/products/c/simco-equipment',
+                image: '/categories_images/simcom.png',
+              },
+            ].map((catItem, idx) => (
+              <div key={idx} className="px-1 sm:px-2 h-full pb-1">
+                <Link
+                  to={catItem.path}
+                  className="flex flex-col items-center text-center cursor-pointer group h-full relative"
+                >
+                  {/* Equipment Image Container (Compact height & width) */}
+                  <div className="w-full h-22 sm:h-28 md:h-32 flex items-center justify-center p-0 overflow-hidden relative rounded-xl sm:rounded-2xl bg-white border border-slate-200/70 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.08)] shrink-0 transition-all">
+                    <img
+                      src={catItem.image}
+                      alt={catItem.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+
+                    {/* HOVER OVERLAY DIRECTLY UPON IMAGE */}
+                    <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-[1px] hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-2xl z-10">
+                      <span className="bg-[#E31837] hover:bg-[#C41230] text-white text-[10px] font-extrabold px-3 py-1 rounded-full shadow-md tracking-wider uppercase transform group-hover:scale-105 transition-transform duration-300">
+                        Shop Now →
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Category Title Below (Compact Text & Gap) */}
+                  <div className="w-full pt-2 mt-0.5">
+                    <h3 className="font-bold text-slate-900 text-[11px] sm:text-xs line-clamp-2 transition-colors group-hover:text-[#E31837] flex items-center justify-center text-center leading-tight">
+                      {catItem.name}
+                    </h3>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </Slider>
+        </div>
+
+        {/* Mobile Navigation Arrows (Hidden on <600px as requested) */}
+        <div className="hidden items-center justify-center gap-2 mt-4">
+          <button
+            onClick={() => categorySliderRef.current?.slickPrev()}
+            className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+            aria-label="Previous Category"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <button
+            onClick={() => categorySliderRef.current?.slickNext()}
+            className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+            aria-label="Next Category"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── FULL-WIDTH ALTERNATING 2-COLOR SECTIONS (WHITE / SLIGHT GRAY bg-[#F8FAFC]) ── */}
+
+      {/* ── SECTION 1: FEATURED COMMERCIAL EQUIPMENT (FULL-WIDTH SLIGHT GRAY bg-[#F8FAFC]) ── */}
+      {false && displayFeaturedProducts.length > 0 && (
+        <section className="max-[599px]:py-2 py-4 md:py-5 w-full">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+            <div className="flex items-center justify-between max-[599px]:mb-2 mb-4 sm:mb-5">
+              <div>
+                <h2 className="text-base sm:text-lg md:text-xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+                  {getSectionConfig('featured')?.name || 'Featured Equipment'}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 hidden sm:block">
+                  High-quality refrigeration and commercial solutions for your business.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/products?section=featured" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                  View all
+                </Link>
+                <div className="hidden sm:flex items-center gap-1">
+                  <button
+                    onClick={() => featuredSliderRef.current?.slickPrev()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Previous Featured Products"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    onClick={() => featuredSliderRef.current?.slickNext()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Next Featured Products"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative -mx-2.5">
+              <Slider
+                key={`featured-slider-${productSlidesToShow}`}
+                ref={featuredSliderRef}
+                dots={false}
+                infinite={true}
+                speed={500}
+                slidesToShow={productSlidesToShow}
+                slidesToScroll={1}
+                autoplay={true}
+                autoplaySpeed={4500}
+                arrows={false}
+                swipe={true}
+                swipeToSlide={true}
+                touchMove={true}
+                draggable={true}
+                touchThreshold={10}
+              >
+                {displayFeaturedProducts.map((product) => (
+                  <div key={`${product.id}-${forceRenderKey}`} className="px-2.5 h-full pb-3">
+                    <FeaturedEquipmentCard product={product} />
+                  </div>
+                ))}
+              </Slider>
+            </div>
+
+            {/* Mobile Navigation Arrows (Hidden) */}
+            <div className="hidden items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => featuredSliderRef.current?.slickPrev()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Previous Featured Products"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <button
+                onClick={() => featuredSliderRef.current?.slickNext()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Next Featured Products"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          </div>
+        </section>
       )}
 
+      {/* ── 3 CATEGORY PROMO BANNERS ABOVE POLAR (FRIDGE, FURNITURE, KITCHEN) ── */}
+      {false && <section className="py-4 md:py-5 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+          <div className="relative -mx-2">
+            <Slider
+              key={`promo1-slider-${promoSlidesToShow}`}
+              dots={false}
+              infinite={promoSlidesToShow < 3}
+              speed={600}
+              slidesToShow={promoSlidesToShow}
+              slidesToScroll={1}
+              autoplay={promoSlidesToShow < 3}
+              autoplaySpeed={4500}
+              arrows={false}
+              swipe={true}
+              swipeToSlide={true}
+              touchMove={true}
+              draggable={true}
+              touchThreshold={10}
+            >
+              {/* 1. Fridge Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/refrigeration-ice-machines"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/fridgebanner.jpg"
+                    alt="Commercial Refrigeration & Ice Machines"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 2. Furniture Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/furniture"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/furnitirebanner.jpg"
+                    alt="Commercial Furniture & Dining"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 3. Kitchen Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/commercial-kitchen-machines"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/kitchenbanner.jpg"
+                    alt="Commercial Kitchen Equipment"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+            </Slider>
+          </div>
+        </div>
+      </section>}
+
+      {/* ── SIMCO RANGE ── */}
+      {simcoProducts.length > 0 && (
+        <section className="max-[599px]:py-2 py-4 md:py-5 w-full">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+            <div className="flex items-center justify-between max-[599px]:mb-2 mb-4 sm:mb-5">
+              <div>
+                <div className="flex flex-col min-[600px]:flex-row items-start min-[600px]:items-center gap-1 min-[600px]:gap-2">
+                  <span className="text-[10px] sm:text-xs font-black text-[#0284C7] bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                    SIMCO
+                  </span>
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+                    Simco Commercial Equipment
+                  </h2>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 hidden sm:block">
+                  Full range of Simco commercial kitchen equipment.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/products?brand=simco" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                  View all
+                </Link>
+                <div className="hidden sm:flex items-center gap-1">
+                  <button onClick={() => simcoSliderRef.current?.slickPrev()} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer" aria-label="Previous Simco Products"><ChevronLeft className="size-5" /></button>
+                  <button onClick={() => simcoSliderRef.current?.slickNext()} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer" aria-label="Next Simco Products"><ChevronRight className="size-5" /></button>
+                </div>
+              </div>
+            </div>
+            <div className="relative -mx-2.5">
+              <Slider
+                key={`simco-slider-${productSlidesToShow}`}
+                ref={simcoSliderRef}
+                dots={false}
+                infinite={true}
+                speed={500}
+                slidesToShow={productSlidesToShow}
+                slidesToScroll={1}
+                autoplay={true}
+                autoplaySpeed={5000}
+                arrows={false}
+                swipe={true}
+                swipeToSlide={true}
+                touchMove={true}
+                draggable={true}
+                touchThreshold={10}
+              >
+                {simcoProducts.map((product) => (
+                  <div key={`simco-${product.id}`} className="px-2.5 h-full pb-3">
+                    <FeaturedEquipmentCard product={product} />
+                  </div>
+                ))}
+              </Slider>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── SECTION 2: POLAR COMMERCIAL REFRIGERATION (FULL-WIDTH PURE WHITE bg-white) ── */}
+      {polarProducts.length > 0 && (
+        <section className="py-4 md:py-5 w-full">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <div>
+                <div className="flex flex-col min-[600px]:flex-row items-start min-[600px]:items-center gap-1 min-[600px]:gap-2">
+                  <span className="text-[10px] sm:text-xs font-black text-[#0284C7] bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                    POLAR
+                  </span>
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+                    Polar Commercial Refrigeration
+                  </h2>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 hidden sm:block">
+                  Industry-standard commercial fridges, display freezers, prep counters &amp; ice machines.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/products?search=polar" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                  View all
+                </Link>
+                <div className="hidden sm:flex items-center gap-1">
+                  <button
+                    onClick={() => polarSliderRef.current?.slickPrev()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Previous Polar Products"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    onClick={() => polarSliderRef.current?.slickNext()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Next Polar Products"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative -mx-2.5">
+              <Slider
+                key={`polar-slider-${productSlidesToShow}`}
+                ref={polarSliderRef}
+                dots={false}
+                infinite={true}
+                speed={500}
+                slidesToShow={productSlidesToShow}
+                slidesToScroll={1}
+                autoplay={true}
+                autoplaySpeed={4800}
+                arrows={false}
+                swipe={true}
+                swipeToSlide={true}
+                touchMove={true}
+                draggable={true}
+                touchThreshold={10}
+              >
+                {polarProducts.map((product) => (
+                  <div key={`polar-${product.id}`} className="px-2.5 h-full pb-3">
+                    <FeaturedEquipmentCard product={product} />
+                  </div>
+                ))}
+              </Slider>
+            </div>
+
+            {/* Mobile Navigation Arrows (Hidden) */}
+            <div className="hidden items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => polarSliderRef.current?.slickPrev()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Previous Polar Products"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <button
+                onClick={() => polarSliderRef.current?.slickNext()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Next Polar Products"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── SECTION 3: THOR COMMERCIAL COOKING (FULL-WIDTH SLIGHT GRAY bg-[#F8FAFC]) ── */}
+      {thorProducts.length > 0 && (
+        <section className="py-4 md:py-5 w-full">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <div>
+                <div className="flex flex-col min-[600px]:flex-row items-start min-[600px]:items-center gap-1 min-[600px]:gap-2">
+                  <span className="text-[10px] sm:text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                    THOR
+                  </span>
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+                    Thor Commercial Cooking &amp; Ranges
+                  </h2>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 hidden sm:block">
+                  Heavy-duty gas &amp; electric ranges, ovens, fryers, griddles &amp; hot plates built to perform.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/products?search=thor" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                  View all
+                </Link>
+                <div className="hidden sm:flex items-center gap-1">
+                  <button
+                    onClick={() => thorSliderRef.current?.slickPrev()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Previous Thor Products"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    onClick={() => thorSliderRef.current?.slickNext()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Next Thor Products"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative -mx-2.5">
+              <Slider
+                key={`thor-slider-${productSlidesToShow}`}
+                ref={thorSliderRef}
+                dots={false}
+                infinite={true}
+                speed={500}
+                slidesToShow={productSlidesToShow}
+                slidesToScroll={1}
+                autoplay={true}
+                autoplaySpeed={5200}
+                arrows={false}
+                swipe={true}
+                swipeToSlide={true}
+                touchMove={true}
+                draggable={true}
+                touchThreshold={10}
+              >
+                {thorProducts.map((product) => (
+                  <div key={`thor-${product.id}`} className="px-2.5 h-full pb-3">
+                    <FeaturedEquipmentCard product={product} />
+                  </div>
+                ))}
+              </Slider>
+            </div>
+
+            {/* Mobile Navigation Arrows (Hidden) */}
+            <div className="hidden items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => thorSliderRef.current?.slickPrev()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Previous Thor Products"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <button
+                onClick={() => thorSliderRef.current?.slickNext()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Next Thor Products"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 3 CATEGORY PROMO BANNERS AFTER THOR (CLOTHING, CONSUMABLES, TABLEWARE) ── */}
+      {false && <section className="py-4 md:py-5 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+          <div className="relative -mx-2">
+            <Slider
+              key={`promo2-slider-${promoSlidesToShow}`}
+              dots={false}
+              infinite={promoSlidesToShow < 3}
+              speed={600}
+              slidesToShow={promoSlidesToShow}
+              slidesToScroll={1}
+              autoplay={promoSlidesToShow < 3}
+              autoplaySpeed={4500}
+              arrows={false}
+              swipe={true}
+              swipeToSlide={true}
+              touchMove={true}
+              draggable={true}
+              touchThreshold={10}
+            >
+              {/* 1. Clothing Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/clothing"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/clothingbanner.jpg"
+                    alt="Chef Clothing & Aprons"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  {/* Hover Dark Gradient Overlay & Slide-up Shop Now Button */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 2. Consumables Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/consumables"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/consumablesbanner.jpg"
+                    alt="Catering Consumables & Stock"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  {/* Hover Dark Gradient Overlay & Slide-up Shop Now Button */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 3. Tableware Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/tableware-bar-supplies"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/tablewarebanner.jpg"
+                    alt="Tableware & Bar Supplies"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  {/* Hover Dark Gradient Overlay & Slide-up Shop Now Button */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+            </Slider>
+          </div>
+        </div>
+      </section>}
+
+      {/* ── SECTION 4: MULTI-BUY WHOLESALE DEALS (FULL-WIDTH PURE WHITE bg-white) ── */}
+      {false && multiBuyProducts.length > 0 && (
+        <section className="py-4 md:py-5 w-full">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <div>
+                <h2 className="text-base sm:text-lg md:xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+                  Multi-buy Wholesale Deals
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 hidden sm:block">
+                  Save more when you order in bulk. Tiered discounts applied automatically.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/products?multibuy=true" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                  View all
+                </Link>
+                <div className="hidden sm:flex items-center gap-1">
+                  <button
+                    onClick={() => multiBuySliderRef.current?.slickPrev()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Previous Multi-buy Deals"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    onClick={() => multiBuySliderRef.current?.slickNext()}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer"
+                    aria-label="Next Multi-buy Deals"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative -mx-2.5">
+              <Slider
+                key={`multibuy-slider-${productSlidesToShow}`}
+                ref={multiBuySliderRef}
+                dots={false}
+                infinite={true}
+                speed={500}
+                slidesToShow={productSlidesToShow}
+                slidesToScroll={1}
+                autoplay={true}
+                autoplaySpeed={5000}
+                arrows={false}
+                swipe={true}
+                swipeToSlide={true}
+                touchMove={true}
+                draggable={true}
+                touchThreshold={10}
+              >
+                {multiBuyProducts.map((product) => (
+                  <div key={`multibuy-${product.id}`} className="px-2.5 h-full pb-3">
+                    <MultiBuyEquipmentCard product={product} />
+                  </div>
+                ))}
+              </Slider>
+            </div>
+
+            {/* Mobile Navigation Arrows (Hidden) */}
+            <div className="hidden items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => multiBuySliderRef.current?.slickPrev()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Previous Multi-buy Deals"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <button
+                onClick={() => multiBuySliderRef.current?.slickNext()}
+                className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-xs transition-all cursor-pointer"
+                aria-label="Next Multi-buy Deals"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 3 CATEGORY PROMO BANNERS AFTER MULTI-BUY DEALS (CLEANING, CLEARANCE, SIMCO) ── */}
+      {false && <section className="py-4 md:py-5 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+          <div className="relative -mx-2">
+            <Slider
+              key={`promo3-slider-${promoSlidesToShow}`}
+              dots={false}
+              infinite={promoSlidesToShow < 3}
+              speed={600}
+              slidesToShow={promoSlidesToShow}
+              slidesToScroll={1}
+              autoplay={promoSlidesToShow < 3}
+              autoplaySpeed={4500}
+              arrows={false}
+              swipe={true}
+              swipeToSlide={true}
+              touchMove={true}
+              draggable={true}
+              touchThreshold={10}
+            >
+              {/* 1. Cleaning Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/cleaning-hygiene"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/cleaningbanner.jpg"
+                    alt="Cleaning & Hygiene Supplies"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 2. Clearance Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/clearance-special-offers"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/clearencebaner.jpg"
+                    alt="Clearance & Special Offers"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 3. Simco Banner */}
+              <div className="px-2">
+                <Link
+                  to="/products/c/simco-equipment"
+                  className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl border border-slate-200/80 hover:border-[#E31837]/40 transition-all duration-300 group aspect-[1672/941] w-full bg-slate-900 flex items-center justify-center cursor-pointer"
+                >
+                  <ImageWithFallback
+                    src="/categoriesbanner/simcobanner.jpg"
+                    alt="Simco Commercial Equipment"
+                    className="w-full h-full object-fill group-hover:brightness-[1.03] group-hover:contrast-[1.02] transition-all duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-5 z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-[#E31837] hover:bg-[#C41230] text-white text-xs font-extrabold px-4.5 py-2 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300 tracking-wider uppercase">
+                      <span>Shop Now</span>
+                      <ChevronRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </Link>
+              </div>
+            </Slider>
+          </div>
+        </div>
+      </section>}
+
+
+      {/* ── SECTION 7: TOP BRANDS (FULL-WIDTH SLIGHT GRAY bg-[#F8FAFC]) ── */}
+      <section className="py-3 sm:py-5 w-full">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-slate-800 text-xs sm:text-lg font-bold max-[599px]:font-semibold uppercase tracking-wide">
+              TOP BRANDS
+            </h2>
+            <Link to="/brands" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline flex items-center gap-1">
+              <span>View all</span>
+              <ChevronRight className="size-4" />
+            </Link>
+          </div>
+
+          {(() => {
+            const featuredBrand = allBrandsList[brandOffset % allBrandsList.length];
+            const rightBrands = Array.from({ length: 8 }, (_, i) => allBrandsList[(brandOffset + 1 + i) % allBrandsList.length]);
+
+            const getInnerTransformClass = () => {
+              if (brandSlideState === 'out') {
+                return '-translate-x-12 opacity-0 scale-95';
+              }
+              if (brandSlideState === 'in') {
+                return 'translate-x-12 opacity-0 scale-95';
+              }
+              return 'translate-x-0 opacity-100 scale-100';
+            };
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-2.5 sm:gap-4 items-stretch">
+                {/* Left Featured Big Card */}
+                <Link
+                  to={`/products?search=${encodeURIComponent(featuredBrand.name)}`}
+                  className="lg:col-span-1 border border-slate-200/80 rounded-xl bg-white p-2.5 sm:p-5 flex items-center justify-center text-center hover:border-slate-300 hover:shadow-xs transition-colors cursor-pointer group h-full min-h-[110px] sm:min-h-[235px] lg:min-h-[265px] overflow-hidden"
+                >
+                  <div className={`w-full h-full flex items-center justify-center p-1 transition-all duration-1000 cubic-bezier(0.25, 1, 0.5, 1) transform ${getInnerTransformClass()}`}>
+                    {featuredBrand.logoUrl ? (
+                      <img
+                        src={featuredBrand.logoUrl}
+                        alt={featuredBrand.name}
+                        className="max-h-20 sm:max-h-40 max-w-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square max-w-[100px] sm:max-w-[145px] bg-slate-900 text-white rounded-md p-2 sm:p-3.5 flex flex-col items-center justify-center shadow-xs group-hover:scale-105 transition-transform duration-700 ease-out">
+                        <span className="text-sm sm:text-2xl font-black tracking-widest text-white uppercase text-center line-clamp-2">
+                          {featuredBrand.name}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] font-bold tracking-widest text-amber-400 uppercase mt-0.5">
+                          BRAND
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                {/* Right 4x2 Grid */}
+                <div className="lg:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+                  {rightBrands.map((brand, idx) => {
+                    const delayMs = brandSlideState === 'out' ? idx * 40 : idx * 60;
+                    return (
+                      <Link
+                        key={`brand-${brand.name}-${idx}`}
+                        to={`/products?search=${encodeURIComponent(brand.name)}`}
+                        className="border border-slate-200/80 rounded-xl bg-white p-2 sm:p-4 flex items-center justify-center text-center hover:border-slate-300 hover:shadow-xs transition-colors cursor-pointer group h-16 sm:h-28 lg:h-30 overflow-hidden"
+                      >
+                        <div
+                          style={{ transitionDelay: `${delayMs}ms` }}
+                          className={`w-full h-full flex items-center justify-center p-1 transition-all duration-1000 cubic-bezier(0.25, 1, 0.5, 1) transform ${getInnerTransformClass()}`}
+                        >
+                          {brand.logoUrl ? (
+                            <img
+                              src={brand.logoUrl}
+                              alt={brand.name}
+                              className="max-h-10 sm:max-h-16 max-w-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
+                            />
+                          ) : (
+                            <div className="w-full h-9 sm:h-11 bg-slate-50 border border-slate-100 rounded-md flex items-center justify-center p-1 sm:p-2 group-hover:bg-slate-100 group-hover:scale-105 transition-all duration-700 ease-out">
+                              <span className="text-[10px] sm:text-sm font-bold sm:font-black tracking-wider text-slate-800 uppercase line-clamp-1">
+                                {brand.name}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </section>
     </div>
   );
 }

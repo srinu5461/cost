@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Mail, Save, Send, Settings, AlertCircle, CheckCircle, Server } from 'lucide-react';
-import { toast } from 'sonner';
+import { Mail, Save, Send, Settings, AlertCircle, CheckCircle, Server, RefreshCw, Key, ArrowRight, ShieldCheck, Info, CheckCircle2 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { notify } from '../../utils/notifications';
 
 interface EmailConfig {
   provider: 'smtp' | 'resend';
@@ -48,12 +52,6 @@ export function EmailSettings() {
       });
       
       if (!response.ok) {
-        console.error('Failed to load config:', response.status, response.statusText);
-        const errorData = await response.json();
-        console.error('Error details:', errorData);
-        
-        // Don't show error toast - just use defaults
-        // This is normal for first-time setup
         console.log('Using default email configuration');
         return;
       }
@@ -65,7 +63,6 @@ export function EmailSettings() {
       }
     } catch (error: any) {
       console.error('Failed to load email config:', error);
-      // Don't show error - defaults are fine for first-time setup
     } finally {
       setLoading(false);
     }
@@ -86,13 +83,13 @@ export function EmailSettings() {
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Email configuration saved successfully');
+        notify.success('Email configuration saved successfully');
       } else {
-        toast.error(data.error || 'Failed to save configuration');
+        notify.error(data.error || 'Failed to save configuration');
       }
     } catch (error: any) {
       console.error('Failed to save config:', error);
-      toast.error('Failed to save email configuration');
+      notify.error('Failed to save email configuration');
     } finally {
       setSaving(false);
     }
@@ -111,14 +108,14 @@ export function EmailSettings() {
       const data = await response.json();
       
       if (data.success) {
-        toast.success('✅ SMTP connection verified successfully!');
+        notify.success('SMTP connection verified successfully!');
       } else {
-        console.error('❌ SMTP Connection Error:', data.error);
-        toast.error(`❌ SMTP connection failed: ${data.error || 'Unknown error'}`);
+        console.error('SMTP Connection Error:', data.error);
+        notify.error(`SMTP connection failed: ${data.error || 'Unknown error'}`);
       }
     } catch (error: any) {
-      console.error('❌ Failed to verify SMTP:', error);
-      toast.error(`❌ Network error: ${error.message}`);
+      console.error('Failed to verify SMTP:', error);
+      notify.error(`Network error: ${error.message}`);
     } finally {
       setVerifying(false);
     }
@@ -126,7 +123,7 @@ export function EmailSettings() {
 
   const sendTestEmail = async () => {
     if (!testEmail) {
-      toast.error('Please enter a test email address');
+      notify.error('Please enter a test email address');
       return;
     }
 
@@ -144,14 +141,14 @@ export function EmailSettings() {
       const data = await response.json();
       
       if (data.success) {
-        toast.success(`Test email sent to ${testEmail}`);
+        notify.success(`Test email sent to ${testEmail}`);
         setTestEmail('');
       } else {
-        toast.error(data.error || 'Failed to send test email');
+        notify.error(data.error || 'Failed to send test email');
       }
     } catch (error: any) {
       console.error('Failed to send test email:', error);
-      toast.error('Failed to send test email');
+      notify.error('Failed to send test email');
     } finally {
       setTesting(false);
     }
@@ -159,308 +156,337 @@ export function EmailSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <Settings className="w-12 h-12 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading email settings...</p>
-        </div>
+      <div className="max-w-7xl mx-auto py-16 flex flex-col items-center justify-center gap-3 font-sans">
+        <RefreshCw className="size-8 animate-spin text-[#E31837]" />
+        <p className="text-xs font-bold text-slate-500">Loading email configuration...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <Mail className="w-8 h-8 text-[#E31837]" />
-          <h1 className="text-3xl font-bold text-gray-900">Email Settings</h1>
-        </div>
-        <p className="text-gray-600">
-          Configure your email account for sending automated emails
-        </p>
-      </div>
-
-      {/* Password Setup Instructions */}
-      {!passwordConfigured && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-yellow-900 mb-1">Email Password Not Configured</h3>
-              <p className="text-sm text-yellow-800 mb-3">
-                To send emails from your account ({config.senderEmail}), you need to add your email password as an environment variable.
-              </p>
-              <div className="bg-white border border-yellow-200 rounded p-3 mb-3">
-                <p className="text-sm font-mono text-gray-700 mb-2">
-                  SMTP_PASSWORD=your_email_password
-                </p>
-              </div>
-              <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
-                <li>Go to Supabase Dashboard → Edge Functions → Secrets</li>
-                <li>Add a new secret named: <strong>SMTP_PASSWORD</strong></li>
-                <li>Enter your email password for {config.senderEmail}</li>
-                <li>Save and redeploy your Edge Functions</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Connection Status */}
-      {passwordConfigured && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <div>
-                <h3 className="font-semibold text-green-900">Email Password Configured</h3>
-                <p className="text-sm text-green-800">
-                  Your SMTP credentials are set up and ready to use
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={verifyConnection}
-              disabled={verifying}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              {verifying ? (
-                <>
-                  <Settings className="w-4 h-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <Server className="w-4 h-4" />
-                  Verify Connection
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* SMTP Configuration */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">SMTP Settings</h2>
-          
-          <div className="space-y-4">
-            {/* SMTP Server */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                SMTP Server
-              </label>
-              <input
-                type="text"
-                value={config.smtpHost}
-                onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
-                placeholder="smtp.office365.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Your SMTP server hostname
-              </p>
-            </div>
-
-            {/* SMTP Port */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  SMTP Port
-                </label>
-                <input
-                  type="number"
-                  value={config.smtpPort}
-                  onChange={(e) => setConfig({ ...config, smtpPort: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Security
-                </label>
-                <select
-                  value={config.smtpSecure ? 'ssl' : 'tls'}
-                  onChange={(e) => setConfig({ ...config, smtpSecure: e.target.value === 'ssl' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-                >
-                  <option value="tls">TLS (587)</option>
-                  <option value="ssl">SSL (465)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Sender Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sender Email Address *
-              </label>
-              <input
-                type="email"
-                value={config.senderEmail}
-                onChange={(e) => setConfig({ ...config, senderEmail: e.target.value })}
-                placeholder="info@costplus100.com.au"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Your email address (must match SMTP_PASSWORD)
-              </p>
-            </div>
-
-            {/* Sender Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sender Name *
-              </label>
-              <input
-                type="text"
-                value={config.senderName}
-                onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
-                placeholder="Costplus100"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                The name that appears in the "From" field of emails
-              </p>
-            </div>
-
-            {/* Admin Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Form Recipient Email *
-              </label>
-              <input
-                type="email"
-                value={config.adminEmail}
-                onChange={(e) => setConfig({ ...config, adminEmail: e.target.value })}
-                placeholder="info@costplus100.com.au"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                <strong>Contact form messages will be sent to this email address.</strong> This can be different from your SMTP sender email.
-              </p>
-            </div>
-
-            {/* Enable Notifications Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <h3 className="font-medium text-gray-900">Admin Notifications</h3>
-                <p className="text-sm text-gray-600">
-                  Receive email notifications for new orders and customers
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.enableNotifications}
-                  onChange={(e) => setConfig({ ...config, enableNotifications: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#E31837]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
-              </label>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <button
-              onClick={saveConfig}
-              disabled={saving}
-              className="flex items-center gap-2 bg-[#E31837] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[#c91530] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <Settings className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Save Configuration
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Test Email */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Test Email Configuration</h2>
-          
-          <p className="text-gray-600 mb-4">
-            Send a test email to verify your SMTP configuration is working correctly.
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <Mail className="size-6 text-[#E31837]" />
+            Email Dispatch & SMTP Settings
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Configure automated order receipt dispatching, SMTP credentials, and admin alert channels
           </p>
+        </div>
 
-          <div className="flex gap-3">
-            <input
-              type="email"
-              value={testEmail}
-              onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="Enter test email address"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E31837] focus:border-transparent"
-            />
-            <button
-              onClick={sendTestEmail}
-              disabled={testing || !testEmail || !passwordConfigured}
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {testing ? (
-                <>
-                  <Send className="w-5 h-5 animate-pulse" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Send Test Email
-                </>
-              )}
-            </button>
-          </div>
+        <button
+          onClick={saveConfig}
+          disabled={saving}
+          className="h-10 px-5 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-50 shrink-0"
+        >
+          {saving ? (
+            <>
+              <RefreshCw className="size-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="size-4" />
+              Save Configuration
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Transactional Emails:</strong> Automated order confirmation, registration welcome, and tax invoice emails are dispatched live via this SMTP server.
         </div>
       </div>
 
-      {/* Email Types Info */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Automated Email Types</h2>
-          
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-green-900">Order Confirmation</h3>
-                <p className="text-sm text-green-800">
-                  Sent to customers immediately after placing an order
-                </p>
-              </div>
+      {/* Password Alert Banner */}
+      {!passwordConfigured ? (
+        <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-4 sm:p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="size-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex-1 space-y-1">
+              <h3 className="font-extrabold text-amber-900 text-sm">SMTP Password Secret Not Detected</h3>
+              <p className="text-xs font-semibold text-amber-800 leading-relaxed">
+                To dispatch emails from <code className="bg-amber-100 px-1 py-0.5 rounded font-mono text-amber-900">{config.senderEmail}</code>, configure the SMTP password secret in Supabase:
+              </p>
             </div>
+          </div>
 
-            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-blue-900">Welcome Email</h3>
-                <p className="text-sm text-blue-800">
-                  Sent when a new customer registers an account
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-orange-900">Admin Notifications</h3>
-                <p className="text-sm text-orange-800">
-                  Alerts sent to {config.adminEmail} for new orders and customer registrations
-                </p>
-              </div>
+          <div className="bg-white/90 border border-amber-200 rounded-lg p-3 text-xs font-semibold text-amber-900 space-y-1.5 pl-4">
+            <p className="flex items-center gap-2 font-mono">
+              <Key className="size-3.5 text-amber-600" />
+              SMTP_PASSWORD = <span className="text-slate-400 font-sans italic">your_office365_or_gmail_app_password</span>
+            </p>
+            <div className="text-[11px] text-amber-800 font-medium space-y-1 pt-1">
+              <p>1. Open Supabase Dashboard → Edge Functions → Secrets</p>
+              <p>2. Create a secret named <strong>SMTP_PASSWORD</strong></p>
+              <p>3. Enter your email password for <strong>{config.senderEmail}</strong></p>
             </div>
           </div>
         </div>
+      ) : (
+        <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100/80 rounded-full">
+              <ShieldCheck className="size-5 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-emerald-900 text-sm">SMTP Password Configured</h3>
+              <p className="text-xs font-semibold text-emerald-700">
+                Your SMTP authentication secrets are active and ready for dispatching
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={verifyConnection}
+            disabled={verifying}
+            className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all shrink-0"
+          >
+            {verifying ? (
+              <><RefreshCw className="size-4 animate-spin" />Verifying...</>
+            ) : (
+              <><Server className="size-4" />Verify SMTP Server</>
+            )}
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        {/* Left Column (7 Cols) */}
+        <div className="lg:col-span-7 space-y-5">
+          
+          {/* SMTP Config Form */}
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <Settings className="size-5 text-[#E31837]" />
+                SMTP Host & Credentials
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {/* Host */}
+                <div className="sm:col-span-2">
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    SMTP Hostname <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    type="text"
+                    value={config.smtpHost}
+                    onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
+                    placeholder="smtp.office365.com"
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                  <p className="text-[11px] font-medium text-slate-400 mt-1">SMTP mail server address</p>
+                </div>
+
+                {/* Port */}
+                <div>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    SMTP Port <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={config.smtpPort}
+                    onChange={(e) => setConfig({ ...config, smtpPort: parseInt(e.target.value) || 587 })}
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                </div>
+
+                {/* Security */}
+                <div>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Security Standard <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <select
+                    value={config.smtpSecure ? 'ssl' : 'tls'}
+                    onChange={(e) => setConfig({ ...config, smtpSecure: e.target.value === 'ssl' })}
+                    className="w-full h-9 px-3 text-xs font-bold border border-slate-200 rounded-md focus:border-[#E31837] focus:ring-[#E31837] outline-none"
+                  >
+                    <option value="tls">TLS (Port 587)</option>
+                    <option value="ssl">SSL (Port 465)</option>
+                  </select>
+                </div>
+
+                {/* Sender Email */}
+                <div>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Sender Email Address <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    type="email"
+                    value={config.senderEmail}
+                    onChange={(e) => setConfig({ ...config, senderEmail: e.target.value })}
+                    placeholder="info@costplus100.com.au"
+                    className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                </div>
+
+                {/* Sender Name */}
+                <div>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Sender Display Name <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    type="text"
+                    value={config.senderName}
+                    onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
+                    placeholder="Costplus100"
+                    className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                </div>
+
+                {/* Admin Recipient Email */}
+                <div className="sm:col-span-2">
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">
+                    Contact Form & Admin Alert Recipient <span className="text-[#E31837]">*</span>
+                  </Label>
+                  <Input
+                    type="email"
+                    value={config.adminEmail}
+                    onChange={(e) => setConfig({ ...config, adminEmail: e.target.value })}
+                    placeholder="info@costplus100.com.au"
+                    className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                  />
+                  <p className="text-[11px] font-medium text-slate-400 mt-1">
+                    Storefront contact form submissions and new order alerts are delivered to this inbox
+                  </p>
+                </div>
+                
+                {/* Admin Notifications Toggle */}
+                <div className="sm:col-span-2 p-4 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between mt-1">
+                  <div>
+                    <h3 className="font-extrabold text-xs text-[#0f172a]">Admin Order Notifications</h3>
+                    <p className="text-[11px] font-medium text-slate-500">
+                      Receive instant email notifications when new orders or quotes are created
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.enableNotifications}
+                      onChange={(e) => setConfig({ ...config, enableNotifications: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E31837]"></div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-slate-100">
+                <button
+                  onClick={saveConfig}
+                  disabled={saving}
+                  className="h-10 px-6 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Save className="size-4" />
+                  {saving ? 'Saving...' : 'Save Email Config'}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Test Email */}
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <Send className="size-5 text-[#E31837]" />
+                Dispatch Test Email
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <p className="text-xs font-semibold text-slate-600">
+                Send an immediate test message to verify your SMTP authentication setup:
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="admin@costplus100.com.au"
+                  className="flex-1 h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
+                />
+                <button
+                  onClick={sendTestEmail}
+                  disabled={testing || !testEmail || !passwordConfigured}
+                  className="h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all shrink-0"
+                >
+                  {testing ? (
+                    <><RefreshCw className="size-4 animate-spin" />Sending...</>
+                  ) : (
+                    <><Send className="size-4" />Send Test Message</>
+                  )}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+          
+        </div>
+
+        {/* Right Column (5 Cols) */}
+        <div className="lg:col-span-5 space-y-5">
+          <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+                <Info className="size-5 text-blue-600" />
+                Automated Transactional Emails
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-3">
+              
+              <div className="flex items-start gap-3 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl">
+                <CheckCircle2 className="size-4 text-emerald-600 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="font-extrabold text-xs text-emerald-900">Order Confirmation & Receipt</h3>
+                  <p className="text-[11px] font-semibold text-emerald-700 mt-0.5">
+                    Dispatched to buyers immediately upon successful checkout
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-blue-50/80 border border-blue-200 rounded-xl">
+                <CheckCircle2 className="size-4 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="font-extrabold text-xs text-blue-900">Tax Invoice Delivery</h3>
+                  <p className="text-[11px] font-semibold text-blue-700 mt-0.5">
+                    Includes company ABN, BSB bank deposit info, and itemized GST breakdowns
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <CheckCircle2 className="size-4 text-slate-600 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="font-extrabold text-xs text-slate-800">Customer Registration Welcome</h3>
+                  <p className="text-[11px] font-semibold text-slate-600 mt-0.5">
+                    Sent when a commercial client creates a store account
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl">
+                <CheckCircle2 className="size-4 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="font-extrabold text-xs text-amber-900">Admin New Order Alerts</h3>
+                  <p className="text-[11px] font-semibold text-amber-800 mt-0.5">
+                    Real-time alert sent to <span className="font-mono font-bold">{config.adminEmail}</span>
+                  </p>
+                </div>
+              </div>
+              
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </div>
   );

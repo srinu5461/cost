@@ -152,102 +152,115 @@ export function CreateQuotation() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={() => navigate('/admin/quotations')}>
-          <ArrowLeft className="size-4 mr-2" />
-          Back to Quotations
-        </Button>
+    <div className="max-w-6xl mx-auto pb-8 space-y-4">
+      {/* Header Bar */}
+      <div className="bg-white rounded-xl p-4 sm:p-5 shadow-xs border border-slate-200 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button 
+            type="button"
+            onClick={() => navigate('/admin/quotations')}
+            className="size-9 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer shrink-0"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <div>
+            <h1 className="text-xl font-black text-[#0f172a] tracking-tight">Create Quotation</h1>
+            <p className="text-xs font-semibold text-slate-500">Add customer details and products to generate a official quote</p>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Quotation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
             {/* Customer Information */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Customer Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-[#0f172a] border-b border-slate-100 pb-2">Customer Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Label htmlFor="customerName" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Customer Name *</Label>
                   <Input
                     id="customerName"
                     value={formData.customerName}
                     onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerEmail">Email *</Label>
+                  <Label htmlFor="customerEmail" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Email *</Label>
                   <Input
                     id="customerEmail"
                     type="email"
                     value={formData.customerEmail}
                     onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerPhone">Phone</Label>
+                  <Label htmlFor="customerPhone" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Phone</Label>
                   <Input
                     id="customerPhone"
                     value={formData.customerPhone}
                     onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="customerCompany">Company</Label>
+                  <Label htmlFor="customerCompany" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Company</Label>
                   <Input
                     id="customerCompany"
                     value={formData.customerCompany}
                     onChange={(e) => setFormData({ ...formData, customerCompany: e.target.value })}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="customerAddress">Address</Label>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="customerAddress" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Address</Label>
                   <Textarea
                     id="customerAddress"
                     value={formData.customerAddress}
                     onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
                     rows={2}
+                    className="bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold resize-none"
                   />
                 </div>
               </div>
             </div>
 
             {/* Items */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Items</h3>
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-[#0f172a] border-b border-slate-100 pb-2">Products Selection</h3>
               
               {/* Product Search */}
-              <div className="mb-4 relative">
+              <div className="relative">
                 <Input
-                  placeholder="Search products to add..."
+                  placeholder="Search products by name or SKU to add..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setShowProductSearch(true);
                   }}
                   onFocus={() => setShowProductSearch(true)}
+                  className="h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
                 />
                 {showProductSearch && searchQuery && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                  <div className="absolute z-20 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
                     {filteredProducts.map(product => (
                       <div
                         key={product.id}
-                        className="p-3 hover:bg-slate-50 cursor-pointer border-b last:border-b-0"
+                        className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex justify-between items-center text-xs"
                         onClick={() => addProduct(product)}
                       >
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {product.sku} - ${parseFloat(product.price).toFixed(2)}
+                        <div>
+                          <div className="font-extrabold text-[#0f172a]">{product.name}</div>
+                          <div className="text-[11px] font-semibold text-slate-400 mt-0.5">{product.sku}</div>
                         </div>
+                        <div className="font-black text-[#E31837] text-sm">${parseFloat(product.price).toFixed(2)}</div>
                       </div>
                     ))}
                     {filteredProducts.length === 0 && (
-                      <div className="p-3 text-center text-muted-foreground">
+                      <div className="p-3.5 text-center text-xs font-semibold text-slate-500">
                         No products found
                       </div>
                     )}
@@ -256,78 +269,83 @@ export function CreateQuotation() {
               </div>
 
               {/* Items List */}
-              <div className="space-y-2">
-                <div className="flex gap-2 items-center px-3 py-2 text-sm font-semibold text-muted-foreground">
+              <div className="mt-3 border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
+                <div className="flex gap-2 items-center px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <div className="flex-1">Product</div>
-                  <div className="w-24 text-center">Qty</div>
-                  <div className="w-32 text-center">Price</div>
-                  <div className="w-28 text-center">Discount %</div>
-                  <div className="w-32 text-right">Total</div>
-                  <div className="w-10"></div>
+                  <div className="w-20 text-center">Qty</div>
+                  <div className="w-24 text-center">Price</div>
+                  <div className="w-20 text-center">Discount %</div>
+                  <div className="w-24 text-right">Total</div>
+                  <div className="w-8"></div>
                 </div>
-                {items.map(item => {
-                  const itemTotal = item.quantity * item.price;
-                  const discountAmount = itemTotal * (item.discount / 100);
-                  const finalPrice = itemTotal - discountAmount;
+                
+                <div className="divide-y divide-slate-100">
+                  {items.map(item => {
+                    const itemTotal = item.quantity * item.price;
+                    const discountAmount = itemTotal * (item.discount / 100);
+                    const finalPrice = itemTotal - discountAmount;
 
-                  return (
-                    <div key={item.id} className="flex gap-2 items-center p-3 bg-slate-50 rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium">{item.name}</div>
+                    return (
+                      <div key={item.id} className="flex gap-2 items-center px-4 py-2.5 hover:bg-slate-50/50 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-extrabold text-[#0f172a] truncate">{item.name}</div>
+                        </div>
+                        <div className="w-20">
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value))}
+                            min="1"
+                            className="h-8 bg-slate-50 border-slate-200 rounded-lg text-center font-bold text-xs focus:bg-white"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.price}
+                            onChange={(e) => updateItemPrice(item.id, parseFloat(e.target.value))}
+                            className="h-8 bg-slate-50 border-slate-200 rounded-lg text-center font-bold text-xs focus:bg-white"
+                          />
+                        </div>
+                        <div className="w-20">
+                          <Input
+                            type="number"
+                            step="1"
+                            min="0"
+                            max="100"
+                            value={item.discount}
+                            onChange={(e) => updateItemDiscount(item.id, parseFloat(e.target.value) || 0)}
+                            className="h-8 bg-slate-50 border-slate-200 rounded-lg text-center font-bold text-xs focus:bg-white"
+                          />
+                        </div>
+                        <div className="w-24 text-right">
+                          <div className="font-black text-xs text-[#0f172a]">${finalPrice.toFixed(2)}</div>
+                          {item.discount > 0 && (
+                            <div className="text-[10px] font-bold text-slate-400 line-through">
+                              ${itemTotal.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-8 flex justify-end">
+                          <button
+                            type="button"
+                            className="size-7 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="w-24">
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value))}
-                          min="1"
-                          placeholder="Qty"
-                        />
-                      </div>
-                      <div className="w-32">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.price}
-                          onChange={(e) => updateItemPrice(item.id, parseFloat(e.target.value))}
-                          placeholder="Price"
-                        />
-                      </div>
-                      <div className="w-28">
-                        <Input
-                          type="number"
-                          step="1"
-                          min="0"
-                          max="100"
-                          value={item.discount}
-                          onChange={(e) => updateItemDiscount(item.id, parseFloat(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="w-32 text-right">
-                        <div className="font-semibold">${finalPrice.toFixed(2)}</div>
-                        {item.discount > 0 && (
-                          <div className="text-xs text-muted-foreground line-through">
-                            ${itemTotal.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <Trash2 className="size-4 text-red-500" />
-                      </Button>
+                    );
+                  })}
+                  {items.length === 0 && (
+                    <div className="text-center p-8">
+                      <p className="text-xs font-extrabold text-slate-500">No items added yet.</p>
+                      <p className="text-[11px] font-medium text-slate-400 mt-1">Search for products above to start building the quotation.</p>
                     </div>
-                  );
-                })}
-                {items.length === 0 && (
-                  <div className="text-center p-8 text-muted-foreground">
-                    No items added. Search for products above to add them.
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
@@ -340,82 +358,96 @@ export function CreateQuotation() {
               }, 0);
 
               return (
-                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                  {totalDiscount > 0 && (
-                    <>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Subtotal (before discount):</span>
-                        <span>${subtotalBeforeDiscount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-green-600">
-                        <span>Total Discount:</span>
-                        <span>-${totalDiscount.toFixed(2)}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span className="font-semibold">${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax ({(formData.taxRate * 100).toFixed(0)}%):</span>
-                    <span className="font-semibold">${tax.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Total:</span>
-                    <span>${total.toFixed(2)}</span>
+                <div className="bg-slate-50/80 p-4 rounded-xl space-y-1.5 border border-slate-200 flex flex-col items-end text-xs">
+                  <div className="w-full sm:w-64 space-y-1.5">
+                    {totalDiscount > 0 && (
+                      <>
+                        <div className="flex justify-between font-semibold text-slate-500">
+                          <span>Subtotal (before discount)</span>
+                          <span>${subtotalBeforeDiscount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md -mx-2">
+                          <span>Total Discount</span>
+                          <span>-${totalDiscount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between font-semibold text-slate-600">
+                      <span>Subtotal:</span>
+                      <span className="font-bold text-slate-800">${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-slate-600 border-b border-slate-200 pb-1.5">
+                      <span>Tax ({(formData.taxRate * 100).toFixed(0)}%):</span>
+                      <span className="font-bold text-slate-800">${tax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-base font-black text-[#E31837] pt-1">
+                      <span>Total Amount:</span>
+                      <span>${total.toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               );
             })()}
 
             {/* Additional Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="validUntil">Valid Until</Label>
-                <Input
-                  id="validUntil"
-                  type="date"
-                  value={formData.validUntil}
-                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                />
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-[#0f172a] border-b border-slate-100 pb-2">Terms & Notes</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <Label htmlFor="validUntil" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Valid Until</Label>
+                  <Input
+                    id="validUntil"
+                    type="date"
+                    value={formData.validUntil}
+                    onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="taxRate" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Tax Rate (e.g. 0.10 for 10%)</Label>
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    step="0.01"
+                    value={formData.taxRate}
+                    onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) })}
+                    className="h-9 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="notes" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={2}
+                    placeholder="Add any additional terms or notes..."
+                    className="bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs font-semibold resize-none"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="taxRate">Tax Rate</Label>
-                <Input
-                  id="taxRate"
-                  type="number"
-                  step="0.01"
-                  value={formData.taxRate}
-                  onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={4}
-                placeholder="Add any additional notes or terms..."
-              />
             </div>
 
             {/* Submit */}
-            <div className="flex gap-4">
-              <Button type="submit" disabled={loading || items.length === 0}>
-                <Save className="size-4 mr-2" />
+            <div className="pt-4 border-t border-slate-200 flex items-center gap-3">
+              <button 
+                type="submit" 
+                disabled={loading || items.length === 0}
+                className="h-10 px-6 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <Save className="size-4" />
                 {loading ? 'Creating...' : 'Create Quotation'}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/admin/quotations')}>
+              </button>
+              <button 
+                type="button" 
+                onClick={() => navigate('/admin/quotations')}
+                className="h-10 px-6 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center justify-center cursor-pointer"
+              >
                 Cancel
-              </Button>
+              </button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
     </div>
   );
 }

@@ -134,28 +134,28 @@ export function OrderConfirmation() {
     <div className="min-h-screen bg-slate-50 py-4 md:py-8">
       <div className="container mx-auto px-4">
         {/* Success Header */}
-        <Card className="max-w-3xl mx-auto mb-8">
-          <CardContent className="p-8 md:p-12 text-center">
-            <div className={`${paymentMethod === 'bank-transfer' ? 'bg-blue-100' : 'bg-green-100'} size-20 md:size-24 rounded-full flex items-center justify-center mx-auto mb-6`}>
+        <Card className="max-w-3xl mx-auto mb-6 sm:mb-8 rounded-xl sm:rounded-2xl">
+          <CardContent className="p-5 sm:p-8 md:p-12 text-center">
+            <div className={`${paymentMethod === 'bank-transfer' ? 'bg-blue-100' : 'bg-green-100'} size-14 sm:size-20 md:size-24 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6`}>
               {paymentMethod === 'bank-transfer' ? (
-                <Clock className="size-12 md:size-14 text-blue-600" />
+                <Clock className="size-8 sm:size-12 md:size-14 text-blue-600" />
               ) : (
-                <CheckCircle2 className="size-12 md:size-14 text-green-600" />
+                <CheckCircle2 className="size-8 sm:size-12 md:size-14 text-green-600" />
               )}
             </div>
-            <h1 className="text-2xl md:text-4xl mb-3 md:mb-4 font-bold">
+            <h1 className="text-xl sm:text-2xl md:text-4xl mb-2 sm:mb-3 font-bold">
               {paymentMethod === 'bank-transfer' ? 'Order Created!' : 'Order Confirmed!'}
             </h1>
-            <p className="text-base md:text-lg text-muted-foreground mb-6 md:mb-8">
+            <p className="text-xs sm:text-base md:text-lg text-muted-foreground mb-4 sm:mb-6 md:mb-8">
               {paymentMethod === 'bank-transfer'
                 ? 'Thank you for your order. Please complete payment via bank transfer within 3 business days.'
                 : 'Thank you for your order. We\'ve received your payment and will begin processing your order shortly.'}
             </p>
-            <div className="bg-slate-50 p-4 md:p-6 rounded-lg inline-block">
-              <p className="text-sm text-muted-foreground mb-2">Order Number</p>
-              <p className="text-2xl md:text-3xl font-mono font-bold text-[#E31837]">#{order.id}</p>
+            <div className="bg-slate-50 p-3 sm:p-4 md:p-6 rounded-lg inline-block border border-slate-200/80">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">Order Number</p>
+              <p className="text-lg sm:text-2xl md:text-3xl font-mono font-bold text-[#E31837]">#{order.id}</p>
               {paymentMethod === 'bank-transfer' && (
-                <p className="text-xs text-amber-700 mt-2 font-medium">
+                <p className="text-[11px] sm:text-xs text-amber-700 mt-1.5 font-medium">
                   ⚠️ Use this Order ID as your payment reference
                 </p>
               )}

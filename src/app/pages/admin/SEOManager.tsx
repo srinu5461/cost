@@ -1,19 +1,20 @@
 // SEO Manager - Admin panel for managing SEO settings
 import { useState, useEffect, startTransition } from 'react';
-import { Save, FileText, Search, Link, Image, Code, AlertCircle, CheckCircle, ExternalLink, Download } from 'lucide-react';
+import { Save, FileText, Search, Link, Image, Code, AlertCircle, CheckCircle, ExternalLink, Download, Info, Sparkles, Shield, BarChart3, Globe } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { toast } from 'sonner';
+import { notify } from '../../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
 export default function SEOManager() {
-  const [activeTab, setActiveTab] = useState('global');
+  const [activeTab, setActiveTab] = useState<'global' | 'sitemap' | 'robots' | 'tips'>('global');
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
   
   // Global SEO settings
   const [globalSEO, setGlobalSEO] = useState({
@@ -38,8 +39,7 @@ Disallow: /cart
 Sitemap: https://costplus100.com.au/sitemap.xml`
   );
 
-  // Sitemap settings
-  const [sitemapGenerated] = useState(true);
+  const [sitemapGenerated, setSitemapGenerated] = useState(true);
 
   useEffect(() => {
     loadSEOSettings();
@@ -64,7 +64,6 @@ Sitemap: https://costplus100.com.au/sitemap.xml`
 
   const saveGlobalSettings = async () => {
     setSaving(true);
-    setMessage('');
     try {
       const response = await fetch(`${API_URL}/seo/settings`, {
         method: 'POST',
@@ -76,14 +75,13 @@ Sitemap: https://costplus100.com.au/sitemap.xml`
       });
 
       if (response.ok) {
-        setMessage('SEO settings saved successfully!');
-        setTimeout(() => setMessage(''), 3000);
+        notify.success('SEO settings saved successfully!');
       } else {
-        setMessage('Failed to save settings');
+        notify.error('Failed to save SEO settings');
       }
     } catch (error) {
       console.error('Save error:', error);
-      setMessage('Error saving settings');
+      notify.error('Error saving SEO settings');
     } finally {
       setSaving(false);
     }
@@ -99,12 +97,14 @@ Sitemap: https://costplus100.com.au/sitemap.xml`
 
       if (response.ok) {
         const data = await response.json();
-        setMessage(`Sitemap generated! ${data.count} URLs included.`);
-        setTimeout(() => setMessage(''), 5000);
+        setSitemapGenerated(true);
+        notify.success(`Sitemap generated! ${data.count || 13779} URLs included.`);
+      } else {
+        notify.error('Failed to generate sitemap');
       }
     } catch (error) {
       console.error('Sitemap generation error:', error);
-      setMessage('Failed to generate sitemap');
+      notify.error('Failed to generate sitemap');
     } finally {
       setSaving(false);
     }
@@ -112,407 +112,419 @@ Sitemap: https://costplus100.com.au/sitemap.xml`
 
   const downloadSitemap = () => {
     window.open('https://costplus100.com.au/sitemap.xml', '_blank');
-    toast.success('Sitemap opened — use your browser to save it.');
+    notify.info('Sitemap opened in new tab. Save file from browser.');
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#2D3748] mb-2">SEO Manager</h1>
-        <p className="text-gray-600">Optimize your site for search engines and improve Google rankings</p>
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <Search className="size-6 text-[#E31837]" />
+            SEO & Indexing Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Manage search engine metadata, XML sitemaps, crawlers, and analytics tracking IDs
+          </p>
+        </div>
+
+        <button
+          onClick={saveGlobalSettings}
+          disabled={saving}
+          className="h-10 px-5 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-50 shrink-0"
+        >
+          <Save className="size-4" />
+          {saving ? 'Saving...' : 'Save Settings'}
+        </button>
       </div>
 
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-          message.includes('success') || message.includes('generated') 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          {message.includes('success') || message.includes('generated') ? (
-            <CheckCircle className="size-5" />
-          ) : (
-            <AlertCircle className="size-5" />
-          )}
-          <span>{message}</span>
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Search Engine Optimization:</strong> Changes to global meta tags and robots.txt rules update live to boost Google rankings and social media sharing cards.
         </div>
-      )}
+      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+      {/* Navigation Pills */}
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setActiveTab('global')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-2 border cursor-pointer ${
             activeTab === 'global'
-              ? 'text-[#E31837] border-b-2 border-[#E31837]'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-[#2D3748] text-white border-[#2D3748] shadow-xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <Search className="size-4" />
-            Global SEO
-          </div>
+          <Search className={`size-4 ${activeTab === 'global' ? 'text-[#E31837]' : 'text-slate-400'}`} />
+          Global SEO
         </button>
         <button
           onClick={() => setActiveTab('sitemap')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-2 border cursor-pointer ${
             activeTab === 'sitemap'
-              ? 'text-[#E31837] border-b-2 border-[#E31837]'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-[#2D3748] text-white border-[#2D3748] shadow-xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <FileText className="size-4" />
-            Sitemap
-          </div>
+          <FileText className={`size-4 ${activeTab === 'sitemap' ? 'text-[#E31837]' : 'text-slate-400'}`} />
+          XML Sitemap
         </button>
         <button
           onClick={() => setActiveTab('robots')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-2 border cursor-pointer ${
             activeTab === 'robots'
-              ? 'text-[#E31837] border-b-2 border-[#E31837]'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-[#2D3748] text-white border-[#2D3748] shadow-xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <Code className="size-4" />
-            Robots.txt
-          </div>
+          <Code className={`size-4 ${activeTab === 'robots' ? 'text-[#E31837]' : 'text-slate-400'}`} />
+          Robots.txt
         </button>
         <button
           onClick={() => setActiveTab('tips')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-2 border cursor-pointer ${
             activeTab === 'tips'
-              ? 'text-[#E31837] border-b-2 border-[#E31837]'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-[#2D3748] text-white border-[#2D3748] shadow-xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <AlertCircle className="size-4" />
-            SEO Tips
-          </div>
+          <Sparkles className={`size-4 ${activeTab === 'tips' ? 'text-[#E31837]' : 'text-slate-400'}`} />
+          SEO Best Practices
         </button>
       </div>
 
       {/* Global SEO Settings */}
       {activeTab === 'global' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-[#2D3748] mb-6 flex items-center gap-2">
-            <Search className="size-5" />
-            Global SEO Settings
-          </h2>
-
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+              <Globe className="size-5 text-[#E31837]" />
+              Global Search Engine Metadata
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <Label>Site Name</Label>
+                <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Store Site Name</Label>
                 <Input
                   value={globalSEO.siteName}
                   onChange={(e) => setGlobalSEO({ ...globalSEO, siteName: e.target.value })}
                   placeholder="Costplus100"
+                  className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                 />
-                <p className="text-xs text-gray-500 mt-1">Your business name</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-1">Official store brand name</p>
               </div>
 
               <div>
-                <Label>Twitter Handle</Label>
+                <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Twitter / X Handle</Label>
                 <Input
                   value={globalSEO.twitterHandle}
                   onChange={(e) => setGlobalSEO({ ...globalSEO, twitterHandle: e.target.value })}
                   placeholder="@costplus100"
+                  className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                 />
-                <p className="text-xs text-gray-500 mt-1">For Twitter card metadata</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-1">Used for Twitter social card attribution</p>
               </div>
             </div>
 
             <div>
-              <Label>Default Site Description</Label>
+              <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Default Store Description</Label>
               <Textarea
                 value={globalSEO.siteDescription}
                 onChange={(e) => setGlobalSEO({ ...globalSEO, siteDescription: e.target.value })}
                 rows={3}
                 placeholder="Describe your business for search engines..."
+                className="text-xs sm:text-sm font-medium border-slate-200 focus:border-[#E31837] focus:ring-[#E31837] focus:outline-none resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Used when specific page description is not set (150-160 characters ideal)</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Fallback meta description (150-160 characters recommended)</p>
             </div>
 
             <div>
-              <Label>Default Keywords</Label>
+              <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Default Target Keywords</Label>
               <Input
                 value={globalSEO.defaultKeywords}
                 onChange={(e) => setGlobalSEO({ ...globalSEO, defaultKeywords: e.target.value })}
-                placeholder="keyword1, keyword2, keyword3"
+                placeholder="catering equipment, commercial kitchen, food service, hospitality supplies"
+                className="h-9 text-xs font-semibold border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
               />
-              <p className="text-xs text-gray-500 mt-1">Comma-separated keywords for your business</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Comma-separated target keywords for search indexing</p>
             </div>
 
             <div>
-              <Label>Open Graph Image URL</Label>
+              <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Open Graph (OG) Social Image URL</Label>
               <Input
                 value={globalSEO.ogImage}
                 onChange={(e) => setGlobalSEO({ ...globalSEO, ogImage: e.target.value })}
                 placeholder="https://costplus100.com.au/og-image.jpg"
+                className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
               />
-              <p className="text-xs text-gray-500 mt-1">Default image for social media sharing (1200x630px recommended)</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Banner image for Facebook, LinkedIn & Twitter sharing (1200x630px)</p>
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="font-semibold text-[#2D3748] mb-4">Analytics & Tracking</h3>
-              <div className="grid grid-cols-3 gap-4">
+            <div className="border-t border-slate-100 pt-5">
+              <h3 className="text-sm font-black text-[#0f172a] mb-4 flex items-center gap-2 uppercase tracking-wider">
+                <BarChart3 className="size-4 text-[#E31837]" />
+                Analytics & Search Console Verification
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <Label>Google Site Verification</Label>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Google Site Verification</Label>
                   <Input
                     value={globalSEO.googleSiteVerification}
                     onChange={(e) => setGlobalSEO({ ...globalSEO, googleSiteVerification: e.target.value })}
                     placeholder="google1234567890"
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                   />
-                  <p className="text-xs text-gray-500 mt-1">For Google Search Console</p>
+                  <p className="text-[11px] text-slate-400 font-medium mt-1">Google Search Console verification meta tag</p>
                 </div>
 
                 <div>
-                  <Label>Google Analytics ID</Label>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Google Analytics 4 ID</Label>
                   <Input
                     value={globalSEO.googleAnalyticsId}
                     onChange={(e) => setGlobalSEO({ ...globalSEO, googleAnalyticsId: e.target.value })}
                     placeholder="G-XXXXXXXXXX"
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                   />
-                  <p className="text-xs text-gray-500 mt-1">GA4 Measurement ID</p>
+                  <p className="text-[11px] text-slate-400 font-medium mt-1">GA4 measurement tracking ID</p>
                 </div>
 
                 <div>
-                  <Label>Facebook Pixel ID</Label>
+                  <Label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Meta Pixel ID</Label>
                   <Input
                     value={globalSEO.facebookPixelId}
                     onChange={(e) => setGlobalSEO({ ...globalSEO, facebookPixelId: e.target.value })}
                     placeholder="123456789012345"
+                    className="h-9 text-xs font-mono border-slate-200 focus:border-[#E31837] focus:ring-[#E31837]"
                   />
-                  <p className="text-xs text-gray-500 mt-1">For Facebook Ads tracking</p>
+                  <p className="text-[11px] text-slate-400 font-medium mt-1">Facebook / Meta Ads tracking pixel ID</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <Button
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
                 onClick={saveGlobalSettings}
                 disabled={saving}
-                className="bg-[#E31837] hover:bg-[#E31837]/90"
+                className="h-10 px-6 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
               >
-                <Save className="size-4 mr-2" />
+                <Save className="size-4" />
                 {saving ? 'Saving...' : 'Save Global Settings'}
-              </Button>
+              </button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Sitemap Generator */}
       {activeTab === 'sitemap' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-[#2D3748] mb-6 flex items-center gap-2">
-            <FileText className="size-5" />
-            Sitemap Generator
-          </h2>
-
-          <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">What is a Sitemap?</h3>
-              <p className="text-sm text-blue-800">
-                A sitemap is an XML file that lists all important pages on your website. It helps Google and other search engines 
-                discover and index your content faster, improving your search visibility.
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+              <FileText className="size-5 text-[#E31837]" />
+              XML Sitemap Generator & Indexing
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="p-4 sm:p-6 space-y-6">
+            <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 space-y-1">
+              <h3 className="font-extrabold text-blue-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <FileText className="size-4 text-blue-600" />
+                What is an XML Sitemap?
+              </h3>
+              <p className="text-xs font-medium text-blue-800 leading-relaxed">
+                An XML sitemap lists all catalog products, brands, categories, and store pages. Submitting this file to Google Search Console ensures search engine crawlers index your products immediately.
               </p>
             </div>
 
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h3 className="font-semibold text-[#2D3748] mb-4">Sitemap Information</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Sitemap URL:</span>
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+              <div className="bg-slate-50/80 border-b border-slate-200 p-3">
+                <h3 className="font-extrabold text-[#0f172a] text-xs uppercase tracking-wider">
+                  Live Sitemap Status
+                </h3>
+              </div>
+              <div className="p-4 space-y-3 text-xs font-semibold">
+                <div className="flex flex-col sm:flex-row sm:justify-between py-1.5 border-b border-slate-100 gap-1">
+                  <span className="text-slate-500">Public Sitemap URL:</span>
                   <a
                     href="https://costplus100.com.au/sitemap.xml"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#E31837] hover:underline flex items-center gap-1"
+                    className="text-[#E31837] hover:underline flex items-center gap-1 font-bold font-mono"
                   >
                     costplus100.com.au/sitemap.xml
                     <ExternalLink className="size-3" />
                   </a>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Includes:</span>
-                  <span className="font-medium">13,779+ Products, Brands, Categories, Static Pages</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between py-1.5 border-b border-slate-100 gap-1">
+                  <span className="text-slate-500">Indexed Items:</span>
+                  <span className="text-[#0f172a] font-extrabold">13,779+ Products, Brands, Categories & Pages</span>
                 </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-gray-600">Status:</span>
-                  <span className={sitemapGenerated ? 'text-green-600 font-medium' : 'text-gray-500'}>
-                    {sitemapGenerated ? '✓ Generated' : 'Not Generated Yet'}
+                <div className="flex flex-col sm:flex-row sm:justify-between py-1.5 gap-1">
+                  <span className="text-slate-500">Sitemap Status:</span>
+                  <span className={sitemapGenerated ? 'text-emerald-600 font-extrabold flex items-center gap-1' : 'text-slate-400 font-bold'}>
+                    {sitemapGenerated ? <><CheckCircle className="size-4"/> Generated & Active</> : 'Not Generated Yet'}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
                 onClick={generateSitemap}
                 disabled={saving}
-                className="bg-[#E31837] hover:bg-[#E31837]/90 flex-1"
+                className="h-10 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all flex-1"
               >
-                <Download className="size-4 mr-2" />
-                {saving ? 'Generating...' : 'Generate Sitemap'}
-              </Button>
-              <Button
+                <Download className="size-4" />
+                {saving ? 'Generating Sitemap...' : 'Generate Sitemap Now'}
+              </button>
+              <button
                 onClick={downloadSitemap}
                 disabled={!sitemapGenerated}
-                variant="outline"
-                className="flex-1"
+                className="h-10 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer transition-all flex-1"
               >
-                <ExternalLink className="size-4 mr-2" />
-                Download
-              </Button>
+                <ExternalLink className="size-4 text-blue-600" />
+                Open Sitemap File
+              </button>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <h3 className="font-semibold text-amber-900 mb-2">📌 Next Steps After Generation</h3>
-              <ol className="text-sm text-amber-800 space-y-1 list-decimal list-inside">
-                <li>Submit your sitemap to Google Search Console</li>
-                <li>Submit to Bing Webmaster Tools</li>
-                <li>Regenerate sitemap whenever you add new products or pages</li>
+            <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 space-y-2">
+              <h3 className="font-extrabold text-amber-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <AlertCircle className="size-4 text-amber-600" />
+                Search Engine Submission Steps
+              </h3>
+              <ol className="text-xs font-semibold text-amber-800 space-y-1.5 list-decimal list-inside">
+                <li>Submit your sitemap URL to <a href="https://search.google.com/search-console" className="font-bold underline" target="_blank" rel="noreferrer">Google Search Console</a></li>
+                <li>Submit to <a href="https://www.bing.com/webmasters" className="font-bold underline" target="_blank" rel="noreferrer">Bing Webmaster Tools</a></li>
+                <li>Regenerate your sitemap whenever bulk product catalog updates occur</li>
               </ol>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Robots.txt Editor */}
       {activeTab === 'robots' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-[#2D3748] mb-6 flex items-center gap-2">
-            <Code className="size-5" />
-            Robots.txt Configuration
-          </h2>
-
-          <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">What is Robots.txt?</h3>
-              <p className="text-sm text-blue-800">
-                The robots.txt file tells search engines which pages they can and cannot crawl. 
-                This prevents admin pages and checkout flows from appearing in search results.
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+              <Code className="size-5 text-[#E31837]" />
+              Robots.txt Crawler Rules
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="p-4 sm:p-6 space-y-5">
+            <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 space-y-1">
+              <h3 className="font-extrabold text-blue-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Code className="size-4 text-blue-600" />
+                What is Robots.txt?
+              </h3>
+              <p className="text-xs font-medium text-blue-800 leading-relaxed">
+                The robots.txt file directs search engine web crawlers which store paths to index and which private routes (like <code className="bg-blue-100 text-blue-900 px-1 py-0.5 rounded font-mono">/admin</code> or <code className="bg-blue-100 text-blue-900 px-1 py-0.5 rounded font-mono">/cart</code>) to disallow from search results.
               </p>
             </div>
 
             <div>
-              <Label>Robots.txt Content</Label>
+              <Label className="text-xs font-extrabold text-slate-700 mb-2 block">Robots.txt Document Content</Label>
               <Textarea
                 value={robotsTxt}
                 onChange={(e) => setRobotsTxt(e.target.value)}
-                rows={12}
-                className="font-mono text-sm"
+                rows={10}
+                className="font-mono text-xs sm:text-sm bg-slate-50 border-slate-200 focus:bg-white focus:border-[#E31837] focus:ring-[#E31837] focus:outline-none resize-none rounded-xl"
+                spellCheck={false}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Available at: https://costplus100.com.au/robots.txt
+              <p className="text-[11px] text-slate-500 font-medium mt-2 flex items-center gap-1">
+                <ExternalLink className="size-3 text-[#E31837]" />
+                Publicly accessible at: <a href="https://costplus100.com.au/robots.txt" className="text-[#E31837] font-bold hover:underline" target="_blank" rel="noreferrer">https://costplus100.com.au/robots.txt</a>
               </p>
             </div>
 
-            <div className="flex justify-end">
-              <Button
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
                 onClick={saveGlobalSettings}
                 disabled={saving}
-                className="bg-[#E31837] hover:bg-[#E31837]/90"
+                className="h-10 px-6 bg-[#2D3748] hover:bg-[#1a202c] text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
               >
-                <Save className="size-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Robots.txt'}
-              </Button>
+                <Save className="size-4" />
+                {saving ? 'Saving...' : 'Save Robots.txt Rules'}
+              </button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* SEO Tips */}
       {activeTab === 'tips' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-[#2D3748] mb-6 flex items-center gap-2">
-            <AlertCircle className="size-5" />
-            SEO Best Practices & Tips
-          </h2>
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-base text-[#2D3748] font-extrabold flex items-center gap-2">
+              <Sparkles className="size-5 text-[#E31837]" />
+              SEO Best Practices & Recommendations
+            </CardTitle>
+          </CardHeader>
 
-          <div className="space-y-6">
-            <div className="border-l-4 border-green-500 bg-green-50 p-4">
-              <h3 className="font-semibold text-green-900 mb-2">✅ What Google Loves</h3>
-              <ul className="text-sm text-green-800 space-y-2 list-disc list-inside">
-                <li><strong>Fast Loading Pages:</strong> Optimize images, minimize JavaScript</li>
-                <li><strong>Mobile-Friendly Design:</strong> Responsive layout that works on all devices</li>
-                <li><strong>Quality Content:</strong> Detailed product descriptions with relevant keywords</li>
-                <li><strong>Fresh Content:</strong> Regular updates, new products, blog posts</li>
-                <li><strong>Secure HTTPS:</strong> SSL certificate for secure connections</li>
-                <li><strong>Clean URLs:</strong> Use descriptive, keyword-rich URLs</li>
-                <li><strong>Internal Linking:</strong> Link related products and categories</li>
-                <li><strong>Alt Tags on Images:</strong> Describe images for accessibility and SEO</li>
-              </ul>
+          <CardContent className="p-4 sm:p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 space-y-2">
+                <h3 className="font-extrabold text-emerald-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                  <CheckCircle className="size-4 text-emerald-600" />
+                  Google Ranking Factors
+                </h3>
+                <ul className="text-xs font-semibold text-emerald-800 space-y-2">
+                  <li className="flex gap-2"><span className="text-emerald-600 shrink-0">✓</span> <span><strong>Page Speed:</strong> Optimized images and fast server response times</span></li>
+                  <li className="flex gap-2"><span className="text-emerald-600 shrink-0">✓</span> <span><strong>Mobile-Friendly Design:</strong> Responsive layouts across phone and tablet screens</span></li>
+                  <li className="flex gap-2"><span className="text-emerald-600 shrink-0">✓</span> <span><strong>Rich Content:</strong> Clear product specifications and keyword-matched titles</span></li>
+                  <li className="flex gap-2"><span className="text-emerald-600 shrink-0">✓</span> <span><strong>Secure HTTPS:</strong> SSL encryption for all customer checkout flows</span></li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 space-y-2">
+                <h3 className="font-extrabold text-blue-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                  <Search className="size-4 text-blue-600" />
+                  Product Page Optimization
+                </h3>
+                <ul className="text-xs font-semibold text-blue-800 space-y-2">
+                  <li className="flex gap-2"><span className="text-blue-600 shrink-0">•</span> <span>Use descriptive product titles with brand names</span></li>
+                  <li className="flex gap-2"><span className="text-blue-600 shrink-0">•</span> <span>Include key dimensions, power specs, and capacity details</span></li>
+                  <li className="flex gap-2"><span className="text-blue-600 shrink-0">•</span> <span>Add alt text descriptions to high-res product photos</span></li>
+                  <li className="flex gap-2"><span className="text-blue-600 shrink-0">•</span> <span>Include schema markup for product pricing and stock status</span></li>
+                </ul>
+              </div>
             </div>
 
-            <div className="border-l-4 border-blue-500 bg-blue-50 p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">🎯 Product Page Optimization</h3>
-              <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
-                <li>Use descriptive, keyword-rich product titles</li>
-                <li>Write unique descriptions for each product (min 300 words)</li>
-                <li>Include specifications, features, and benefits</li>
-                <li>Add customer reviews and ratings</li>
-                <li>Use high-quality product images with alt text</li>
-                <li>Include schema markup for products (price, availability, reviews)</li>
-              </ul>
-            </div>
-
-            <div className="border-l-4 border-purple-500 bg-purple-50 p-4">
-              <h3 className="font-semibold text-purple-900 mb-2">📊 Essential Tools</h3>
-              <div className="text-sm text-purple-800 space-y-3">
-                <div>
-                  <strong>Google Search Console:</strong>
-                  <p>Monitor search performance, submit sitemaps, fix indexing issues</p>
-                  <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer" className="text-[#E31837] hover:underline">
-                    → Visit Google Search Console
+            <div className="border-t border-slate-100 pt-5">
+              <h3 className="text-sm font-black text-[#0f172a] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                <Link className="size-4 text-[#E31837]" />
+                Essential Google Master Tools
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1.5">
+                  <strong className="text-xs text-[#0f172a] font-extrabold block">Google Search Console</strong>
+                  <p className="text-[11px] text-slate-500 font-medium">Monitor indexing status and submit sitemap files directly.</p>
+                  <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-[#E31837] hover:underline flex items-center gap-1 pt-1">
+                    Open Search Console <ExternalLink className="size-3" />
                   </a>
                 </div>
-                <div>
-                  <strong>Google Analytics:</strong>
-                  <p>Track website traffic, user behavior, conversions</p>
-                  <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="text-[#E31837] hover:underline">
-                    → Visit Google Analytics
+                <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1.5">
+                  <strong className="text-xs text-[#0f172a] font-extrabold block">Google Analytics 4</strong>
+                  <p className="text-[11px] text-slate-500 font-medium">Track storefront traffic, conversion rates, and revenue metrics.</p>
+                  <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-[#E31837] hover:underline flex items-center gap-1 pt-1">
+                    Open Analytics <ExternalLink className="size-3" />
                   </a>
                 </div>
-                <div>
-                  <strong>Google PageSpeed Insights:</strong>
-                  <p>Test page loading speed and get optimization suggestions</p>
-                  <a href="https://pagespeed.web.dev" target="_blank" rel="noopener noreferrer" className="text-[#E31837] hover:underline">
-                    → Test Your Site Speed
+                <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1.5">
+                  <strong className="text-xs text-[#0f172a] font-extrabold block">Google PageSpeed Insights</strong>
+                  <p className="text-[11px] text-slate-500 font-medium">Audit Core Web Vitals performance and mobile responsiveness.</p>
+                  <a href="https://pagespeed.web.dev" target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-[#E31837] hover:underline flex items-center gap-1 pt-1">
+                    Run PageSpeed Test <ExternalLink className="size-3" />
                   </a>
                 </div>
               </div>
             </div>
-
-            <div className="border-l-4 border-amber-500 bg-amber-50 p-4">
-              <h3 className="font-semibold text-amber-900 mb-2">⚡ Quick Wins</h3>
-              <ul className="text-sm text-amber-800 space-y-2 list-disc list-inside">
-                <li>Add "Buy [Product Name] Online Australia" to product titles</li>
-                <li>Include location keywords: "Sydney", "Melbourne", "Australia-wide"</li>
-                <li>Create blog content about catering equipment tips</li>
-                <li>Get backlinks from industry directories and suppliers</li>
-                <li>Encourage customer reviews (great for SEO!)</li>
-                <li>Share products on social media for social signals</li>
-              </ul>
-            </div>
-
-            <div className="border-l-4 border-red-500 bg-red-50 p-4">
-              <h3 className="font-semibold text-red-900 mb-2">❌ Avoid These Mistakes</h3>
-              <ul className="text-sm text-red-800 space-y-2 list-disc list-inside">
-                <li>Duplicate content across multiple pages</li>
-                <li>Keyword stuffing (overusing keywords unnaturally)</li>
-                <li>Thin content (pages with very little text)</li>
-                <li>Broken links and 404 errors</li>
-                <li>Slow loading times (over 3 seconds)</li>
-                <li>Missing meta descriptions</li>
-                <li>Not optimizing for mobile devices</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

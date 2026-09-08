@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
 import { 
   DollarSign, ShoppingCart, Users, Package, TrendingUp, 
-  FileText, Receipt, Clock, AlertCircle, Download
+  FileText, Receipt, Clock, AlertCircle, Download, RotateCcw
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 
@@ -117,24 +117,26 @@ export function Reports() {
 
       if (response.ok) {
         const data = await response.json();
-        setTopProducts(data.report.topProducts.slice(0, 10));
+        setTopProducts(data.report?.topProducts?.slice(0, 10) || []);
       }
     } catch (error) {
       console.error('Error fetching top products:', error);
     }
   };
 
+  const exportReport = () => {
+    window.open(`${API_URL}/reports/export/comprehensive?period=${selectedPeriod}`, '_blank');
+  };
+
   if (loading || !dashboardData) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-10 w-64 bg-slate-200 rounded"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-32 bg-slate-200 rounded"></div>
-              ))}
-            </div>
+      <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+        <div className="animate-pulse space-y-4">
+          <div className="h-20 w-full bg-slate-100 rounded-xl border border-slate-200"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-slate-100 rounded-xl border border-slate-200"></div>
+            ))}
           </div>
         </div>
       </div>
@@ -142,248 +144,240 @@ export function Reports() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <TrendingUp className="size-6 text-[#E31837]" />
+            Reports & Analytics
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Track your business performance and key sales metrics</p>
+        </div>
+        <button
+          onClick={exportReport}
+          className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer w-full sm:w-auto"
+        >
+          <Download className="size-4" />
+          Export Report
+        </button>
+      </div>
+
+      {/* Primary Key Metrics Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Reports & Analytics</h1>
-              <p className="text-muted-foreground">
-                Track your business performance and key metrics
+              <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">TOTAL REVENUE</p>
+              <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">${dashboardData.revenue.total.toLocaleString()}</p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                This month: <strong className="text-emerald-600 font-bold">${dashboardData.revenue.monthly.toLocaleString()}</strong>
               </p>
             </div>
-            <Button variant="outline">
-              <Download className="size-4 mr-2" />
-              Export Report
-            </Button>
+            <div className="size-11 rounded-xl bg-emerald-50 border border-slate-200 flex items-center justify-center shrink-0 text-emerald-600">
+              <DollarSign className="size-5.5" />
+            </div>
           </div>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Revenue Card */}
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium opacity-90">Total Revenue</h3>
-                <DollarSign className="size-8 opacity-50" />
-              </div>
-              <p className="text-3xl font-bold mb-2">
-                ${dashboardData.revenue.total.toLocaleString()}
+        <div className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">TOTAL ORDERS</p>
+              <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{dashboardData.orders.total}</p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                <strong className="text-amber-600 font-bold">{dashboardData.orders.pending}</strong> pending orders
               </p>
-              <div className="flex items-center gap-2 text-sm opacity-90">
-                <TrendingUp className="size-4" />
-                <span>This month: ${dashboardData.revenue.monthly.toLocaleString()}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Orders Card */}
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium opacity-90">Total Orders</h3>
-                <ShoppingCart className="size-8 opacity-50" />
-              </div>
-              <p className="text-3xl font-bold mb-2">
-                {dashboardData.orders.total}
-              </p>
-              <div className="flex items-center gap-2 text-sm opacity-90">
-                <Clock className="size-4" />
-                <span>{dashboardData.orders.pending} pending</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Customers Card */}
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium opacity-90">Total Customers</h3>
-                <Users className="size-8 opacity-50" />
-              </div>
-              <p className="text-3xl font-bold mb-2">
-                {dashboardData.customers.total}
-              </p>
-              <div className="flex items-center gap-2 text-sm opacity-90">
-                <TrendingUp className="size-4" />
-                <span>Active customers</span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="size-11 rounded-xl bg-blue-50 border border-slate-200 flex items-center justify-center shrink-0 text-blue-600">
+              <ShoppingCart className="size-5.5" />
+            </div>
+          </div>
         </div>
 
-        {/* Secondary Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Quotations */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="size-5 text-blue-500" />
-                Quotations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Total</span>
-                  <span className="font-semibold">{dashboardData.quotations.total}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Pending</span>
-                  <span className="font-semibold text-yellow-600">{dashboardData.quotations.pending}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Accepted</span>
-                  <span className="font-semibold text-green-600">{dashboardData.quotations.accepted}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Invoices */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Receipt className="size-5 text-green-500" />
-                Invoices
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Total</span>
-                  <span className="font-semibold">{dashboardData.invoices.total}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Unpaid</span>
-                  <span className="font-semibold text-yellow-600">{dashboardData.invoices.unpaid}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Overdue</span>
-                  <span className="font-semibold text-red-600">{dashboardData.invoices.overdue}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Products */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Package className="size-5 text-purple-500" />
-                Inventory
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Total Products</span>
-                  <span className="font-semibold">{dashboardData.products.total}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Unpaid Amount</span>
-                  <span className="font-semibold text-red-600">
-                    ${dashboardData.invoices.unpaidAmount.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">TOTAL CUSTOMERS</p>
+              <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{dashboardData.customers.total}</p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">Active customer accounts</p>
+            </div>
+            <div className="size-11 rounded-xl bg-purple-50 border border-slate-200 flex items-center justify-center shrink-0 text-purple-600">
+              <Users className="size-5.5" />
+            </div>
+          </div>
         </div>
 
-        {/* Sales Report */}
-        {salesReport && (
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Sales Report</CardTitle>
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="px-4 py-2 border rounded-md"
-                >
-                  <option value="day">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                </select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Sales</p>
-                  <p className="text-2xl font-bold">${salesReport.totalSales.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Orders</p>
-                  <p className="text-2xl font-bold">{salesReport.totalOrders}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Paid Orders</p>
-                  <p className="text-2xl font-bold">{salesReport.paidOrders}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Avg Order Value</p>
-                  <p className="text-2xl font-bold">${salesReport.averageOrderValue.toFixed(2)}</p>
-                </div>
-              </div>
+        <div className="bg-white rounded-xl p-4 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/30 hover:shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">TOTAL PRODUCTS</p>
+              <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{dashboardData.products.total}</p>
+              <p className="text-xs text-slate-500 font-semibold mt-1">Active catalog items</p>
+            </div>
+            <div className="size-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 text-slate-600">
+              <Package className="size-5.5" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Sales by Date Chart (Simple) */}
-              <div className="space-y-2">
-                <h4 className="font-medium mb-3">Sales by Date</h4>
-                {salesReport.salesByDate.slice(-7).map((day, idx) => (
-                  <div key={`${day.date}-${idx}`} className="flex items-center gap-4">
-                    <span className="text-sm w-24">{new Date(day.date).toLocaleDateString()}</span>
-                    <div className="flex-1 bg-slate-100 rounded-full h-8 relative overflow-hidden">
-                      <div 
-                        className="absolute inset-y-0 left-0 bg-blue-500 flex items-center px-3 text-white text-sm font-medium"
-                        style={{ 
-                          width: `${Math.max((day.sales / Math.max(...salesReport.salesByDate.map(d => d.sales))) * 100, 10)}%` 
-                        }}
-                      >
-                        ${day.sales.toFixed(0)}
-                      </div>
+      {/* Secondary Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Quotations Breakdown Card */}
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center gap-2">
+            <FileText className="size-4 text-blue-600" />
+            <h3 className="text-xs font-black text-[#0f172a] uppercase tracking-wider">Quotations Overview</h3>
+          </div>
+          <div className="p-4 space-y-3 text-xs sm:text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Total Quotations:</span>
+              <span className="font-extrabold text-[#0f172a]">{dashboardData.quotations.total}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Pending Quotes:</span>
+              <span className="font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full text-xs">{dashboardData.quotations.pending}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Accepted Quotes:</span>
+              <span className="font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full text-xs">{dashboardData.quotations.accepted}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Invoices Breakdown Card */}
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center gap-2">
+            <Receipt className="size-4 text-emerald-600" />
+            <h3 className="text-xs font-black text-[#0f172a] uppercase tracking-wider">Invoices Breakdown</h3>
+          </div>
+          <div className="p-4 space-y-3 text-xs sm:text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Total Invoices:</span>
+              <span className="font-extrabold text-[#0f172a]">{dashboardData.invoices.total}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Unpaid Invoices:</span>
+              <span className="font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full text-xs">{dashboardData.invoices.unpaid}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Overdue Invoices:</span>
+              <span className="font-bold text-rose-700 bg-rose-100 border border-rose-200 px-2.5 py-0.5 rounded-full text-xs">{dashboardData.invoices.overdue}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Unpaid Amount Card */}
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center gap-2">
+            <DollarSign className="size-4 text-[#E31837]" />
+            <h3 className="text-xs font-black text-[#0f172a] uppercase tracking-wider">Outstanding Invoices Amount</h3>
+          </div>
+          <div className="p-4 space-y-3 text-xs sm:text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-semibold">Unpaid Balance:</span>
+              <span className="text-base font-black text-[#E31837] bg-rose-50 border border-rose-200 px-3 py-1 rounded-lg">
+                ${dashboardData.invoices.unpaidAmount.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Track customer payments and follow up on overdue amounts.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sales Report Container */}
+      {salesReport && (
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h3 className="text-sm font-black text-[#0f172a]">Sales Performance Breakdown</h3>
+            <div className="w-full sm:w-44">
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="h-9 bg-white border-slate-200 rounded-xl hover:bg-slate-50 text-xs sm:text-sm font-bold text-slate-700 cursor-pointer">
+                  <SelectValue placeholder="Period" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+                  <SelectItem value="day" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">Today</SelectItem>
+                  <SelectItem value="week" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">This Week</SelectItem>
+                  <SelectItem value="month" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">This Month</SelectItem>
+                  <SelectItem value="year" className="cursor-pointer text-xs sm:text-sm font-bold text-slate-700">This Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="p-4 md:p-6 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
+                <p className="text-xl sm:text-2xl font-black text-[#0f172a]">${salesReport.totalSales.toLocaleString()}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Total Orders</p>
+                <p className="text-xl sm:text-2xl font-black text-[#0f172a]">{salesReport.totalOrders}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Paid Orders</p>
+                <p className="text-xl sm:text-2xl font-black text-emerald-600">{salesReport.paidOrders}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Avg Order Value</p>
+                <p className="text-xl sm:text-2xl font-black text-[#E31837]">${salesReport.averageOrderValue.toFixed(2)}</p>
+              </div>
+            </div>
+
+            {/* Sales by Date Chart */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Sales Trend By Date</h4>
+              {salesReport.salesByDate.slice(-7).map((day, idx) => (
+                <div key={`${day.date}-${idx}`} className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-3 rounded-xl transition-colors">
+                  <span className="text-xs font-bold text-slate-700 w-28 shrink-0">{new Date(day.date).toLocaleDateString('en-AU')}</span>
+                  <div className="flex-1 bg-slate-200 rounded-full h-7 relative overflow-hidden">
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-[#0f172a] flex items-center px-3 text-white text-xs font-bold rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${Math.max((day.sales / Math.max(...salesReport.salesByDate.map(d => d.sales))) * 100, 10)}%` 
+                      }}
+                    >
+                      ${day.sales.toFixed(0)}
                     </div>
-                    <span className="text-sm w-20 text-right">{day.orders} orders</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Top Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Selling Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div key={product.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center bg-blue-500 text-white rounded-full font-bold">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">{product.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {product.totalQuantity} units sold • {product.orderCount} orders
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-green-600">
-                      ${product.totalRevenue.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Revenue</p>
-                  </div>
+                  <span className="text-xs font-bold text-slate-500 w-24 text-right shrink-0">{day.orders} order(s)</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Top Products Container */}
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+          <h3 className="text-sm font-black text-[#0f172a]">Top Selling Products</h3>
+        </div>
+        <div className="divide-y divide-slate-200">
+          {topProducts.map((product, index) => (
+            <div key={product.id} className="flex items-center gap-4 p-4 hover:bg-slate-50/80 transition-colors">
+              <div className="size-9 flex items-center justify-center bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-black text-xs shrink-0">
+                #{index + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs sm:text-sm font-extrabold text-[#0f172a] truncate">{product.name}</h4>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  {product.totalQuantity} units sold • {product.orderCount} order(s)
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs sm:text-sm font-black text-[#E31837]">
+                  ${product.totalRevenue.toLocaleString()}
+                </p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

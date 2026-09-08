@@ -1,9 +1,9 @@
-// v3.0 - Removed react-window, using custom virtual scroll
+// v3.0 - Custom Virtual Scroll with Modern Admin UI
 import { useState, useEffect } from 'react';
 import { VirtualizedProductList } from '../../components/VirtualizedProductList';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { toast } from 'sonner';
-import { RefreshCw, Database, Info } from 'lucide-react';
+import { RefreshCw, Database, Info, Zap, Server, Layers } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 export function ProductsVirtualized() {
@@ -64,7 +64,7 @@ export function ProductsVirtualized() {
             { id: 'sync', duration: 5000 }
           );
           await queryClient.invalidateQueries({ queryKey: ['products-json'] });
-          setRefreshKey(prev => prev + 1);
+          setRefreshKey((prev) => prev + 1);
           break;
         }
 
@@ -86,51 +86,43 @@ export function ProductsVirtualized() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Sync Banner */}
-      <div className="bg-blue-50 border-b border-blue-200 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <Database className="w-5 h-5 text-blue-600" />
-              <div>
-                <h2 className="font-semibold text-blue-900">
-                  Virtualized Product List
-                </h2>
-                <p className="text-sm text-blue-700">
-                  Database → JSON (CDN) → React Virtual List
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync to CDN'}
-            </button>
-          </div>
-          {dbInfo && (
-            <div className="flex items-center gap-2 text-sm text-blue-800 bg-blue-100 px-3 py-2 rounded">
-              <Info className="w-4 h-4" />
-              <span>
-                Database: {dbInfo.table} | Products: {dbInfo.totalCount?.toLocaleString() || 0}
-                {dbInfo.sampleKeys && dbInfo.sampleKeys.length > 0 && (
-                  <span className="ml-2 text-blue-600">
-                    (Sample: {dbInfo.sampleKeys.slice(0, 2).join(', ')})
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans flex flex-col h-[calc(100vh-5rem)]">
+      {/* Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <Zap className="size-6 text-[#E31837]" />
+            Virtualized Products
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            High-performance catalog renderer powered by CDN edge cache & virtual scroll
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setRefreshKey((prev) => prev + 1)}
+            className="h-10 px-4 bg-white border border-slate-200 text-[#0f172a] hover:bg-slate-50 rounded-xl font-bold transition-all shadow-2xs text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className="size-4" />
+            Refresh
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`size-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync to CDN'}
+          </button>
         </div>
       </div>
 
-      {/* Virtualized List */}
-      <div className="flex-1 overflow-hidden">
+      {/* Virtualized List Container */}
+      <div className="flex-1 min-h-0 relative flex flex-col">
         <VirtualizedProductList key={refreshKey} refreshTrigger={refreshKey} />
       </div>
     </div>
   );
 }
+

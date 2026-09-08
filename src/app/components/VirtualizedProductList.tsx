@@ -1,8 +1,9 @@
-// v2.0 - Custom virtual scrolling (no react-window)
+// v2.0 - Custom virtual scrolling with Modern Admin UI
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Fuse from 'fuse.js';
 import { useProducts, type Product } from '../../hooks/useProducts';
-import { Search, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, Loader2, RefreshCw, AlertCircle, Package } from 'lucide-react';
+import { Input } from './ui/input';
 
 interface VirtualizedProductListProps {
   refreshTrigger?: number;
@@ -41,7 +42,7 @@ export function VirtualizedProductList({ refreshTrigger }: VirtualizedProductLis
       if (!scrollRef.current) return;
 
       const scrollTop = scrollRef.current.scrollTop;
-      const itemHeight = 100;
+      const itemHeight = 90;
       const visibleCount = 50;
       const bufferCount = 10;
 
@@ -63,39 +64,52 @@ export function VirtualizedProductList({ refreshTrigger }: VirtualizedProductLis
     return (
       <div
         key={index}
-        className="border-b border-gray-200 px-4 py-3 hover:bg-gray-50 flex items-center gap-4"
-        style={{ height: '100px' }}
+        className="border-b border-slate-200 px-4 py-3 hover:bg-slate-50 flex items-center justify-between gap-4 transition-all group cursor-default"
+        style={{ height: '90px' }}
       >
         {/* Product Image */}
-        {product.image && (
-          <img
-            src={product.image}
-            alt={product.name || 'Product'}
-            className="w-16 h-16 object-cover rounded"
-          />
-        )}
-
-        {/* Product Info */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 truncate">
-            {product.name || 'Unnamed Product'}
-          </h3>
-          <p className="text-sm text-gray-500 truncate">
-            {product.code || product.sku || 'No code'}
-          </p>
-          {product.brand && (
-            <p className="text-xs text-gray-400">{product.brand}</p>
+        <div className="relative shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-white">
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name || 'Product'}
+              className="size-14 object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="size-14 bg-slate-50 flex items-center justify-center text-slate-300">
+              <Package className="size-6" />
+            </div>
           )}
         </div>
 
-        {/* Price */}
-        {product.price && (
-          <div className="text-right">
-            <p className="font-semibold text-gray-900">
-              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
-            </p>
+        {/* Product Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xs sm:text-sm font-extrabold text-[#0f172a] truncate group-hover:text-[#E31837] transition-colors">
+            {product.name || 'Unnamed Product'}
+          </h3>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {product.category && (
+              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                {product.category}
+              </span>
+            )}
+            <span className="text-xs font-mono font-semibold text-slate-400">
+              {product.code || product.sku || 'No SKU'}
+            </span>
+            {product.brand && (
+              <span className="text-xs font-bold text-slate-500">
+                • {product.brand}
+              </span>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Price */}
+        <div className="text-right shrink-0">
+          <span className="text-xs sm:text-sm font-black text-[#0f172a] bg-slate-50 px-3 py-1 rounded-lg border border-slate-200 inline-block">
+            ${typeof product.price === 'number' ? product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : product.price}
+          </span>
+        </div>
       </div>
     );
   };
@@ -103,10 +117,10 @@ export function VirtualizedProductList({ refreshTrigger }: VirtualizedProductLis
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-full bg-white rounded-xl border border-slate-200 shadow-xs p-8">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading products from CDN...</p>
+          <RefreshCw className="size-8 animate-spin text-[#E31837] mx-auto mb-3" />
+          <p className="text-xs font-bold text-slate-500">Loading products from CDN cache...</p>
         </div>
       </div>
     );
@@ -118,25 +132,27 @@ export function VirtualizedProductList({ refreshTrigger }: VirtualizedProductLis
     const needsSync = errorMessage.includes('not found') || errorMessage.includes('sync first');
 
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-full bg-white rounded-xl border border-slate-200 shadow-xs p-8">
         <div className="text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-amber-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <div className="size-12 bg-rose-50 text-[#E31837] rounded-xl flex items-center justify-center mx-auto mb-3 border border-rose-200">
+            <AlertCircle className="size-6" />
+          </div>
+          <h2 className="text-base font-extrabold text-[#0f172a] mb-1">
             {needsSync ? 'Products Not Synced' : 'Failed to Load Products'}
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-xs font-medium text-slate-500 mb-4">
             {needsSync
-              ? 'The products file hasn\'t been created yet. Click the "Sync to CDN" button above to create it.'
+              ? 'The products JSON cache file has not been built yet. Click "Sync to CDN" above to build it.'
               : errorMessage
             }
           </p>
           {!needsSync && (
             <button
               onClick={() => refetch()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="h-9 px-4 bg-[#0f172a] hover:bg-slate-800 text-white rounded-xl font-bold text-xs transition-all shadow-2xs flex items-center justify-center gap-2 mx-auto cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4" />
-              Retry
+              <RefreshCw className="size-3.5" />
+              Retry Loading
             </button>
           )}
         </div>
@@ -145,76 +161,67 @@ export function VirtualizedProductList({ refreshTrigger }: VirtualizedProductLis
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
+    <div className="flex flex-col h-full space-y-4">
+      {/* Search Toolbar */}
+      <div className="bg-white rounded-xl p-3.5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 w-full shrink-0">
+        <div className="relative max-w-sm sm:max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input
             type="text"
-            placeholder="Search products by name, code, brand, category..."
+            placeholder="Search products by code, name, category, or brand..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="pl-9 h-10 bg-slate-50 border-slate-200 rounded-xl hover:bg-slate-100 focus:bg-white focus:border-[#E31837] focus:ring-1 focus:ring-[#E31837] transition-all text-xs sm:text-sm font-semibold w-full"
           />
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>
-            Showing {filteredProducts.length.toLocaleString()} of {products?.length.toLocaleString() || 0} products
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 w-full sm:w-auto justify-between sm:justify-end">
+          <span className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 font-semibold">
+            Loaded: {filteredProducts.length.toLocaleString()} of {products?.length.toLocaleString() || 0}
           </span>
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="text-blue-600 hover:text-blue-700"
+              className="h-8 px-3 text-xs font-bold text-[#E31837] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
             >
-              Clear search
+              Clear Search
             </button>
           )}
         </div>
       </div>
 
-      {/* Virtualized List */}
-      <div className="flex-1 overflow-hidden">
-        {!filteredProducts || filteredProducts.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No products found
-              </h3>
-              <p className="text-gray-600">
-                {searchQuery
-                  ? 'Try adjusting your search query'
-                  : 'No products available'}
-              </p>
+      {/* Main List Card Container */}
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between shrink-0">
+          <h2 className="text-sm sm:text-base font-black text-[#0f172a] tracking-tight flex items-center gap-2">
+            Virtualized Catalog Items
+            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+              {filteredProducts.length.toLocaleString()} items
+            </span>
+          </h2>
+        </div>
+
+        <div className="flex-1 min-h-0 relative">
+          {!filteredProducts || filteredProducts.length === 0 ? (
+            <div className="p-12 text-center">
+              <Package className="size-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-bold text-[#0f172a]">No products found</p>
+              <p className="text-xs text-slate-500 mt-1">Try adjusting your search criteria</p>
             </div>
-          </div>
-        ) : (
-          <div ref={scrollRef} className="h-full overflow-y-auto">
-            <div style={{ height: filteredProducts.length * 100, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: visibleRange.start * 100, left: 0, right: 0 }}>
-                {filteredProducts.slice(visibleRange.start, visibleRange.end).map((product, idx) =>
-                  renderProduct(product, visibleRange.start + idx)
-                )}
+          ) : (
+            <div ref={scrollRef} className="h-full overflow-y-auto custom-scrollbar">
+              <div style={{ height: filteredProducts.length * 90, position: 'relative' }}>
+                <div style={{ position: 'absolute', top: visibleRange.start * 90, left: 0, right: 0 }}>
+                  {filteredProducts.slice(visibleRange.start, visibleRange.end).map((product, idx) =>
+                    renderProduct(product, visibleRange.start + idx)
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 }
+

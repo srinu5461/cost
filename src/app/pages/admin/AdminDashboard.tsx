@@ -36,6 +36,7 @@ export function AdminDashboard() {
   const [checkingCache, setCheckingCache] = useState(false);
   const [productCount, setProductCount] = useState<number>(0);
   const [categoryCount, setCategoryCount] = useState<number>(0);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState<boolean>(false);
   
   // ✅ Safe access to CMS context with fallback
   let data, clearCache, refreshData, cacheTimestamp, cmsLoading;
@@ -489,488 +490,362 @@ featuredSample.length === 0 ?
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to the CMS admin panel</p>
+    <div className="w-full pb-12">
+      <div className="mb-6 bg-white rounded-xl p-5 sm:p-8 shadow-xs border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight">Admin Dashboard</h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Welcome to the Cost Plus 100 CMS control center</p>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stats Cards with visible border border-slate-200 & rounded-xl */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                  <p className="text-3xl">{stat.value}</p>
-                </div>
-                <stat.icon className="size-10 text-muted-foreground" />
+          <div key={stat.label} className="bg-white rounded-xl p-5 shadow-xs border border-slate-200 transition-all hover:border-[#E31837]/40 hover:shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-[13px] font-extrabold text-slate-500 mb-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-black text-[#0f172a]">{stat.value}</p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="size-11 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                <stat.icon className="size-5.5 text-[#E31837]" />
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Quick Product Query */}
-      <Card className="mb-8 bg-yellow-50 border-yellow-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="size-5" />
-            Quick Product Query
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3 mb-4">
-            <Button 
-              onClick={() => queryProduct('FZ433')}
-              disabled={loading}
-              className="bg-[#E31837] hover:bg-[#c41530]"
-            >
-              {loading ? 'Querying...' : 'Query FZ433'}
-            </Button>
-            <Button 
-              onClick={() => setQueryResult(null)}
-              variant="outline"
-            >
-              Clear
-            </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Quick Product Query */}
+        <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+            <div className="size-9 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+              <Search className="size-4.5 text-slate-700" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[#0f172a]">Quick Product Query</h2>
+              <p className="text-xs text-slate-500 font-medium">Test database lookups by code</p>
+            </div>
           </div>
           
-          {queryResult && (
-            <div className="bg-white border rounded p-4 max-h-[400px] overflow-auto">
-              <pre className="text-xs">
-                {JSON.stringify(queryResult, null, 2)}
-              </pre>
+          <div className="flex-1">
+            <div className="flex flex-wrap gap-2.5 mb-4">
+              <button 
+                onClick={() => queryProduct('FZ433')}
+                disabled={loading}
+                className="bg-[#0f172a] hover:bg-[#1e293b] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors cursor-pointer"
+              >
+                {loading ? 'Querying...' : 'Query FZ433'}
+              </button>
+              <button 
+                onClick={() => setQueryResult(null)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Database Diagnostics - CRITICAL */}
-      <Card className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-600">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-700">
-            <Database className="size-6" />
-            Database Diagnostics
-          </CardTitle>
-          <CardDescription className="text-slate-700">
-            {data.products.length === 0 ? (
-              <span className="text-red-600 font-semibold">⚠️ No products found! Database might be empty.</span>
-            ) : (
-              `${data.products.length} products loaded`
+            
+            {queryResult && (
+              <div className="bg-slate-900 rounded-xl p-4 max-h-[300px] overflow-auto border border-slate-800">
+                <pre className="text-xs text-green-400 font-mono">
+                  {JSON.stringify(queryResult, null, 2)}
+                </pre>
+              </div>
             )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {data.products.length === 0 ? (
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
-                <p className="font-semibold text-yellow-800">No products in database!</p>
-                <p className="text-sm text-yellow-700 mt-2">
-                  You need to import products. Click "Import Products" or run database diagnostics to check what's in your database.
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {/* Database Diagnostics */}
+          <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-blue-200 relative overflow-hidden">
+            <div className="flex items-center gap-3 mb-4 relative">
+              <div className="size-9 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-200">
+                <Database className="size-4.5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-blue-950">Database Diagnostics</h2>
+                <p className="text-xs font-semibold text-blue-700">
+                  {data.products.length === 0 ? (
+                    <span className="text-rose-600 font-bold">⚠️ No products found!</span>
+                  ) : (
+                    `${data.products.length} products loaded`
+                  )}
                 </p>
               </div>
-            ) : null}
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => {
-                  startTransition(() => {
-                    window.location.href = '/admin/database-diagnostics';
-                  });
-                }}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Database className="size-4 mr-2" />
-                Check Database Keys
-              </Button>
-              <Button 
-                onClick={() => {
-                  startTransition(() => {
-                    window.location.href = '/admin/import-products';
-                  });
-                }}
-                variant="outline"
-              >
-                <Package className="size-4 mr-2" />
-                Import Products
-              </Button>
+            </div>
+            
+            <div className="space-y-3 relative">
+              {data.products.length === 0 ? (
+                <div className="bg-rose-50 border border-rose-200 p-3 rounded-xl">
+                  <p className="font-bold text-rose-800 text-xs">No products in database!</p>
+                  <p className="text-[11px] sm:text-xs text-rose-700 mt-1 font-medium">
+                    You need to import products. Click &quot;Import Products&quot; to add your catalog.
+                  </p>
+                </div>
+              ) : null}
+              
+              <div className="flex flex-wrap gap-2.5">
+                <button 
+                  onClick={() => {
+                    startTransition(() => {
+                      window.location.href = '/admin/database-diagnostics';
+                    });
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center transition-colors cursor-pointer"
+                >
+                  <Database className="size-3.5 mr-1.5" />
+                  Check Database Keys
+                </button>
+                <button 
+                  onClick={() => {
+                    startTransition(() => {
+                      window.location.href = '/admin/import-products';
+                    });
+                  }}
+                  className="bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center transition-colors cursor-pointer"
+                >
+                  <Package className="size-3.5 mr-1.5" />
+                  Import Products
+                </button>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* System Health Check */}
-      <Card className="mb-8 bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-600">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-700">
-            <CheckCircle2 className="size-6" />
-            System Health Check
-          </CardTitle>
-          <CardDescription className="text-slate-700">
-            Run comprehensive diagnostics to verify all system components are working correctly
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm text-slate-600">
-              Check edge functions, database connections, CMS endpoints, and more in one place.
-            </p>
-            <Button 
-              onClick={() => {
-                startTransition(() => {
-                  window.location.href = '/admin/system-health-check';
-                });
-              }}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <CheckCircle2 className="size-4 mr-2" />
-              Run System Health Check
-            </Button>
+          {/* System Health Check */}
+          <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-emerald-200 relative overflow-hidden flex-1">
+            <div className="flex items-center gap-3 mb-3 relative">
+              <div className="size-9 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-200">
+                <CheckCircle2 className="size-4.5 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-emerald-950">System Health Check</h2>
+                <p className="text-xs font-semibold text-emerald-700">Verify all system components</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 relative">
+              <p className="text-xs text-emerald-800 font-medium">
+                Check edge functions, database connections, and CMS endpoints in one place.
+              </p>
+              <button 
+                onClick={() => {
+                  startTransition(() => {
+                    window.location.href = '/admin/system-health-check';
+                  });
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center transition-colors cursor-pointer"
+              >
+                <CheckCircle2 className="size-3.5 mr-1.5" />
+                Run System Health Check
+              </button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Cache Management - PROMINENT SECTION */}
-      <Card className="mb-8 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-[#E31837]">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#E31837]">
-            <Database className="size-6" />
-            🗄️ Centralized Cache Management
-          </CardTitle>
-          <CardDescription className="text-slate-700">
-            Clear all application caches from one place. Use this after making any changes in admin (products, prices, categories, homepage sections, etc.)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Info Box */}
-          <div className="bg-white border-2 border-blue-300 rounded-lg p-4 mb-3">
-            <p className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
-              <Database className="size-4" />
-              🔨 When to Build Cache?
+      {/* Centralized Cache Management */}
+      <div className="bg-white rounded-xl p-5 sm:p-7 shadow-xs border border-rose-200 mb-8 relative overflow-hidden space-y-5">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="size-10 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-200 shrink-0">
+            <Database className="size-5 text-[#E31837]" />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+              Centralized Cache Management
+            </h2>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Clear all application caches from one place. Use this after making any changes in admin (products, prices, categories, homepage sections, etc.)
             </p>
-            <ul className="text-xs text-blue-800 space-y-1 ml-5 list-disc">
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          {/* Box 1: When to Build Cache? */}
+          <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-4 space-y-2">
+            <p className="text-xs font-extrabold text-blue-900 flex items-center gap-2">
+              <Database className="size-4 text-blue-600" />
+              When to Build Cache?
+            </p>
+            <ul className="text-xs text-blue-800 space-y-1 ml-5 list-disc font-medium leading-relaxed">
               <li><strong>After importing products</strong> - Consolidates 13,781+ keys into fast cache</li>
               <li><strong>After updating categories</strong> - Rebuilds category hierarchy</li>
               <li><strong>First time setup</strong> - Creates optimized database cache</li>
               <li><strong>When server is slow</strong> - Eliminates loading thousands of individual keys</li>
-              <li>💡 <strong>Benefit:</strong> Customers load data from 1 query instead of 13,781!</li>
             </ul>
+            <p className="text-xs font-bold text-blue-900 pt-1">
+              💡 <strong>Benefit:</strong> Customers load data from 1 query instead of 13,781!
+            </p>
           </div>
 
-          <div className="bg-white border-2 border-orange-300 rounded-lg p-4">
-            <p className="text-sm font-semibold text-orange-900 mb-2 flex items-center gap-2">
-              <Clock className="size-4" />
-              ⚠️ When to Clear Cache?
+          {/* Box 2: When to Clear Cache? */}
+          <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-2">
+            <p className="text-xs font-extrabold text-amber-900 flex items-center gap-2">
+              <Clock className="size-4 text-amber-600" />
+              When to Clear Cache?
             </p>
-            <ul className="text-xs text-orange-800 space-y-1 ml-5 list-disc">
+            <ul className="text-xs text-amber-800 space-y-1 ml-5 list-disc font-medium leading-relaxed">
               <li>After bulk price updates (Uropa sync, manual updates)</li>
               <li>After adding/editing/deleting products</li>
               <li>After changing homepage featured sections</li>
               <li>After updating categories or navigation</li>
               <li>When customers report seeing old/stale data</li>
-              <li><strong>Important:</strong> Customer browsers cache data until you clear it here!</li>
             </ul>
-          </div>
-
-          {/* Cache Version Status */}
-          <div className="bg-blue-50 border border-blue-300 rounded p-3">
-            <p className="text-xs text-blue-900">
-              <strong>Cache System:</strong> Version-based (no time expiration)
-            </p>
-            <p className="text-xs text-blue-700 mt-1">
-              Current version: {localStorage.getItem('cms_cache_version') || '1'}
-            </p>
-            <p className="text-xs text-slate-600 mt-1">
-              💡 Customers see cached data instantly. Clear cache here to force fresh data for all users.
+            <p className="text-xs font-bold text-amber-900 pt-1">
+              ⚠️ <strong>Important:</strong> Customer browsers cache data until you clear it here!
             </p>
           </div>
 
-          {/* Cache Age (for reference only) */}
-          {cacheTimestamp && (
-            <div className="bg-slate-50 border border-slate-300 rounded p-3">
-              <p className="text-xs text-slate-700 flex items-center gap-2">
-                <CheckCircle2 className="size-4" />
-                <strong>Admin Cache Age:</strong> {' '}
-                {Math.floor((Date.now() - cacheTimestamp) / 60000)} minutes old
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                (This is your local cache age - customer cache is independent)
-              </p>
+          {/* Box 3: Version-based Cache Banner */}
+          <div className="bg-blue-50/40 border border-blue-200 rounded-xl p-3.5 space-y-1 text-xs text-blue-900 font-medium">
+            <div className="font-extrabold">Cache System: Version-based (no time expiration)</div>
+            <div>Current version: <span className="font-mono font-bold">1</span></div>
+            <div className="text-[11px] text-blue-700">💡 Customers see cached data instantly. Clear cache here to force fresh data for all users.</div>
+          </div>
+
+          {/* Box 4: Admin Cache Age */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-700 font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <strong>Admin Cache Age:</strong> <span className="font-mono font-bold">{lastCacheCleared || '0 minutes old'}</span>
             </div>
-          )}
+            <div className="text-slate-400 text-[11px] font-normal">
+              (This is your local cache age - customer cache is independent)
+            </div>
+          </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <Button
+          {/* Row 1 Main Action Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <button
               onClick={handleBuildCache}
               disabled={buildCacheLoading || cacheClearing}
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 flex-1 min-w-[200px]"
+              className="h-10 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
             >
-              <Database className="size-4 mr-2" />
-              {buildCacheLoading ? 'Building Cache...' : '🔨 Build Cache'}
-            </Button>
-            <Button
+              <Database className="size-4" />
+              {buildCacheLoading ? 'Building Cache...' : 'Build Cache'}
+            </button>
+            <button
               onClick={handleClearCache}
               disabled={cacheClearing || buildCacheLoading}
-              size="lg"
-              className="bg-[#E31837] hover:bg-[#c41530] flex-1 min-w-[200px]"
+              className="h-10 bg-[#E31837] hover:bg-red-700 disabled:bg-rose-300 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
             >
-              <Trash2 className="size-4 mr-2" />
-              {cacheClearing ? 'Clearing All Caches...' : 'Clear All Caches'}
-            </Button>
-            <Button
+              <Trash2 className="size-4" />
+              {cacheClearing ? 'Clearing...' : 'Clear All Caches'}
+            </button>
+            <button
               onClick={handleClearAndRefresh}
               disabled={cacheClearing || buildCacheLoading}
-              size="lg"
-              variant="outline"
-              className="border-2 border-[#E31837] text-[#E31837] hover:bg-[#E31837] hover:text-white flex-1 min-w-[200px]"
+              className="h-10 bg-white border border-[#E31837] text-[#E31837] hover:bg-rose-50 disabled:opacity-50 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <RefreshCw className="size-4 mr-2" />
+              <RefreshCw className="size-4" />
               {cacheClearing ? 'Working...' : 'Clear & Reload Data'}
-            </Button>
+            </button>
           </div>
 
-          {/* Diagnostic & Force Rebuild Buttons */}
-          <div className="border-t pt-3 mt-3 space-y-2">
-            <Button
+          {/* Secondary Full-Width Action Buttons */}
+          <div className="space-y-2 pt-1">
+            <button
               onClick={handleForceRebuildCache}
               disabled={cacheClearing}
-              size="sm"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full h-10 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-2xs transition-all"
             >
               ⚡ Force Rebuild Cache
-            </Button>
-            <Button
+            </button>
+
+            <button
               onClick={() => {
-                // Clear homepage localStorage
                 localStorage.removeItem('costplus100_homepage_data');
                 localStorage.removeItem('costplus100_homepage_timestamp');
                 localStorage.removeItem('costplus100_homepage_cache_version');
                 toast.success('Homepage cache cleared! Redirecting...', { duration: 2000 });
-                setTimeout(() => {
-                  window.location.href = '/';
-                }, 1000);
+                setTimeout(() => window.location.href = '/', 1000);
               }}
-              size="sm"
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full h-10 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-2xs transition-all"
             >
               🔄 Clear Homepage & Refresh
-            </Button>
-            <Button
+            </button>
+
+            <button
               onClick={handleProductsDiagnostic}
-              size="sm"
-              variant="outline"
-              className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+              className="w-full h-10 bg-white border border-orange-300 text-orange-700 hover:bg-orange-50 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all"
             >
               🔍 Diagnose Cache Issue
-            </Button>
-            <div className="bg-red-50 border border-red-300 rounded p-3">
-              <p className="text-xs font-semibold text-red-900 mb-2">⚠️ PROBLEM FOUND</p>
-              <p className="text-xs text-red-800 mb-3">
-                Featured sections have old numeric IDs (1, 2, 3...) instead of product codes (AB-SA14...). This is why cache shows 0 products.
-              </p>
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-red-900">OPTION 1 (Quick Fix):</p>
-                <p className="text-xs text-red-700 mb-2">Go to <strong>Featured Products</strong> page → Click "Save Changes" button (even without making changes). This will overwrite old IDs with product codes.</p>
-
-                <p className="text-xs font-semibold text-red-900">OPTION 2 (Manual):</p>
-                <p className="text-xs text-red-700">Go to <strong>Featured Products</strong> → Remove all → Re-add products → Save.</p>
-              </div>
-            </div>
-            <Button
-              onClick={handleCheckCacheStatus}
-              disabled={checkingCache}
-              size="sm"
-              variant="outline"
-              className="w-full"
-            >
-              <Search className="size-4 mr-2" />
-              {checkingCache ? 'Checking...' : '🔍 Check Cache Status'}
-            </Button>
+            </button>
           </div>
 
-          {/* Cache Status Display */}
+          {/* Problem Found Helper Card */}
+          <div className="bg-rose-50/60 border border-rose-200 rounded-xl p-4 space-y-2 text-xs text-rose-900">
+            <p className="font-extrabold text-rose-900 flex items-center gap-1.5">
+              ⚠️ PROBLEM FOUND
+            </p>
+            <p className="font-medium text-rose-800">
+              Featured sections have old numeric IDs (1, 2, 3...) instead of product codes (AB-SA14...). This is why cache shows 0 products.
+            </p>
+            <div className="space-y-1 pt-1 font-medium">
+              <div><strong>OPTION 1 (Quick Fix):</strong> Go to <Link to="/admin/featured-products" className="underline font-bold">Featured Products page</Link> → Click &quot;Save Changes&quot; button (even without making changes). This will overwrite old IDs with product codes.</div>
+              <div><strong>OPTION 2 (Manual):</strong> Go to Featured Products → Remove all → Re-add products → Save.</div>
+            </div>
+          </div>
+
+          {/* Check Cache Status Trigger */}
+          <div>
+            <button
+              onClick={handleCheckCacheStatus}
+              disabled={checkingCache}
+              className="w-full h-10 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <Search className="size-4" />
+              {checkingCache ? 'Checking Cache Status...' : 'Check Cache Status'}
+            </button>
+          </div>
+
           {cacheStatus && (
-            <div className="bg-slate-50 border-2 border-slate-300 rounded-lg p-4 space-y-3">
-              <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                <Database className="size-4" />
-                Cache Status Report
+            <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+              <h4 className="text-xs font-bold text-white flex items-center gap-2 mb-3 border-b border-slate-800 pb-2">
+                <Database className="size-4 text-emerald-400" />
+                Live Cache Status Payload
               </h4>
-
-              {/* Memory Cache */}
-              <div className="bg-white rounded p-3 border">
-                <p className="text-xs font-semibold text-slate-700 mb-2">🧠 In-Memory Cache (Server)</p>
-                <div className="text-xs space-y-1 text-slate-600">
-                  <div className="flex justify-between">
-                    <span>CMS Data Cache:</span>
-                    <span className={cacheStatus.memory.cmsData ? 'text-green-600 font-semibold' : 'text-red-600'}>
-                      {cacheStatus.memory.cmsData ? '✅ Active' : '❌ Empty'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Homepage Cache:</span>
-                    <span className={cacheStatus.memory.homepageData ? 'text-green-600 font-semibold' : 'text-red-600'}>
-                      {cacheStatus.memory.homepageData ? '✅ Active' : '❌ Empty'}
-                    </span>
-                  </div>
-                  {cacheStatus.memory.cmsDataProducts > 0 && (
-                    <div className="flex justify-between">
-                      <span>Cached Products:</span>
-                      <span className="font-semibold">{cacheStatus.memory.cmsDataProducts}</span>
-                    </div>
-                  )}
-                  {cacheStatus.memory.homepageDataCategories > 0 && (
-                    <div className="flex justify-between">
-                      <span>Cached Categories:</span>
-                      <span className="font-semibold">{cacheStatus.memory.homepageDataCategories}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Database Cache */}
-              <div className="bg-white rounded p-3 border">
-                <p className="text-xs font-semibold text-slate-700 mb-2">💾 Database Cache (Persistent)</p>
-                <div className="text-xs space-y-1 text-slate-600">
-                  <div className="flex justify-between">
-                    <span>cache:homepage key:</span>
-                    <span className={cacheStatus.database.exists ? 'text-green-600 font-semibold' : 'text-red-600'}>
-                      {cacheStatus.database.exists ? '✅ Exists' : '❌ Missing'}
-                    </span>
-                  </div>
-                  {cacheStatus.database.exists && (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Categories:</span>
-                        <span className="font-semibold">{cacheStatus.database.categories}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Category Tree:</span>
-                        <span className="font-semibold">{cacheStatus.database.categoryTree}</span>
-                      </div>
-                      {cacheStatus.database.timestamp && (
-                        <div className="flex justify-between">
-                          <span>Built:</span>
-                          <span className="font-semibold">{new Date(cacheStatus.database.timestamp).toLocaleString()}</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* IndexedDB Cache (Client-Side) */}
-              {cacheStatus.indexedDB && (
-                <div className="bg-white rounded p-3 border">
-                  <p className="text-xs font-semibold text-slate-700 mb-2">🌐 IndexedDB Cache (Browser)</p>
-                  <div className="text-xs space-y-1 text-slate-600">
-                    <div className="flex justify-between">
-                      <span>Browser Support:</span>
-                      <span className={cacheStatus.indexedDB.supported ? 'text-green-600 font-semibold' : 'text-red-600'}>
-                        {cacheStatus.indexedDB.supported ? '✅ Supported' : '❌ Not Supported'}
-                      </span>
-                    </div>
-                    {cacheStatus.indexedDB.supported && (
-                      <div className="flex justify-between">
-                        <span>Cached Products:</span>
-                        <span className={cacheStatus.indexedDB.products > 0 ? 'text-green-600 font-semibold' : 'text-orange-600'}>
-                          {cacheStatus.indexedDB.products > 0 ? `✅ ${cacheStatus.indexedDB.products}` : '⚠️ 0'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Recommendation */}
-              <div className={`rounded p-3 text-xs ${
-                cacheStatus.database.exists
-                  ? 'bg-green-50 border border-green-300 text-green-900'
-                  : 'bg-orange-50 border border-orange-300 text-orange-900'
-              }`}>
-                <strong>{cacheStatus.database.exists ? '✅' : '⚠️'}</strong> {cacheStatus.recommendation}
-              </div>
+              <pre className="text-[11px] text-slate-300 font-mono overflow-auto max-h-[300px]">
+                {JSON.stringify(cacheStatus, null, 2)}
+              </pre>
             </div>
           )}
 
-          {/* Last Cache Built Status */}
-          {lastCacheBuilt && (
-            <div className="bg-blue-50 border-2 border-blue-300 rounded p-3">
-              <p className="text-sm text-blue-900 flex items-center gap-2">
-                <Database className="size-5 text-blue-600" />
-                <strong>Cache Built!</strong> Database cache created at {lastCacheBuilt}
-              </p>
-              <p className="text-xs text-blue-700 mt-1 ml-7">
-                ✅ Categories & navigation cached in database (cache:homepage key)<br />
-                ✅ Server loads from 1 query instead of individual keys<br />
-                ✅ Cache persists across Edge Function restarts (no cold start delays!)<br />
-                📦 Products cached in customer browsers (IndexedDB - 50MB+ capacity)
-              </p>
-              <p className="text-xs text-blue-600 mt-2 ml-7 font-semibold">
-                🚀 Two-tier caching: DB cache for navigation, IndexedDB for products!
-              </p>
-            </div>
-          )}
+          {/* Collapsible Technical Details Accordion */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+            <button
+              onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+              className="w-full p-3.5 text-left text-xs font-extrabold text-slate-800 flex items-center justify-between hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <span>▶</span> Technical Details (How Cache System Works)
+              </span>
+              <span className="text-slate-400 font-normal text-[11px]">
+                {showTechnicalDetails ? 'Hide' : 'Expand'}
+              </span>
+            </button>
+            {showTechnicalDetails && (
+              <div className="p-4 border-t border-slate-200 space-y-3 text-xs text-slate-600 font-medium bg-white">
+                <p>1. <strong>Database Consolidation:</strong> Consolidates 13,781+ individual keys into cached payload blobs for instant query execution.</p>
+                <p>2. <strong>Client-Side IndexedDB:</strong> Automatically caches catalog data in browser storage to reduce server latency.</p>
+                <p>3. <strong>Cache Invalidation:</strong> Increments cache version timestamp so all connected users pull updated pricing instantly upon clearing.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-          {/* Last Cleared Status */}
-          {lastCacheCleared && (
-            <div className="bg-green-50 border-2 border-green-300 rounded p-3">
-              <p className="text-sm text-green-900 flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-green-600" />
-                <strong>Success!</strong> All caches cleared at {lastCacheCleared}
-              </p>
-              <p className="text-xs text-green-700 mt-1 ml-7">
-                ✅ Server cache cleared (memory + database cache)<br />
-                ✅ Client localStorage cache version incremented<br />
-                ✅ IndexedDB cache cleared (browser products cache)<br />
-                ✅ All customer browsers will load fresh data on next visit
-              </p>
-              <p className="text-xs text-green-600 mt-2 ml-7 font-semibold">
-                🎯 Fresh data is now cached (server-side + client-side) and will stay until you clear again!
-              </p>
-            </div>
-          )}
-
-          {/* Technical Details */}
-          <details className="bg-slate-100 border border-slate-300 rounded p-3">
-            <summary className="text-xs cursor-pointer hover:underline text-slate-700 font-semibold">
-              🔧 Technical Details (How Cache System Works)
-            </summary>
-            <div className="text-xs text-slate-600 mt-2 space-y-1">
-              <p>• <strong>Client Cache (localStorage):</strong> Metadata only (categories, header, footer, homepage, banners)</p>
-              <p>• <strong>Server Cache:</strong> ALL products (~13,000+ items), homepage sections, featured products</p>
-              <p>• <strong>Cache Strategy:</strong> Version-based (no time expiration!)</p>
-              <p>• <strong>Why server-side products?</strong> Too many products to fit in browser storage (quota limits)</p>
-              <p>• <strong>Cache Lifecycle:</strong></p>
-              <p className="ml-4">1. Customer visits → Loads metadata from client + products from server (fast!)</p>
-              <p className="ml-4">2. Customer refreshes → Same instant loading from cache</p>
-              <p className="ml-4">3. Admin clears cache → Version increments + server cache cleared</p>
-              <p className="ml-4">4. Next customer visit → Detects version mismatch → Loads fresh data</p>
-              <p className="ml-4">5. Fresh data cached (client + server) → Stays until admin clears again</p>
-            </div>
-          </details>
-        </CardContent>
-      </Card>
-
-      {/* Quick Links */}
+      {/* Quick Actions Links */}
       <div>
-        <h2 className="text-2xl mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <h2 className="text-base sm:text-lg font-black text-[#0f172a] mb-4 tracking-tight">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {quickLinks.map((link) => (
-            <Link key={link.path} to={link.path}>
-              <Card className="hover:shadow-lg transition-all hover:border-slate-900 group h-full">
-                <CardHeader>
-                  <div className={`${link.color} size-12 rounded-lg flex items-center justify-center mb-3`}>
-                    <link.icon className="size-6 text-white" />
-                  </div>
-                  <CardTitle className="group-hover:text-slate-900">{link.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{link.description}</p>
-                </CardContent>
-              </Card>
+            <Link key={link.path} to={link.path} className="group block h-full">
+              <div className="bg-white rounded-xl p-5 h-full shadow-xs border border-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#E31837] hover:shadow-sm flex flex-col items-start">
+                <div className={`${link.color.replace('bg-', 'bg-opacity-10 text-').replace('500', '600')} bg-slate-50 text-slate-700 size-10 rounded-xl flex items-center justify-center mb-3 transition-colors shrink-0`}>
+                  <link.icon className="size-5" />
+                </div>
+                <h3 className="text-xs sm:text-sm font-bold text-[#0f172a] mb-1 group-hover:text-[#E31837] transition-colors">{link.title}</h3>
+                <p className="text-xs text-slate-500 font-medium leading-normal">{link.description}</p>
+              </div>
             </Link>
           ))}
         </div>

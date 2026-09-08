@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { RefreshCw, Image, CheckCircle2, XCircle, Download } from 'lucide-react';
+import { RefreshCw, Image as ImageIcon, CheckCircle2, XCircle, Download, Key, Info, Sparkles } from 'lucide-react';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { notify } from '../../utils/notifications';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -47,11 +48,11 @@ export default function ImageScraper() {
       });
       const data = await response.json();
       if (data.success) {
-        setBrands(data.brands);
+        setBrands(data.brands || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching brands:', error);
-      alert('Failed to load brands');
+      notify.error('Failed to load brands');
     }
   };
 
@@ -65,11 +66,11 @@ export default function ImageScraper() {
       });
       const data = await response.json();
       if (data.success) {
-        setProducts(data.products);
+        setProducts(data.products || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching products:', error);
-      alert('Failed to load products');
+      notify.error('Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ export default function ImageScraper() {
 
   const handleScrape = async () => {
     if (selectedProducts.size === 0) {
-      alert('Please select at least one product');
+      notify.error('Please select at least one product');
       return;
     }
 
@@ -117,15 +118,14 @@ export default function ImageScraper() {
       const data = await response.json();
       if (data.success) {
         setResults(data.results);
-        alert(`✅ Scraping complete!\nSuccess: ${data.results.success}\nFailed: ${data.results.failed}`);
-        // Refresh product list
+        notify.success(`Scraping complete! ${data.results.success} succeeded, ${data.results.failed} failed.`);
         fetchProducts();
       } else {
-        alert(`Error: ${data.error}`);
+        notify.error(`Scrape error: ${data.error}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error scraping images:', error);
-      alert(`Failed to scrape images: ${error}`);
+      notify.error(`Failed to scrape images: ${error.message}`);
     } finally {
       setScraping(false);
     }
@@ -140,11 +140,10 @@ export default function ImageScraper() {
 
       const result = await response.json();
       if (!result.success) {
-        alert(`Error: ${result.error}`);
+        notify.error(`Export error: ${result.error}`);
         return;
       }
 
-      // Convert to CSV
       const headers = ['Code', 'Name', 'Brand', 'Brand Logo', 'Trade Price', 'Main Image', 'Image Count', 'All Images', 'Description'];
       const csvRows = [
         headers.join(','),
@@ -170,17 +169,17 @@ export default function ImageScraper() {
       a.click();
       window.URL.revokeObjectURL(url);
 
-      alert(`✅ Exported ${result.count} products to CSV!`);
-    } catch (error) {
+      notify.success(`Exported ${result.count} products to CSV!`);
+    } catch (error: any) {
       console.error('Error exporting CSV:', error);
-      alert(`Failed to export CSV: ${error}`);
+      notify.error(`Failed to export CSV: ${error.message}`);
     } finally {
       setExporting(false);
     }
   };
 
   const handleExportUropaCSV = async () => {
-    if (!confirm('This will fetch current prices from Uropa API for all products. This may take several minutes. Continue?')) {
+    if (!confirm('This will fetch current prices from Uropa API for all products. Continue?')) {
       return;
     }
 
@@ -188,16 +187,11 @@ export default function ImageScraper() {
     setUropaProgress({ progress: 0, processed: 0, total: 0, success: 0, errors: 0 });
 
     try {
-      console.log('🔄 Starting Uropa export (chunked)...');
-
       let jobId = '';
       let chunkIndex = 0;
       let isComplete = false;
 
-      // Process chunks until complete
       while (!isComplete) {
-        console.log(`🔄 Processing chunk ${chunkIndex + 1}...`);
-
         const response = await fetch(`${API_URL}/image-scraper/export-uropa`, {
           method: 'POST',
           headers: {
@@ -221,28 +215,21 @@ export default function ImageScraper() {
           throw new Error(result.error || 'Export failed');
         }
 
-        // Update jobId from first response
         if (!jobId) {
           jobId = result.jobId;
         }
 
-        // Update progress
         setUropaProgress({
           progress: result.progress,
           processed: result.processed,
           total: result.total,
-          success: 0, // Not tracked per chunk
-          errors: 0  // Not tracked per chunk
+          success: 0,
+          errors: 0
         });
-
-        console.log(`✅ Chunk ${chunkIndex + 1} complete. Progress: ${result.progress}%`);
 
         isComplete = result.isComplete;
         chunkIndex++;
       }
-
-      // Fetch final job data
-      console.log('✅ All chunks processed, fetching final data...');
 
       const finalResponse = await fetch(
         `${API_URL}/image-scraper/export-uropa/${jobId}`,
@@ -258,13 +245,8 @@ export default function ImageScraper() {
       }
 
       const job = finalData.job;
-
-      console.log('✅ Export complete, generating CSV...');
-
-      // Sort data by code
       const sortedData = job.data.sort((a: any, b: any) => a.code.localeCompare(b.code));
 
-      // Convert to CSV
       const headers = ['Code', 'Brand', 'Brand Logo', 'Trade Price', 'In Stock', 'Back Order Available', 'Promised Date', 'Error'];
       const csvRows = [
         headers.join(','),
@@ -289,233 +271,189 @@ export default function ImageScraper() {
       a.click();
       window.URL.revokeObjectURL(url);
 
-      alert(`✅ Uropa Export Complete!\n\nTotal: ${job.total}\nSuccess: ${job.success}\nErrors: ${job.errors}\n\nFile downloaded!`);
-
+      notify.success(`Uropa Export Complete! Downloaded ${job.total} product records.`);
       setUropaProgress(null);
       setExportingUropa(false);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error exporting from Uropa:', error);
-      alert(`Failed to export from Uropa: ${error instanceof Error ? error.message : String(error)}`);
+      notify.error(`Failed to export from Uropa: ${error.message}`);
       setExportingUropa(false);
       setUropaProgress(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Product Image Scraper</h1>
-            <p className="text-gray-600 mt-1">
-              Scrape thumbnail images from Uropa carousel API (images array)
-              <br />
-              <span className="text-sm text-blue-600">
-                ℹ️ Uses Uropa token from backend KV storage
-              </span>
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={async () => {
-                const code = prompt('Enter product code to check pricing fields (e.g., CD085-A):');
-                if (!code) return;
-
-                try {
-                  const response = await fetch(`${API_URL}/image-scraper/check-pricing/${code}`, {
-                    headers: { 'Authorization': `Bearer ${publicAnonKey}` }
-                  });
-                  const result = await response.json();
-
-                  console.log('💰 [Pricing Check] Full Result:', result);
-                  console.log('💰 [Pricing Check] Raw Response:', result.rawResponse);
-                  console.log('💰 [Pricing Check] Actual Product:', result.actualProduct);
-                  console.log('💰 [Pricing Check] Price Fields:', result.priceFields);
-
-                  if (result.success) {
-                    const priceInfo = `
-Product Code: ${result.code}
-Product Name: ${result.name}
-
-🔍 PRICE FIELDS FOUND:
-${Object.entries(result.priceFields || {})
-  .filter(([_, value]) => value !== undefined && value !== null)
-  .map(([key, value]) => `  - ${key}: ${JSON.stringify(value)}`)
-  .join('\n') || '  (none found)'}
-
-📋 All Keys with 'price': ${result.allPriceKeys?.join(', ') || 'none'}
-
-📦 Top-level keys: ${result.topLevelKeys?.slice(0, 10).join(', ')}...
-
-✅ Check browser console for FULL response data!
-                    `.trim();
-
-                    alert(priceInfo);
-                  } else {
-                    alert(`Error: ${result.error}\n\nCheck console for details.`);
-                  }
-                } catch (error) {
-                  alert(`Error: ${error}`);
-                }
-              }}
-              variant="outline"
-              className="border-purple-600 text-purple-600 hover:bg-purple-50"
-            >
-              Check Pricing Fields
-            </Button>
-            <Button
-              onClick={async () => {
-                const code = prompt('Enter product code to test (e.g., CD085-A):');
-                if (!code) return;
-
-                try {
-                  const response = await fetch(`${API_URL}/image-scraper/test/${code}`, {
-                    headers: { 'Authorization': `Bearer ${publicAnonKey}` }
-                  });
-                  const result = await response.json();
-
-                  console.log('🖼️ [Image Test] Full Result:', result);
-                  console.log('🖼️ [Image Test] Images Raw:', result.imagesRaw);
-                  console.log('🖼️ [Image Test] First Image:', result.firstImage);
-
-                  alert(`✅ Check browser console!\n\nImages Array Length: ${result.imagesLength}\nCheck console for full structure`);
-                } catch (error) {
-                  alert(`Error: ${error}`);
-                }
-              }}
-              variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50"
-            >
-              Test Images
-            </Button>
-            <Button
-              onClick={handleExportCSV}
-              disabled={exporting}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              {exporting ? (
-                <>
-                  <RefreshCw className="animate-spin size-4 mr-2" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="size-4 mr-2" />
-                  Export All to CSV
-                </>
-              )}
-            </Button>
-            <Button
-              onClick={handleExportUropaCSV}
-              disabled={exportingUropa}
-              variant="outline"
-              className="border-orange-600 text-orange-600 hover:bg-orange-50"
-            >
-              {exportingUropa ? (
-                <>
-                  <RefreshCw className="animate-spin size-4 mr-2" />
-                  Fetching from Uropa...
-                </>
-              ) : (
-                <>
-                  <Download className="size-4 mr-2" />
-                  Export Uropa Prices
-                </>
-              )}
-            </Button>
-          </div>
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <ImageIcon className="size-6 text-[#E31837]" />
+            Product Image Scraper
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Scrape product gallery images from Uropa carousel feeds and export enriched catalog CSVs
+          </p>
         </div>
 
-        {/* Uropa Export Progress */}
-        {uropaProgress && (
-          <Card className="mb-6 border-2 border-orange-500">
-            <CardHeader>
-              <CardTitle className="text-orange-700">
-                Fetching Prices from Uropa API
-              </CardTitle>
-              <CardDescription>
-                Processing {uropaProgress.processed} of {uropaProgress.total} products
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Progress Bar */}
-                <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
-                  <div
-                    className="bg-orange-500 h-full transition-all duration-300 flex items-center justify-center text-white text-sm font-medium"
-                    style={{ width: `${uropaProgress.progress}%` }}
-                  >
-                    {uropaProgress.progress}%
-                  </div>
-                </div>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <button
+            onClick={async () => {
+              const code = prompt('Enter product code to check pricing fields (e.g., CD085-A):');
+              if (!code) return;
+              try {
+                const response = await fetch(`${API_URL}/image-scraper/check-pricing/${code}`, {
+                  headers: { 'Authorization': `Bearer ${publicAnonKey}` }
+                });
+                const result = await response.json();
+                if (result.success) {
+                  notify.info(`Pricing fields found for ${code}. Check browser console for raw object.`);
+                } else {
+                  notify.error(`Pricing check error: ${result.error}`);
+                }
+              } catch (error: any) {
+                notify.error(`Pricing check error: ${error.message}`);
+              }
+            }}
+            className="h-9 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl font-bold text-xs border border-purple-200 cursor-pointer transition-all"
+          >
+            Check Pricing
+          </button>
 
-                {/* Stats */}
-                <div className="grid grid-cols-4 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-gray-700">{uropaProgress.processed}</div>
-                    <div className="text-xs text-gray-500">Processed</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">{uropaProgress.success}</div>
-                    <div className="text-xs text-gray-500">Success</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-red-600">{uropaProgress.errors}</div>
-                    <div className="text-xs text-gray-500">Errors</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-700">{uropaProgress.total}</div>
-                    <div className="text-xs text-gray-500">Total</div>
-                  </div>
-                </div>
+          <button
+            onClick={async () => {
+              const code = prompt('Enter product code to test images (e.g., CD085-A):');
+              if (!code) return;
+              try {
+                const response = await fetch(`${API_URL}/image-scraper/test/${code}`, {
+                  headers: { 'Authorization': `Bearer ${publicAnonKey}` }
+                });
+                const result = await response.json();
+                notify.info(`Images Array Length for ${code}: ${result.imagesLength}`);
+              } catch (error: any) {
+                notify.error(`Test images error: ${error.message}`);
+              }
+            }}
+            className="h-9 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs border border-blue-200 cursor-pointer transition-all"
+          >
+            Test Images
+          </button>
 
-                <p className="text-sm text-gray-600 text-center">
-                  Please wait... This may take several minutes depending on the number of products.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <button
+            onClick={handleExportCSV}
+            disabled={exporting}
+            className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50"
+          >
+            {exporting ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            Export Catalog CSV
+          </button>
 
-        {/* Token Input */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Uropa API Token</CardTitle>
-            <CardDescription>Token is saved in backend KV storage</CardDescription>
+          <button
+            onClick={handleExportUropaCSV}
+            disabled={exportingUropa}
+            className="h-9 px-3.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50"
+          >
+            {exportingUropa ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            Export Uropa Prices
+          </button>
+        </div>
+      </div>
+
+      {/* Info Tip Banner */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <Info className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Backend Storage Authentication:</strong> Image scraper endpoints retrieve Uropa Bearer API keys directly from KV storage.
+        </div>
+      </div>
+
+      {/* Uropa Export Progress Overlay Card */}
+      {uropaProgress && (
+        <Card className="border-amber-200 bg-amber-50/70 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-amber-100">
+            <CardTitle className="text-base text-amber-900 font-extrabold flex items-center gap-2">
+              <RefreshCw className="size-4 animate-spin text-amber-600" />
+              Fetching Live Prices from Uropa API
+            </CardTitle>
+            <CardDescription className="text-xs text-amber-800 font-medium">
+              Processing {uropaProgress.processed} of {uropaProgress.total} products
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <Input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="Enter Uropa API token"
-                className="flex-1"
-              />
-              <Button
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="w-full bg-amber-200/60 rounded-full h-5 overflow-hidden p-0.5">
+              <div
+                className="bg-amber-600 h-full rounded-full transition-all duration-300 flex items-center justify-center text-white text-[10px] font-black"
+                style={{ width: `${Math.max(uropaProgress.progress, 5)}%` }}
+              >
+                {uropaProgress.progress}%
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200/60">
+                <span className="text-slate-500 font-medium block text-[10px]">Processed</span>
+                <span className="font-bold text-slate-900 text-base">{uropaProgress.processed}</span>
+              </div>
+              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200/60">
+                <span className="text-slate-500 font-medium block text-[10px]">Success</span>
+                <span className="font-bold text-emerald-700 text-base">{uropaProgress.success}</span>
+              </div>
+              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200/60">
+                <span className="text-slate-500 font-medium block text-[10px]">Errors</span>
+                <span className="font-bold text-red-600 text-base">{uropaProgress.errors}</span>
+              </div>
+              <div className="bg-white/80 p-2.5 rounded-xl border border-amber-200/60">
+                <span className="text-slate-500 font-medium block text-[10px]">Total</span>
+                <span className="font-bold text-slate-900 text-base">{uropaProgress.total}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Token Configuration Card */}
+      <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <CardTitle className="text-base text-[#0f172a] font-black flex items-center gap-2">
+            <Key className="size-4 text-[#E31837]" />
+            Uropa API Token Management
+          </CardTitle>
+          <CardDescription className="text-xs text-slate-500 font-medium">
+            Manage Uropa API Bearer token stored in backend KV storage
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="Paste new Uropa API Bearer token"
+              className="flex-1 h-10 border-slate-200 rounded-xl text-xs"
+            />
+            <div className="flex gap-2">
+              <button
                 onClick={async () => {
                   try {
                     const response = await fetch(`${API_URL}/image-scraper/check-token`, {
                       headers: { 'Authorization': `Bearer ${publicAnonKey}` }
                     });
                     const result = await response.json();
-                    console.log('Token check:', result);
-                    alert(`Token Status:\n\nEnvironment Token: ${result.hasEnvToken ? '✅ Found' : '❌ Not found'}\nKV Token: ${result.hasKvToken ? '✅ Found' : '❌ Not found'}\n\nCheck console for details`);
-                  } catch (error) {
-                    alert(`Error: ${error}`);
+                    notify.info(`KV Token: ${result.hasKvToken ? 'Found' : 'Missing'} | Env Token: ${result.hasEnvToken ? 'Found' : 'Missing'}`);
+                  } catch (error: any) {
+                    notify.error(`Check token error: ${error.message}`);
                   }
                 }}
-                variant="outline"
-                className="border-blue-600 text-blue-600"
+                className="h-10 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs border border-slate-200 cursor-pointer transition-all"
               >
                 Check Token
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={async () => {
                   if (!token) {
-                    alert('Please enter a token');
+                    notify.error('Please enter a token');
                     return;
                   }
                   try {
@@ -529,121 +467,144 @@ ${Object.entries(result.priceFields || {})
                     });
                     const result = await response.json();
                     if (result.success) {
-                      alert('✅ Token saved to backend!');
+                      notify.success('Token saved to backend KV storage!');
+                      setToken('');
                     } else {
-                      alert(`Error: ${result.error}`);
+                      notify.error(`Save token error: ${result.error}`);
                     }
-                  } catch (error) {
-                    alert(`Failed to save token: ${error}`);
+                  } catch (error: any) {
+                    notify.error(`Failed to save token: ${error.message}`);
                   }
                 }}
-                variant="outline"
+                className="h-10 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-2xs cursor-pointer transition-all"
               >
                 Save Token
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Brand Selection */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Select Brand</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <select
-                value={selectedBrand}
-                onChange={(e) => setSelectedBrand(e.target.value)}
-                className="flex-1 px-4 py-2 border rounded-lg"
-              >
-                <option value="">-- Select Brand --</option>
-                {brands.map((brand) => (
-                  <option key={brand} value={brand}>
-                    {brand}
-                  </option>
-                ))}
-              </select>
-              <Button
-                onClick={fetchProducts}
-                disabled={!selectedBrand || loading}
-              >
-                {loading ? <RefreshCw className="animate-spin size-5" /> : 'Load Products'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Brand Selector Card */}
+      <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <CardTitle className="text-base text-[#0f172a] font-black">
+            Brand Catalog Selector
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="flex-1 h-10 px-3 border border-slate-200 rounded-xl bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#E31837]/20"
+            >
+              <option value="">-- Select Brand --</option>
+              {brands.map((brand) => (
+                <option key={brand} value={brand}>
+                  {brand}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={fetchProducts}
+              disabled={!selectedBrand || loading}
+              className="h-10 px-5 bg-[#E31837] hover:bg-[#E31837]/90 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+            >
+              {loading ? <RefreshCw className="animate-spin size-4" /> : 'Load Products'}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Product List */}
-        {products.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Products ({products.length})</CardTitle>
-                  <CardDescription>
-                    {selectedProducts.size} product{selectedProducts.size !== 1 ? 's' : ''} selected
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleSelectAll} variant="outline">
-                    {selectedProducts.size === products.length ? 'Deselect All' : 'Select All'}
-                  </Button>
-                  <Button
-                    onClick={handleScrape}
-                    disabled={selectedProducts.size === 0 || scraping}
-                  >
-                    {scraping ? (
-                      <>
-                        <RefreshCw className="animate-spin size-4 mr-2" />
-                        Scraping...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="size-4 mr-2" />
-                        Scrape Images
-                      </>
-                    )}
-                  </Button>
-                </div>
+      {/* Product Grid Table Card */}
+      {products.length > 0 && (
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base text-[#0f172a] font-black">
+                  Products ({products.length})
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500 font-medium">
+                  {selectedProducts.size} product{selectedProducts.size !== 1 ? 's' : ''} selected for image scraping
+                </CardDescription>
               </div>
-            </CardHeader>
-            <CardContent>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSelectAll}
+                  className="h-8 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border border-slate-200 transition-all cursor-pointer"
+                >
+                  {selectedProducts.size === products.length ? 'Deselect All' : 'Select All'}
+                </button>
+                <button
+                  onClick={handleScrape}
+                  disabled={selectedProducts.size === 0 || scraping}
+                  className="h-8 px-4 bg-[#E31837] hover:bg-[#E31837]/90 text-white rounded-lg font-bold text-xs shadow-2xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {scraping ? (
+                    <>
+                      <RefreshCw className="animate-spin size-3.5" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="size-3.5" />
+                      Scrape Selected Images
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider">
                     <tr>
-                      <th className="px-4 py-3 text-left">
+                      <th className="p-3 w-10 text-center">
                         <input
                           type="checkbox"
                           checked={selectedProducts.size === products.length}
                           onChange={handleSelectAll}
+                          className="size-4 text-[#E31837] rounded border-slate-300 focus:ring-0 cursor-pointer"
                         />
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trade Price</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Images</th>
+                      <th className="p-3">Code</th>
+                      <th className="p-3">Product Name</th>
+                      <th className="p-3 text-right">Trade Price</th>
+                      <th className="p-3 text-center">Current Images</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                     {products.map((product) => (
-                      <tr key={product.code} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr
+                        key={product.code}
+                        className={`hover:bg-slate-50/80 transition-colors ${selectedProducts.has(product.code) ? 'bg-red-50/40' : ''}`}
+                      >
+                        <td className="p-3 text-center">
                           <input
                             type="checkbox"
                             checked={selectedProducts.has(product.code)}
                             onChange={() => toggleProduct(product.code)}
+                            className="size-4 text-[#E31837] rounded border-slate-300 focus:ring-0 cursor-pointer"
                           />
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium">{product.code}</td>
-                        <td className="px-4 py-3 text-sm">{product.name}</td>
-                        <td className="px-4 py-3 text-sm">${product.price}</td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="p-3 font-mono font-bold text-slate-900">{product.code}</td>
+                        <td className="p-3 max-w-xs truncate font-semibold">{product.name}</td>
+                        <td className="p-3 text-right font-bold text-emerald-700">${product.price?.toFixed(2)}</td>
+                        <td className="p-3 text-center">
                           {product.currentImages.length > 0 ? (
-                            <span className="text-green-600">{product.currentImages.length} images</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="size-3" />
+                              {product.currentImages.length} images
+                            </span>
                           ) : (
-                            <span className="text-gray-400">No images</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                              <XCircle className="size-3" />
+                              No images
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -651,80 +612,81 @@ ${Object.entries(result.priceFields || {})
                   </tbody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Results */}
-        {results && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Scraping Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-4 mb-4">
-                  <div className="flex-1 bg-green-50 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-green-700 font-semibold">
-                      <CheckCircle2 className="size-5" />
-                      Success: {results.success}
-                    </div>
-                  </div>
-                  <div className="flex-1 bg-red-50 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-700 font-semibold">
-                      <XCircle className="size-5" />
-                      Failed: {results.failed}
-                    </div>
-                  </div>
+      {/* Scraping Results Card */}
+      {results && (
+        <Card className="bg-white border-slate-200 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-base text-[#0f172a] font-black flex items-center gap-2">
+              <Sparkles className="size-4 text-emerald-600" />
+              Scraping Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl">
+                <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-sm">
+                  <CheckCircle2 className="size-4" />
+                  Success: {results.success}
                 </div>
+              </div>
+              <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl">
+                <div className="flex items-center gap-2 text-red-800 font-extrabold text-sm">
+                  <XCircle className="size-4" />
+                  Failed: {results.failed}
+                </div>
+              </div>
+            </div>
 
-                <div className="max-h-96 overflow-y-auto">
-                  {results.details.map((detail: any, index: number) => (
-                    <div
-                      key={index}
-                      className={`p-3 mb-2 rounded-lg ${
-                        detail.success ? 'bg-green-50' : 'bg-red-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium">{detail.code}</div>
-                          {detail.success ? (
-                            <div className="text-sm text-green-700">
-                              ✅ {detail.imagesFound} images scraped
-                            </div>
-                          ) : (
-                            <div className="text-sm text-red-700">
-                              ❌ {detail.error}
-                            </div>
-                          )}
+            <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
+              {results.details?.map((detail: any, index: number) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded-xl border text-xs ${
+                    detail.success ? 'bg-emerald-50/50 border-emerald-200' : 'bg-red-50/50 border-red-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-mono font-bold text-slate-900 text-sm">{detail.code}</div>
+                      {detail.success ? (
+                        <div className="text-emerald-700 font-semibold mt-0.5">
+                          ✅ {detail.imagesFound} images scraped
                         </div>
-                        {detail.success && detail.images && (
-                          <div className="flex gap-2">
-                            {detail.images.slice(0, 3).map((img: string, i: number) => (
-                              <img
-                                key={i}
-                                src={img}
-                                alt={`Product ${detail.code}`}
-                                className="size-12 object-cover rounded border"
-                              />
-                            ))}
-                            {detail.images.length > 3 && (
-                              <div className="size-12 bg-gray-100 rounded border flex items-center justify-center text-xs text-gray-600">
-                                +{detail.images.length - 3}
-                              </div>
-                            )}
+                      ) : (
+                        <div className="text-red-600 font-semibold mt-0.5">
+                          ❌ {detail.error}
+                        </div>
+                      )}
+                    </div>
+                    {detail.success && detail.images && (
+                      <div className="flex gap-1.5 shrink-0">
+                        {detail.images.slice(0, 3).map((img: string, i: number) => (
+                          <img
+                            key={i}
+                            src={img}
+                            alt={`Product ${detail.code}`}
+                            className="size-10 object-cover rounded-lg border border-slate-200"
+                          />
+                        ))}
+                        {detail.images.length > 3 && (
+                          <div className="size-10 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                            +{detail.images.length - 3}
                           </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

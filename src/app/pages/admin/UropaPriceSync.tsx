@@ -1160,93 +1160,100 @@ export default function UropaPriceSync() {
   // If no token, show setup message
   if (!hasToken) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl mb-2">Uropa Price Sync</h1>
-          <p className="text-muted-foreground">
-            Compare and sync product prices with Uropa supplier
+      <div className="max-w-7xl mx-auto py-12 font-sans space-y-5">
+        <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200">
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <TrendingUp className="size-6 text-[#E31837]" />
+            Uropa Price Sync Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Compare and synchronize product trade prices with Uropa supplier feeds
           </p>
         </div>
 
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <Key className="size-8 text-amber-600 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-amber-900 mb-2">
-                  API Authentication Required
-                </h3>
-                <p className="text-amber-800 mb-4">
-                  You need to configure your Uropa API token before you can use the price sync feature.
-                </p>
+        <Card className="border-amber-200 bg-amber-50/70 shadow-xs rounded-xl overflow-hidden p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-amber-100 rounded-xl text-amber-700 shrink-0">
+              <Key className="size-6" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <h3 className="text-base font-black text-amber-900">
+                API Authentication Required
+              </h3>
+              <p className="text-xs font-semibold text-amber-800/90 leading-relaxed">
+                You need to configure your Uropa API Bearer token before you can use the live price sync feature.
+              </p>
+              <div className="pt-2">
                 <Link to="/admin/uropa-token-auth">
-                  <Button className="bg-amber-600 hover:bg-amber-700">
-                    <Key className="size-4 mr-2" />
+                  <button className="h-9 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow-2xs flex items-center gap-2 cursor-pointer transition-all">
+                    <Key className="size-4" />
                     Configure API Token
-                  </Button>
+                  </button>
                 </Link>
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl mb-2">Uropa Price Sync</h1>
-        <p className="text-muted-foreground">
-          Compare and sync product prices with Uropa supplier
-        </p>
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <TrendingUp className="size-6 text-[#E31837]" />
+            Uropa Price Sync Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Compare and synchronize wholesale trade prices with Uropa supplier endpoints
+          </p>
+        </div>
       </div>
 
       {/* Status Message */}
       {analysis && (
-        <Card className={analysis.type === 'success' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              {analysis.type === 'success' ? (
-                <CheckCircle className="size-5 text-green-600" />
-              ) : (
-                <AlertCircle className="size-5 text-red-600" />
-              )}
-              <p className={analysis.type === 'success' ? 'text-green-900' : 'text-red-900'}>
-                {analysis.text}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className={`p-4 rounded-xl border flex items-center gap-3 ${
+          analysis.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          {analysis.type === 'success' ? <CheckCircle className="size-5 shrink-0" /> : <AlertCircle className="size-5 shrink-0" />}
+          <span className="font-semibold text-sm">{analysis.text}</span>
+        </div>
       )}
 
-      {/* ℹ️ CACHE REMINDER */}
-      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mb-6">
-        <p className="text-sm text-blue-900 font-semibold mb-1">
-          💡 After updating prices, go to the <strong>Admin Dashboard</strong> to clear cache
-        </p>
-        <p className="text-xs text-blue-700">
-          Navigate to Dashboard → Centralized Cache Management → Click "Clear All Caches"
-        </p>
+      {/* CACHE REMINDER */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3 text-xs sm:text-sm text-slate-700 font-medium">
+        <RefreshCw className="size-5 text-[#E31837] shrink-0" />
+        <div>
+          <strong>Cache Reset Required:</strong> After running bulk price updates, navigate to <strong>Dashboard → Centralized Cache Management → "Clear All Caches"</strong> to update website store prices.
+        </div>
       </div>
+
 
       {/* Test API & Full Sync Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-900">
-              <CheckCircle className="size-5" />
+        {/* Test API Connection Card */}
+        <Card className="rounded-xl border-slate-200/60 bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-emerald-100/50">
+            <CardTitle className="flex items-center gap-2 text-emerald-900 text-lg">
+              <div className="p-1.5 bg-emerald-100 rounded-lg">
+                <CheckCircle className="size-4 text-emerald-600" />
+              </div>
               Test API Connection
             </CardTitle>
-            <CardDescription className="text-green-700">
-              Verify that your Uropa API token is working correctly
+            <CardDescription className="text-emerald-700/80 font-medium">
+              Verify your Uropa API token is working correctly
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 pt-4">
             <Button
               onClick={testApiConnection}
               disabled={testingApi}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 font-semibold text-white shadow-sm"
             >
               {testingApi ? (
                 <>
@@ -1256,26 +1263,27 @@ export default function UropaPriceSync() {
               ) : (
                 <>
                   <CheckCircle className="size-4 mr-2" />
-                  🔌 Test API Connection
+                  Test API Connection
                 </>
               )}
             </Button>
             
             {apiTestResult && (
-              <div className={`p-3 rounded-lg border ${
+              <div className={`p-3 rounded-xl border ${
                 apiTestResult.success 
-                  ? 'bg-white border-green-300' 
-                  : 'bg-red-50 border-red-300'
+                  ? 'bg-white border-emerald-200' 
+                  : 'bg-red-50 border-red-200'
               }`}>
-                <p className={`text-sm font-medium ${
-                  apiTestResult.success ? 'text-green-800' : 'text-red-800'
+                <p className={`text-sm font-semibold flex items-center gap-1.5 ${
+                  apiTestResult.success ? 'text-emerald-700' : 'text-red-700'
                 }`}>
-                  {apiTestResult.success ? '✅ Connection successful!' : `❌ ${apiTestResult.error}`}
+                  {apiTestResult.success ? <CheckCircle className="size-4" /> : <AlertCircle className="size-4" />}
+                  {apiTestResult.success ? 'Connection successful!' : apiTestResult.error}
                 </p>
                 {!apiTestResult.success && apiTestResult.error?.includes('401') && (
                   <Link to="/admin/uropa-token-auth" className="block mt-2">
-                    <Button size="sm" variant="outline" className="w-full border-red-300 text-red-700 hover:bg-red-50">
-                      <Key className="size-3 mr-1" />
+                    <Button size="sm" variant="outline" className="w-full h-8 border-red-300 text-red-700 hover:bg-red-50 font-semibold">
+                      <Key className="size-3 mr-1.5" />
                       Update Token
                     </Button>
                   </Link>
@@ -1285,31 +1293,34 @@ export default function UropaPriceSync() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-900">
-              <Eye className="size-5" />
-              Debug Uropa API Response
+        {/* Debug Uropa API Response Card */}
+        <Card className="rounded-xl border-slate-200/60 bg-gradient-to-br from-orange-50/50 to-orange-100/30 shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-orange-100/50">
+            <CardTitle className="flex items-center gap-2 text-orange-900 text-lg">
+              <div className="p-1.5 bg-orange-100 rounded-lg">
+                <Eye className="size-4 text-orange-600" />
+              </div>
+              Debug API Response
             </CardTitle>
-            <CardDescription className="text-orange-700">
-              Check what price data the Uropa API is returning for a specific product
+            <CardDescription className="text-orange-700/80 font-medium">
+              Check what price data the Uropa API returns
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <Label htmlFor="debugApiCode" className="text-orange-900">Product Code</Label>
+          <CardContent className="space-y-3 pt-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="debugApiCode" className="text-orange-900 font-semibold text-xs">Product Code</Label>
               <Input
                 id="debugApiCode"
                 value={debugApiCode}
                 onChange={(e) => setDebugApiCode(e.target.value)}
                 placeholder="e.g., CD085-A"
-                className="bg-white"
+                className="bg-white h-9 border-orange-200 font-mono text-sm focus-visible:ring-orange-500"
               />
             </div>
             <Button
               onClick={debugUropaApi}
               disabled={isDebuggingApi}
-              className="w-full bg-orange-600 hover:bg-orange-700"
+              className="w-full h-9 bg-orange-500 hover:bg-orange-600 font-semibold text-white shadow-sm"
             >
               {isDebuggingApi ? (
                 <>
@@ -1319,36 +1330,39 @@ export default function UropaPriceSync() {
               ) : (
                 <>
                   <Eye className="size-4 mr-2" />
-                  🔍 Debug API Response
+                  Debug API Response
                 </>
               )}
             </Button>
             
             {debugApiResult && (
-              <div className={`p-3 rounded-lg border max-h-96 overflow-y-auto ${
+              <div className={`p-3 rounded-xl border max-h-96 overflow-y-auto custom-scrollbar ${
                 debugApiResult.success 
-                  ? 'bg-white border-orange-300' 
-                  : 'bg-red-50 border-red-300'
+                  ? 'bg-white border-orange-200' 
+                  : 'bg-red-50 border-red-200'
               }`}>
                 {debugApiResult.success ? (
                   <div className="text-sm space-y-3">
-                    <p className="font-medium text-orange-800 mb-2">✅ API Response for {debugApiResult.productCode}</p>
+                    <p className="font-semibold text-orange-800 flex items-center gap-1.5 border-b border-orange-100 pb-2">
+                      <CheckCircle className="size-4 text-emerald-600" />
+                      Response for {debugApiResult.productCode}
+                    </p>
                     
                     {debugApiResult.comparison && (
-                      <div className="bg-blue-50 p-3 rounded border border-blue-300 mb-2">
-                        <p className="font-semibold text-blue-900 mb-2">💰 Price Comparison:</p>
-                        <div className="space-y-1 text-xs">
+                      <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-200/60 mb-2">
+                        <p className="font-bold text-blue-900 mb-2 text-xs uppercase tracking-wider">💰 Price Comparison</p>
+                        <div className="space-y-1.5 text-xs">
                           <div className="flex justify-between">
-                            <span className="text-blue-700">Uropa Cost Price:</span>
+                            <span className="text-blue-700/80 font-medium">Uropa Cost Price:</span>
                             <span className="font-bold text-blue-900">${debugApiResult.comparison.uropaPrice?.toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-blue-700">Current DB Cost:</span>
+                            <span className="text-blue-700/80 font-medium">Current DB Cost:</span>
                             <span className="font-bold text-blue-900">${debugApiResult.comparison.dbCost?.toFixed(2)}</span>
                           </div>
-                          <div className="flex justify-between border-t border-blue-300 pt-1">
-                            <span className="text-blue-700">Difference:</span>
-                            <span className={`font-bold ${debugApiResult.comparison.difference > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                          <div className="flex justify-between border-t border-blue-200/60 pt-1.5 mt-1.5">
+                            <span className="text-blue-700/80 font-medium">Difference:</span>
+                            <span className={`font-bold ${debugApiResult.comparison.difference > 0 ? 'text-[#E31837]' : 'text-emerald-700'}`}>
                               ${debugApiResult.comparison.difference?.toFixed(2)} ({debugApiResult.comparison.percentChange?.toFixed(2)}%)
                             </span>
                           </div>
@@ -1357,12 +1371,12 @@ export default function UropaPriceSync() {
                     )}
                     
                     {debugApiResult.priceExtraction && (
-                      <div className="bg-orange-50 p-2 rounded">
-                        <p className="font-semibold text-orange-900 mb-1">Price Extraction Attempts:</p>
+                      <div className="bg-orange-50/50 p-2.5 rounded-lg border border-orange-100">
+                        <p className="font-bold text-orange-900 mb-1.5 text-xs uppercase tracking-wider">Extraction Attempts</p>
                         {Object.entries(debugApiResult.priceExtraction).map(([path, value]) => (
-                          <div key={path} className="text-xs py-1 flex justify-between">
-                            <span className="text-orange-700 font-mono">{path}:</span>
-                            <span className={`font-semibold ${value ? 'text-green-700' : 'text-gray-400'}`}>
+                          <div key={path} className="text-xs py-1 flex justify-between border-b border-orange-100/50 last:border-0">
+                            <span className="text-orange-700/80 font-mono">{path}:</span>
+                            <span className={`font-semibold ${value ? 'text-emerald-700' : 'text-slate-400'}`}>
                               {value ? `$${value}` : 'null'}
                             </span>
                           </div>
@@ -1372,52 +1386,48 @@ export default function UropaPriceSync() {
 
                     {debugApiResult.priceStructure && (
                       <>
-                        <div className="bg-white p-2 rounded border border-orange-200">
-                          <p className="font-semibold text-orange-900 mb-1">Full Price Structure:</p>
-                          <pre className="text-xs text-orange-800 whitespace-pre-wrap font-mono overflow-x-auto">
+                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                          <p className="font-bold text-slate-700 mb-1.5 text-xs uppercase tracking-wider">Full Price Structure</p>
+                          <pre className="text-[10px] text-slate-600 whitespace-pre-wrap font-mono overflow-x-auto">
                             {JSON.stringify(debugApiResult.priceStructure, null, 2)}
                           </pre>
                         </div>
 
-                        {/* 🆕 ATTRIBUTES SECTION */}
                         {debugApiResult.priceStructure?.attributes && (
                           <div className="space-y-2">
-                            {/* COMPARISON DATA - Specifications */}
                             {debugApiResult.priceStructure.attributes.comparisonData?.length > 0 && (
-                              <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                                <p className="font-semibold text-blue-900 mb-2">📋 Specifications (COMPARISONDATA):</p>
+                              <div className="bg-blue-50/50 p-2.5 rounded-lg border border-blue-200/60">
+                                <p className="font-bold text-blue-900 mb-2 text-xs uppercase tracking-wider">📋 Specifications</p>
                                 <div className="space-y-1 text-xs">
                                   {debugApiResult.priceStructure.attributes.comparisonData.map((attr: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between border-b border-blue-200 pb-1">
-                                      <span className="text-blue-700 font-medium">{attr.fieldName}:</span>
-                                      <span className="text-blue-900">{attr.value}</span>
+                                    <div key={idx} className="flex justify-between border-b border-blue-100 pb-1 last:border-0 last:pb-0">
+                                      <span className="text-blue-700/80 font-medium">{attr.fieldName}:</span>
+                                      <span className="text-blue-900 text-right pl-2">{attr.value}</span>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             )}
 
-                            {/* ATTRIBUTES DATA - Features/Bullet Points */}
                             {debugApiResult.priceStructure.attributes.attributesData?.length > 0 && (
-                              <div className="bg-green-50 p-3 rounded border border-green-200">
-                                <p className="font-semibold text-green-900 mb-2">✨ Product Features (ATTRIBUTESDATA):</p>
+                              <div className="bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-200/60">
+                                <p className="font-bold text-emerald-900 mb-2 text-xs uppercase tracking-wider">✨ Features</p>
                                 <ul className="space-y-1 text-xs list-disc list-inside">
                                   {debugApiResult.priceStructure.attributes.attributesData.map((attr: any, idx: number) => (
-                                    <li key={idx} className="text-green-800">{attr.value}</li>
+                                    <li key={idx} className="text-emerald-800">{attr.value}</li>
                                   ))}
                                 </ul>
                               </div>
                             )}
 
-                            {/* HAZARD DATA */}
                             {debugApiResult.priceStructure.attributes.hazardData?.length > 0 && (
-                              <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
-                                <p className="font-semibold text-yellow-900 mb-2">⚠️ Product Info (HAZARDDATA):</p>
+                              <div className="bg-amber-50/50 p-2.5 rounded-lg border border-amber-200/60">
+                                <p className="font-bold text-amber-900 mb-2 text-xs uppercase tracking-wider">⚠️ Hazard Info</p>
                                 <div className="space-y-1 text-xs">
                                   {debugApiResult.priceStructure.attributes.hazardData.map((attr: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between border-b border-yellow-200 pb-1">
-                                      <span className="text-yellow-700 font-medium">{attr.fieldName}:</span>
-                                      <span className="text-yellow-900">{attr.value}</span>
+                                    <div key={idx} className="flex justify-between border-b border-amber-100 pb-1 last:border-0 last:pb-0">
+                                      <span className="text-amber-700/80 font-medium">{attr.fieldName}:</span>
+                                      <span className="text-amber-900 text-right pl-2">{attr.value}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -1429,8 +1439,8 @@ export default function UropaPriceSync() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm font-medium text-red-800">
-                    ❌ {debugApiResult.error}
+                  <p className="text-sm font-semibold text-[#E31837] flex items-center gap-1.5">
+                    <AlertCircle className="size-4" /> {debugApiResult.error}
                   </p>
                 )}
               </div>
@@ -1438,21 +1448,24 @@ export default function UropaPriceSync() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-900">
-              <RefreshCw className="size-5" />
+        {/* Run Full Sync Card */}
+        <Card className="rounded-xl border-slate-200/60 bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-indigo-100/50">
+            <CardTitle className="flex items-center gap-2 text-indigo-900 text-lg">
+              <div className="p-1.5 bg-indigo-100 rounded-lg">
+                <RefreshCw className="size-4 text-indigo-600" />
+              </div>
               Run Full Sync
             </CardTitle>
-            <CardDescription className="text-purple-700">
-              Check all products and automatically update changed prices
+            <CardDescription className="text-indigo-700/80 font-medium">
+              Automatically update changed prices
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 pt-4">
             <Button
               onClick={runFullSync}
               disabled={syncing}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 font-semibold text-white shadow-sm"
             >
               {syncing ? (
                 <>
@@ -1462,29 +1475,40 @@ export default function UropaPriceSync() {
               ) : (
                 <>
                   <RefreshCw className="size-4 mr-2" />
-                  🚀 Run Full Price Sync
+                  Run Full Price Sync
                 </>
               )}
             </Button>
             
             {syncResult && (
-              <div className={`p-3 rounded-lg border ${
+              <div className={`p-3 rounded-xl border ${
                 syncResult.success 
-                  ? 'bg-white border-purple-300' 
-                  : 'bg-red-50 border-red-300'
+                  ? 'bg-white border-indigo-200' 
+                  : 'bg-red-50 border-red-200'
               }`}>
                 {syncResult.success ? (
                   <div className="text-sm">
-                    <p className="font-medium text-purple-800 mb-1">✅ Sync complete!</p>
-                    <p className="text-purple-700">
-                      Checked: {syncResult.log?.productsChecked || 0} products<br />
-                      Updated: {syncResult.log?.pricesUpdated || 0} prices<br />
-                      Duration: {((syncResult.log?.duration || 0) / 1000).toFixed(1)}s
+                    <p className="font-semibold text-indigo-800 mb-2 border-b border-indigo-100 pb-2 flex items-center gap-1.5">
+                      <CheckCircle className="size-4 text-emerald-600" /> Sync complete!
                     </p>
+                    <div className="space-y-1.5 text-xs text-indigo-700/80">
+                      <div className="flex justify-between">
+                        <span>Checked:</span>
+                        <span className="font-bold text-indigo-900">{syncResult.log?.productsChecked || 0} products</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Updated:</span>
+                        <span className="font-bold text-indigo-900">{syncResult.log?.pricesUpdated || 0} prices</span>
+                      </div>
+                      <div className="flex justify-between border-t border-indigo-100 pt-1.5 mt-1.5">
+                        <span>Duration:</span>
+                        <span className="font-semibold text-indigo-900">{((syncResult.log?.duration || 0) / 1000).toFixed(1)}s</span>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-sm font-medium text-red-800">
-                    ❌ {syncResult.error}
+                  <p className="text-sm font-semibold text-[#E31837] flex items-center gap-1.5">
+                    <AlertCircle className="size-4" /> {syncResult.error}
                   </p>
                 )}
               </div>
@@ -1494,21 +1518,23 @@ export default function UropaPriceSync() {
       </div>
 
       {/* Price Analysis Section */}
-      <Card className="border-2 border-blue-200">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100">
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <DollarSign className="size-5" />
+      <Card className="rounded-xl border-slate-200/60 shadow-sm overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-[#2D3748] to-[#1A202C] text-white pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg font-bold">
+            <div className="p-1.5 bg-white/10 rounded-lg">
+              <DollarSign className="size-5 text-emerald-400" />
+            </div>
             Price Analysis
           </CardTitle>
-          <CardDescription className="text-blue-700">
+          <CardDescription className="text-slate-300 font-medium">
             Analyze pricing status across all products in your database
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6">
+        <CardContent className="space-y-4 pt-6 bg-white">
           <Button
             onClick={analyzePrices}
             disabled={isAnalyzing}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full h-9 bg-[#2D3748] hover:bg-[#1A202C] font-semibold text-white shadow-sm"
           >
             {isAnalyzing ? (
               <>
@@ -1524,79 +1550,79 @@ export default function UropaPriceSync() {
           </Button>
 
           {analysis && (
-            <div className="space-y-4">
+            <div className="space-y-5 mt-2">
               {/* Statistics Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="text-xs text-blue-600 font-medium mb-1">With Price</div>
-                  <div className="text-2xl font-bold text-blue-900">
+                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
+                  <div className="text-[11px] uppercase tracking-wider text-blue-600 font-bold mb-1">With Price</div>
+                  <div className="text-2xl font-black text-blue-900">
                     {(analysis.withPrice || 0).toLocaleString()}
                   </div>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="text-xs text-red-600 font-medium mb-1">No Price</div>
-                  <div className="text-2xl font-bold text-red-900">
+                <div className="bg-red-50/50 border border-red-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
+                  <div className="text-[11px] uppercase tracking-wider text-red-600 font-bold mb-1">No Price</div>
+                  <div className="text-2xl font-black text-red-900">
                     {(analysis.withoutPrice || 0).toLocaleString()}
                   </div>
                 </div>
 
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <div className="text-xs text-purple-600 font-medium mb-1">Has Cost Price</div>
-                  <div className="text-2xl font-bold text-purple-900">
+                <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
+                  <div className="text-[11px] uppercase tracking-wider text-purple-600 font-bold mb-1">Has Cost Price</div>
+                  <div className="text-2xl font-black text-purple-900">
                     {(analysis.withCostPrice || 0).toLocaleString()}
                   </div>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="text-xs text-green-600 font-medium mb-1">Avg Sell Price</div>
-                  <div className="text-2xl font-bold text-green-900">
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
+                  <div className="text-[11px] uppercase tracking-wider text-emerald-600 font-bold mb-1">Avg Sell Price</div>
+                  <div className="text-2xl font-black text-emerald-900">
                     ${(analysis.avgPrice || 0).toFixed(2)}
                   </div>
                 </div>
 
-                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                  <div className="text-xs text-indigo-600 font-medium mb-1">Avg Cost Price</div>
-                  <div className="text-2xl font-bold text-indigo-900">
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
+                  <div className="text-[11px] uppercase tracking-wider text-indigo-600 font-bold mb-1">Avg Cost Price</div>
+                  <div className="text-2xl font-black text-indigo-900">
                     ${(analysis.avgCostPrice || 0).toFixed(2)}
                   </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <div className="text-xs text-amber-600 font-medium mb-1">Zero Price</div>
-                  <div className="text-2xl font-bold text-amber-900">
+                <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
+                  <div className="text-[11px] uppercase tracking-wider text-amber-600 font-bold mb-1">Zero Price</div>
+                  <div className="text-2xl font-black text-amber-900">
                     {(analysis.withZeroPrice || 0).toLocaleString()}
                   </div>
                 </div>
               </div>
 
               {/* Price Distribution */}
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-900 mb-3">Price Distribution by Tier</h4>
-                <div className="space-y-2 text-sm">
+              <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5 shadow-sm">
+                <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Price Distribution by Tier</h4>
+                <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Under $50 (50% markup):</span>
-                    <span className="font-bold text-slate-900">{(analysis.priceRanges?.under50 || 0).toLocaleString()}</span>
+                    <span className="text-slate-600 font-medium">Under $50 (50% markup)</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/50 px-2.5 py-0.5 rounded-full">{(analysis.priceRanges?.under50 || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">$50 - $100 (40% markup):</span>
-                    <span className="font-bold text-slate-900">{(analysis.priceRanges?.['50to100'] || 0).toLocaleString()}</span>
+                    <span className="text-slate-600 font-medium">$50 - $100 (40% markup)</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/50 px-2.5 py-0.5 rounded-full">{(analysis.priceRanges?.['50to100'] || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">$100 - $500 (30% markup):</span>
-                    <span className="font-bold text-slate-900">{(analysis.priceRanges?.['100to500'] || 0).toLocaleString()}</span>
+                    <span className="text-slate-600 font-medium">$100 - $500 (30% markup)</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/50 px-2.5 py-0.5 rounded-full">{(analysis.priceRanges?.['100to500'] || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">$500 - $1000 (20% markup):</span>
-                    <span className="font-bold text-slate-900">{(analysis.priceRanges?.['500to1000'] || 0).toLocaleString()}</span>
+                    <span className="text-slate-600 font-medium">$500 - $1000 (20% markup)</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/50 px-2.5 py-0.5 rounded-full">{(analysis.priceRanges?.['500to1000'] || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">$1000 - $5000 (15% markup):</span>
-                    <span className="font-bold text-slate-900">{(analysis.priceRanges?.['1000to5000'] || 0).toLocaleString()}</span>
+                    <span className="text-slate-600 font-medium">$1000 - $5000 (15% markup)</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/50 px-2.5 py-0.5 rounded-full">{(analysis.priceRanges?.['1000to5000'] || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Over $5000 (12% markup):</span>
-                    <span className="font-bold text-slate-900">{(analysis.priceRanges?.over5000 || 0).toLocaleString()}</span>
+                    <span className="text-slate-600 font-medium">Over $5000 (12% markup)</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/50 px-2.5 py-0.5 rounded-full">{(analysis.priceRanges?.over5000 || 0).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -1606,31 +1632,34 @@ export default function UropaPriceSync() {
       </Card>
 
       {/* DEBUG: Price Comparison Tool */}
-      <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-900">
-            🐛 DEBUG: Cost Price Comparison
+      <Card className="rounded-xl border-orange-200/60 bg-gradient-to-br from-orange-50/40 to-yellow-50/40 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-orange-100/50">
+          <CardTitle className="flex items-center gap-2 text-orange-900 text-lg">
+            <div className="p-1.5 bg-orange-100 rounded-lg">
+              🐛
+            </div>
+            DEBUG: Cost Price Comparison
           </CardTitle>
-          <CardDescription className="text-orange-700">
+          <CardDescription className="text-orange-700/80 font-medium">
             Step 1: Check if products have cost prices in DB. Step 2: Compare DB cost vs Uropa API cost
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="debugCodes">Product Codes to Debug</Label>
+        <CardContent className="space-y-4 pt-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="debugCodes" className="text-orange-900 font-semibold text-xs">Product Codes to Debug</Label>
             <textarea
               id="debugCodes"
               placeholder="Enter product codes (one per line or comma separated)&#10;e.g., AA090, DM505"
               value={debugCodes}
               onChange={(e) => setDebugCodes(e.target.value)}
-              className="w-full min-h-[100px] p-3 border-2 border-orange-300 rounded-md font-mono text-sm"
+              className="w-full min-h-[100px] p-3 border border-orange-200 rounded-xl font-mono text-sm shadow-inner focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500"
             />
           </div>
 
           <Button
             onClick={runDebugComparison}
             disabled={isDebugging || !debugCodes.trim()}
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold"
+            className="w-full h-9 bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-sm"
           >
             {isDebugging ? (
               <>
@@ -1646,54 +1675,56 @@ export default function UropaPriceSync() {
 
           {/* Debug Results */}
           {debugResults && (
-            <div className="space-y-3">
+            <div className="space-y-4 pt-2">
               {debugResults.success ? (
                 <>
                   {/* Summary */}
-                  <div className="bg-white border-2 border-orange-300 rounded-lg p-4">
-                    <h4 className="font-bold text-orange-900 mb-2">📊 Summary</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-orange-700">Total Checked:</span>
-                        <span className="font-bold ml-2">{debugResults.summary?.total || 0}</span>
+                  <div className="bg-orange-50/50 border border-orange-200/60 rounded-xl p-4 shadow-sm">
+                    <h4 className="font-bold text-orange-900 mb-3 text-xs uppercase tracking-wider flex items-center gap-1.5 border-b border-orange-100 pb-2">
+                      <RefreshCw className="size-4" /> Summary
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="bg-white/60 p-2.5 rounded-lg border border-orange-100/50 text-center">
+                        <span className="text-orange-700/80 font-medium block text-xs">Total Checked</span>
+                        <span className="font-bold text-lg text-orange-900">{debugResults.summary?.total || 0}</span>
                       </div>
-                      <div>
-                        <span className="text-orange-700">Prices Changed:</span>
-                        <span className="font-bold ml-2">{debugResults.summary?.pricesChanged || 0}</span>
+                      <div className="bg-white/60 p-2.5 rounded-lg border border-orange-100/50 text-center">
+                        <span className="text-orange-700/80 font-medium block text-xs">Prices Changed</span>
+                        <span className="font-bold text-lg text-orange-900">{debugResults.summary?.pricesChanged || 0}</span>
                       </div>
-                      <div>
-                        <span className="text-orange-700">Updated:</span>
-                        <span className="font-bold ml-2">{debugResults.summary?.pricesUpdated || 0}</span>
+                      <div className="bg-white/60 p-2.5 rounded-lg border border-orange-100/50 text-center">
+                        <span className="text-orange-700/80 font-medium block text-xs">Updated</span>
+                        <span className="font-bold text-lg text-orange-900">{debugResults.summary?.pricesUpdated || 0}</span>
                       </div>
-                      <div>
-                        <span className="text-orange-700">Errors:</span>
-                        <span className="font-bold ml-2 text-red-600">{debugResults.summary?.errors || 0}</span>
+                      <div className="bg-white/60 p-2.5 rounded-lg border border-orange-100/50 text-center">
+                        <span className="text-orange-700/80 font-medium block text-xs">Errors</span>
+                        <span className="font-bold text-lg text-[#E31837]">{debugResults.summary?.errors || 0}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Individual Product Results */}
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-orange-900">🔍 Detailed Results:</h4>
+                  <div className="space-y-3">
+                    <h4 className="font-bold text-orange-900 text-xs uppercase tracking-wider px-1">🔍 Detailed Results</h4>
                     {debugResults.results?.map((result: any, idx: number) => (
                       <div 
                         key={idx}
-                        className={`border-2 rounded-lg p-4 ${
-                          result.status === 'updated' ? 'bg-green-50 border-green-300' :
-                          result.status === 'unchanged' ? 'bg-blue-50 border-blue-300' :
-                          result.status === 'not_in_uropa' ? 'bg-red-50 border-red-300' :
-                          result.status === 'error' ? 'bg-red-50 border-red-400' :
-                          'bg-gray-50 border-gray-300'
+                        className={`border rounded-xl p-4 shadow-sm ${
+                          result.status === 'updated' ? 'bg-emerald-50/30 border-emerald-200/60' :
+                          result.status === 'unchanged' ? 'bg-blue-50/30 border-blue-200/60' :
+                          result.status === 'not_in_uropa' ? 'bg-red-50/30 border-red-200/60' :
+                          result.status === 'error' ? 'bg-red-50/30 border-red-300' :
+                          'bg-slate-50/30 border-slate-200/60'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="font-bold font-mono text-lg">{result.code}</span>
-                          <span className={`px-3 py-1 rounded text-sm font-bold ${
-                            result.status === 'updated' ? 'bg-green-200 text-green-900' :
-                            result.status === 'unchanged' ? 'bg-blue-200 text-blue-900' :
-                            result.status === 'not_in_uropa' ? 'bg-red-200 text-red-900' :
-                            result.status === 'error' ? 'bg-red-300 text-red-900' :
-                            'bg-gray-200 text-gray-900'
+                        <div className="flex items-center justify-between mb-4 border-b border-black/5 pb-3">
+                          <span className="font-bold font-mono text-lg text-slate-800 tracking-tight">{result.code}</span>
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold shadow-sm ${
+                            result.status === 'updated' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                            result.status === 'unchanged' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            result.status === 'not_in_uropa' ? 'bg-red-100 text-red-800 border border-red-200' :
+                            result.status === 'error' ? 'bg-red-200 text-red-900 border border-red-300' :
+                            'bg-slate-100 text-slate-800 border border-slate-200'
                           }`}>
                             {result.status === 'updated' && '✅ UPDATED'}
                             {result.status === 'unchanged' && '✓ UP TO DATE'}
@@ -1703,42 +1734,43 @@ export default function UropaPriceSync() {
                         </div>
 
                         {(result.status === 'updated' || result.status === 'unchanged') && (
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {/* Side-by-side comparison */}
-                            <div className="grid grid-cols-2 gap-4 bg-white rounded-lg p-3 border">
-                              <div className="space-y-1">
-                                <p className="text-xs text-gray-500 font-semibold uppercase">💾 Costplus100 Database</p>
-                                <div className="space-y-1">
+                            <div className="grid grid-cols-2 gap-3 bg-white rounded-lg p-3 border border-slate-100 shadow-sm">
+                              <div className="space-y-2 relative pr-3">
+                                <div className="absolute right-0 top-0 bottom-0 w-px bg-slate-100" />
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">💾 DB Cost</p>
+                                <div className="space-y-1.5">
                                   <div>
-                                    <p className="text-xs text-gray-600">Cost Price:</p>
-                                    <p className="font-bold text-xl text-blue-700">
+                                    <p className="text-[11px] text-slate-500 font-medium">Cost Price</p>
+                                    <p className="font-bold text-lg text-slate-700">
                                       ${result.oldCostPrice?.toFixed(2) || result.costPrice?.toFixed(2)}
                                     </p>
                                   </div>
                                   {result.oldSellingPrice && (
-                                    <div className="pt-2 border-t">
-                                      <p className="text-xs text-gray-600">Selling Price:</p>
-                                      <p className="font-semibold text-sm">${result.oldSellingPrice?.toFixed(2)}</p>
+                                    <div className="pt-2 border-t border-slate-100">
+                                      <p className="text-[11px] text-slate-500 font-medium">Selling Price</p>
+                                      <p className="font-semibold text-sm text-slate-600">${result.oldSellingPrice?.toFixed(2)}</p>
                                     </div>
                                   )}
                                 </div>
                               </div>
 
-                              <div className="space-y-1">
-                                <p className="text-xs text-gray-500 font-semibold uppercase">🌐 Uropa API</p>
-                                <div className="space-y-1">
+                              <div className="space-y-2 pl-1">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1"><Eye className="size-3"/> Uropa API</p>
+                                <div className="space-y-1.5">
                                   <div>
-                                    <p className="text-xs text-gray-600">Cost Price:</p>
-                                    <p className={`font-bold text-xl ${
+                                    <p className="text-[11px] text-slate-500 font-medium">Cost Price</p>
+                                    <p className={`font-bold text-lg ${
                                       result.status === 'updated' ? 'text-orange-600' : 'text-blue-700'
                                     }`}>
                                       ${result.newCostPrice?.toFixed(2) || result.costPrice?.toFixed(2)}
                                     </p>
                                   </div>
                                   {result.newSellingPrice && (
-                                    <div className="pt-2 border-t">
-                                      <p className="text-xs text-gray-600">New Selling Price:</p>
-                                      <p className="font-semibold text-sm text-green-600">${result.newSellingPrice?.toFixed(2)}</p>
+                                    <div className="pt-2 border-t border-slate-100">
+                                      <p className="text-[11px] text-slate-500 font-medium">New Selling Price</p>
+                                      <p className="font-semibold text-sm text-emerald-600">${result.newSellingPrice?.toFixed(2)}</p>
                                     </div>
                                   )}
                                 </div>
@@ -1747,35 +1779,27 @@ export default function UropaPriceSync() {
 
                             {/* Show change details if updated */}
                             {result.status === 'updated' && (
-                              <div className="bg-amber-50 border border-amber-300 rounded-lg p-3">
-                                <p className="text-xs text-amber-700 font-semibold mb-1">PRICE CHANGE:</p>
-                                <div className="flex items-center gap-4">
-                                  <div>
-                                    <p className="text-xs text-gray-600">Cost Difference:</p>
-                                    <p className={`font-bold ${result.difference > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                      {result.difference > 0 ? '+' : ''}${result.difference?.toFixed(2)}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs text-gray-600">Percentage:</p>
-                                    <p className={`font-bold ${result.percentChange > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                      {result.percentChange > 0 ? '+' : ''}{result.percentChange?.toFixed(1)}%
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs text-gray-600">Selling Price Change:</p>
-                                    <p className="font-bold text-blue-700">
-                                      ${(result.newSellingPrice - result.oldSellingPrice)?.toFixed(2)}
-                                    </p>
-                                  </div>
+                              <div className="bg-orange-50/50 border border-orange-200/60 rounded-lg p-3 flex items-center justify-between">
+                                <div>
+                                  <p className="text-[10px] text-orange-700 font-bold uppercase tracking-wider mb-1">Difference</p>
+                                  <p className={`font-bold text-sm ${result.difference > 0 ? 'text-[#E31837]' : 'text-emerald-600'}`}>
+                                    {result.difference > 0 ? '+' : ''}${result.difference?.toFixed(2)}
+                                    <span className="text-xs opacity-80 ml-1">({result.percentChange > 0 ? '+' : ''}{result.percentChange?.toFixed(1)}%)</span>
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-[10px] text-orange-700 font-bold uppercase tracking-wider mb-1">Selling Change</p>
+                                  <p className="font-bold text-sm text-blue-700">
+                                    ${(result.newSellingPrice - result.oldSellingPrice)?.toFixed(2)}
+                                  </p>
                                 </div>
                               </div>
                             )}
                             
                             {/* Show "no change" message if unchanged */}
                             {result.status === 'unchanged' && (
-                              <div className="bg-blue-50 border border-blue-300 rounded-lg p-2">
-                                <p className="text-sm text-blue-800 font-medium text-center">
+                              <div className="bg-blue-50/50 border border-blue-200/60 rounded-lg p-2.5">
+                                <p className="text-xs text-blue-800 font-medium text-center">
                                   ✓ Prices are identical - No update needed
                                 </p>
                               </div>
@@ -1784,17 +1808,17 @@ export default function UropaPriceSync() {
                         )}
 
                         {result.status === 'not_in_uropa' && (
-                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                            <p className="text-red-700 font-medium">❌ {result.error}</p>
-                            <p className="text-red-600 text-xs mt-1">
+                          <div className="bg-red-50/50 border border-red-200/60 rounded-lg p-3 mt-3">
+                            <p className="text-red-700 font-semibold text-sm">❌ {result.error}</p>
+                            <p className="text-red-600/80 text-xs mt-1">
                               This product code was not found in the Uropa API response
                             </p>
                           </div>
                         )}
 
                         {result.status === 'error' && (
-                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                            <p className="text-red-800 font-medium">⚠️ Error: {result.error}</p>
+                          <div className="bg-red-50/50 border border-red-200/60 rounded-lg p-3 mt-3">
+                            <p className="text-red-800 font-semibold text-sm">⚠️ Error: {result.error}</p>
                           </div>
                         )}
                       </div>
@@ -1802,8 +1826,8 @@ export default function UropaPriceSync() {
                   </div>
                 </>
               ) : (
-                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
-                  <p className="font-bold text-red-800">❌ Debug Failed</p>
+                <div className="bg-red-50/50 border border-red-200 rounded-xl p-4">
+                  <p className="font-bold text-red-800 flex items-center gap-1.5"><AlertCircle className="size-4" /> Debug Failed</p>
                   <p className="text-red-700 text-sm mt-1">{debugResults.error}</p>
                 </div>
               )}
@@ -1813,52 +1837,55 @@ export default function UropaPriceSync() {
       </Card>
 
       {/* 🧪 TEST WORKFLOW - Complete End-to-End Test */}
-      <Card className="border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-purple-900">
-            🧪 Complete Price Formula Test
+      <Card className="rounded-xl border-purple-200/60 bg-gradient-to-br from-purple-50/40 to-fuchsia-50/40 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-purple-100/50">
+          <CardTitle className="flex items-center gap-2 text-purple-900 text-lg">
+            <div className="p-1.5 bg-purple-100 rounded-lg">
+              🧪
+            </div>
+            Complete Price Formula Test
           </CardTitle>
-          <CardDescription className="text-purple-700">
+          <CardDescription className="text-purple-700/80 font-medium">
             Test the complete system: Query product → Update cost → Query again → Verify formula
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-purple-100 border-2 border-purple-300 rounded-lg p-4">
-            <h3 className="font-bold text-purple-900 mb-2">📋 Test Steps:</h3>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-purple-800">
-              <li>Enter product code and click "Query Current Prices"</li>
+        <CardContent className="space-y-4 pt-4">
+          <div className="bg-white/60 border border-purple-200/60 rounded-xl p-4 shadow-sm">
+            <h3 className="font-bold text-purple-900 mb-2 text-xs uppercase tracking-wider">📋 Test Steps:</h3>
+            <ol className="list-decimal list-inside space-y-1.5 text-sm text-purple-800">
+              <li>Enter product code and click <span className="font-bold text-purple-900">"Query Product Prices"</span></li>
               <li>Note the current cost and selling price</li>
-              <li>Scroll to "Manual Cost Update" below</li>
+              <li>Scroll to <span className="font-bold text-purple-900">"Manual Cost Update"</span> below</li>
               <li>Change the cost price</li>
               <li>Come back here and query again</li>
               <li>Compare: selling price should be recalculated using formula</li>
             </ol>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="testQueryCode" className="text-purple-900 font-semibold">Product Code to Test</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="testQueryCode" className="text-purple-900 font-semibold text-xs">Product Code to Test</Label>
             <Input
               id="testQueryCode"
               placeholder="e.g., FZ433"
               value={queryCode}
               onChange={(e) => setQueryCode(e.target.value)}
-              className="w-full p-3 border-2 border-purple-300 rounded-md font-mono text-lg bg-white"
+              className="w-full h-11 px-3 border border-purple-200 rounded-xl font-mono text-base bg-white shadow-inner focus-visible:ring-1 focus-visible:ring-purple-500"
             />
           </div>
 
           <Button
             onClick={queryProductCost}
             disabled={isQuerying || !queryCode.trim()}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3"
+            className="w-full h-11 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-sm rounded-xl text-base"
           >
             {isQuerying ? (
               <>
-                <RefreshCw className="size-4 mr-2 animate-spin" />
+                <RefreshCw className="size-5 mr-2 animate-spin" />
                 Querying...
               </>
             ) : (
               <>
-                <Search className="size-4 mr-2" />
+                <Search className="size-5 mr-2" />
                 Query Product Prices
               </>
             )}
@@ -1929,7 +1956,7 @@ export default function UropaPriceSync() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-3">
+              <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-3 shadow-sm mt-3">
                 <p className="font-bold text-blue-900">🎯 Next: Use "Manual Cost Update" below to change cost, then query again!</p>
                 <p className="text-sm text-blue-800 mt-1">
                   <Link to={`/products/${queryResult.product?.id}`} className="text-blue-600 underline font-bold">
@@ -1941,49 +1968,51 @@ export default function UropaPriceSync() {
           )}
 
           {queryResult && !queryResult.success && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
-              <p className="font-bold text-red-900">❌ {queryResult.error}</p>
+            <div className="bg-red-50/50 border border-red-200 rounded-xl p-4">
+              <p className="font-bold text-red-900 flex items-center gap-1.5"><AlertCircle className="size-4" /> {queryResult.error}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Manual Cost Update Section */}
-      <Card className="border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-900">
-            <Key className="size-5" />
+      <Card className="rounded-xl border-slate-200/60 bg-gradient-to-br from-slate-50 to-white shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <CardTitle className="flex items-center gap-2 text-slate-800 text-lg">
+            <div className="p-1.5 bg-slate-100 rounded-lg">
+              <Key className="size-4 text-slate-600" />
+            </div>
             Manual Cost Update
           </CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-slate-500 font-medium">
             Update the cost price of a product manually
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="manualCode">Product Code</Label>
+        <CardContent className="space-y-4 pt-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="manualCode" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">Product Code</Label>
             <Input
               id="manualCode"
               placeholder="Enter product code"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              className="w-full p-3 border-2 border-gray-300 rounded-md font-mono text-sm"
+              className="w-full h-9 border-slate-200 rounded-lg font-mono text-sm focus-visible:ring-1 focus-visible:ring-slate-400"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="manualCost">New Cost Price</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="manualCost" className="text-slate-700 font-semibold text-xs uppercase tracking-wider">New Cost Price</Label>
             <Input
               id="manualCost"
               placeholder="Enter new cost price"
               value={manualCost}
               onChange={(e) => setManualCost(e.target.value)}
-              className="w-full p-3 border-2 border-gray-300 rounded-md font-mono text-sm"
+              className="w-full h-9 border-slate-200 rounded-lg font-mono text-sm focus-visible:ring-1 focus-visible:ring-slate-400"
             />
           </div>
           <Button
             onClick={updateManualCost}
             disabled={isUpdatingManual || !manualCode.trim() || !manualCost.trim()}
-            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold"
+            className="w-full h-9 bg-slate-800 hover:bg-slate-900 text-white font-semibold shadow-sm rounded-lg"
           >
             {isUpdatingManual ? (
               <>
@@ -2000,41 +2029,43 @@ export default function UropaPriceSync() {
       </Card>
 
       {/* ✅ NEW: Manual Query Section */}
-      <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-purple-900">
-            <Search className="size-5" />
-            🔍 Query Single Product
+      <Card className="rounded-xl border-indigo-200/60 bg-gradient-to-br from-indigo-50/40 to-blue-50/40 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-indigo-100/50">
+          <CardTitle className="flex items-center gap-2 text-indigo-900 text-lg">
+            <div className="p-1.5 bg-indigo-100 rounded-lg">
+              <Search className="size-4 text-indigo-600" />
+            </div>
+            Query Single Product
           </CardTitle>
-          <CardDescription className="text-gray-700">
+          <CardDescription className="text-indigo-700/80 font-medium">
             Compare database prices with live Uropa API prices
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
           {/* How it works explanation */}
-          <div className="p-3 bg-white rounded border border-purple-200 text-xs">
-            <p className="font-bold text-purple-900 mb-1">📖 How it works:</p>
-            <ul className="space-y-1 text-gray-700 list-none">
-              <li>1️�� <span className="font-semibold">Uropa's Selling Price</span> → Saved as YOUR <span className="font-mono bg-green-100 px-1">tradePrice</span> (cost)</li>
-              <li>2️⃣ <span className="font-semibold">Apply Tiered Formula:</span> <span className="font-mono bg-blue-100 px-1">Your Selling = tradePrice + Dollar Markup</span></li>
-              <li>3️⃣ <span className="font-semibold">Your Selling Price</span> → Saved as <span className="font-mono bg-purple-100 px-1">price</span> field</li>
+          <div className="p-3 bg-white/60 rounded-xl border border-indigo-100 shadow-sm text-xs">
+            <p className="font-bold text-indigo-900 mb-1.5 uppercase tracking-wider">📖 How it works:</p>
+            <ul className="space-y-1.5 text-slate-700 list-none">
+              <li className="flex items-start gap-1"><span className="text-indigo-500 font-bold">1️⃣</span> <span><span className="font-semibold text-slate-900">Uropa's Selling Price</span> → Saved as YOUR <span className="font-mono bg-emerald-100/50 text-emerald-800 border border-emerald-200 rounded px-1 py-0.5">tradePrice</span> (cost)</span></li>
+              <li className="flex items-start gap-1"><span className="text-indigo-500 font-bold">2️⃣</span> <span><span className="font-semibold text-slate-900">Apply Tiered Formula:</span> <span className="font-mono bg-blue-100/50 text-blue-800 border border-blue-200 rounded px-1 py-0.5">Your Selling = tradePrice + Dollar Markup</span></span></li>
+              <li className="flex items-start gap-1"><span className="text-indigo-500 font-bold">3️⃣</span> <span><span className="font-semibold text-slate-900">Your Selling Price</span> → Saved as <span className="font-mono bg-purple-100/50 text-purple-800 border border-purple-200 rounded px-1 py-0.5">price</span> field</span></li>
             </ul>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="queryCode">Product Code</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="queryCode" className="text-indigo-900 font-semibold text-xs uppercase tracking-wider">Product Code</Label>
             <Input
               id="queryCode"
               placeholder="Enter product code"
               value={queryCode}
               onChange={(e) => setQueryCode(e.target.value)}
-              className="w-full p-3 border-2 border-gray-300 rounded-md font-mono text-sm"
+              className="w-full h-9 border-indigo-200 rounded-lg font-mono text-sm focus-visible:ring-1 focus-visible:ring-indigo-500 bg-white"
             />
           </div>
           <Button
             onClick={queryProductCost}
             disabled={isQuerying || !queryCode.trim()}
-            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold"
+            className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm rounded-lg"
           >
             {isQuerying ? (
               <>
@@ -2043,10 +2074,12 @@ export default function UropaPriceSync() {
               </>
             ) : (
               <>
-                🔎 Query Product
+                <Search className="size-4 mr-2" />
+                Query Product
               </>
             )}
           </Button>
+
 
           {/* Query Results */}
           {queryResult && (

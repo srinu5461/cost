@@ -14,11 +14,21 @@ interface CartContextType {
   getCustomerDiscount: () => number;
   getCartCount: () => number;
   getItemPrice: (item: CartItem) => number;
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
+  openCartDrawer: () => void;
+  closeCartDrawer: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  // 🛒 Slide-over Cart Drawer state
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const openCartDrawer = () => setIsCartOpen(true);
+  const closeCartDrawer = () => setIsCartOpen(false);
+
   // Load cart from localStorage on mount
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -209,6 +219,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         getCustomerDiscount,
         getCartCount,
         getItemPrice,
+        isCartOpen,
+        setIsCartOpen,
+        openCartDrawer,
+        closeCartDrawer,
       }}
     >
       {children}
