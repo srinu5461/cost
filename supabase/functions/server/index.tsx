@@ -3521,6 +3521,103 @@ app.route('/make-server-d1fbc049/legal', legal);
 app.route('/make-server-d1fbc049/cms', cms);
 app.route('/make-server-d1fbc049/import-simco', importSimco);
 
+// ─── BLOG ENDPOINTS ──────────────────────────────────────────────────────────
+
+app.get('/make-server-d1fbc049/blog/posts', async (c) => {
+  try {
+    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
+    const published = posts
+      .filter((p: any) => p.status === 'published')
+      .sort((a: any, b: any) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    return c.json({ posts: published });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
+});
+
+app.get('/make-server-d1fbc049/blog/posts/:slug', async (c) => {
+  try {
+    const slug = c.req.param('slug');
+    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
+    const post = posts.find((p: any) => p.slug === slug && p.status === 'published');
+    if (!post) return c.json({ error: 'Not found' }, 404);
+    return c.json({ post });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
+});
+
+app.get('/make-server-d1fbc049/admin/blog/posts', async (c) => {
+  try {
+    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
+    return c.json({ posts: posts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
+});
+
+app.post('/make-server-d1fbc049/admin/blog/posts', async (c) => {
+  try {
+    const body = await c.req.json();
+    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
+    const now = new Date().toISOString();
+    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '-' + Date.now();
+    const post = {
+      id: crypto.randomUUID(),
+      title: body.title,
+      slug,
+      excerpt: body.excerpt || '',
+      content: body.content || '',
+      coverImage: body.coverImage || '',
+      tags: body.tags || [],
+      author: body.author || 'CostPlus Team',
+      status: body.status || 'draft',
+      createdAt: now,
+      publishedAt: body.status === 'published' ? now : null,
+    };
+    await kv.set('blog_posts', [...posts, post]);
+    return c.json({ post });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
+});
+
+app.put('/make-server-d1fbc049/admin/blog/posts/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
+    const idx = posts.findIndex((p: any) => p.id === id);
+    if (idx === -1) return c.json({ error: 'Not found' }, 404);
+    const existing = posts[idx];
+    const updated = {
+      ...existing,
+      ...body,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      publishedAt: body.status === 'published' && !existing.publishedAt ? new Date().toISOString() : existing.publishedAt,
+    };
+    posts[idx] = updated;
+    await kv.set('blog_posts', posts);
+    return c.json({ post: updated });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
+});
+
+app.delete('/make-server-d1fbc049/admin/blog/posts/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
+    await kv.set('blog_posts', posts.filter((p: any) => p.id !== id));
+    return c.json({ success: true });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Legacy CMS routes for About page (kept for backwards compatibility)
 app.get('/make-server-d1fbc049/cms/about', async (c) => {
   try {

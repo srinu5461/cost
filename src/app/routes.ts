@@ -171,6 +171,20 @@ const LegalPagesManager = lazy(() => import('./pages/admin/LegalPagesManager').c
 }));
 const AboutEditor = lazy(() => import('./pages/admin/AboutEditor').then(m => ({ default: m.AboutEditor })));
 
+// Blog - Lazy load
+const Blog = lazy(() => import('./pages/Blog').then(m => ({ default: m.Blog })).catch(err => {
+  console.error('Failed to load Blog:', err);
+  return { default: () => null };
+}));
+const BlogPost = lazy(() => import('./pages/BlogPost').then(m => ({ default: m.BlogPost })).catch(err => {
+  console.error('Failed to load BlogPost:', err);
+  return { default: () => null };
+}));
+const BlogManager = lazy(() => import('./pages/admin/BlogManager').then(m => ({ default: m.BlogManager })).catch(err => {
+  console.error('Failed to load BlogManager:', err);
+  return { default: () => null };
+}));
+
 // Business Management Pages - Lazy load
 const Quotations = lazy(() => import('./pages/Quotations').then(m => ({ default: m.Quotations })));
 const CreateQuotation = lazy(() => import('./pages/admin/CreateQuotation').then(m => ({ default: m.CreateQuotation })));
@@ -224,6 +238,8 @@ export const router = createBrowserRouter(
           { path: 'products/:id', Component: ProductDetail },
           { path: 'brands', Component: Brands },
           { path: 'brands/:brandName', Component: Brands },
+          { path: 'blog', Component: Blog },
+          { path: 'blog/:slug', Component: BlogPost },
           { path: 'promotions', Component: Promotions },
           { path: 'cart', Component: Cart },
           { path: 'checkout', Component: Checkout },
@@ -282,6 +298,7 @@ export const router = createBrowserRouter(
               { path: 'header', Component: HeaderEditor },
               { path: 'footer', Component: FooterEditor },
               { path: 'about', Component: AboutEditor },
+              { path: 'blog', Component: BlogManager },
               { path: 'homepage', Component: HomepageEditor },
               { path: 'banners', Component: BannersManager },
               { path: 'menu-brands', Component: MenuBrandsManager },
