@@ -1358,7 +1358,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
       )}
 
       {/* ── 3 CATEGORY PROMO BANNERS ABOVE POLAR (FRIDGE, FURNITURE, KITCHEN) ── */}
-      <section className="py-4 md:py-5 w-full overflow-hidden">
+      {false && <section className="py-4 md:py-5 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
           <div className="relative -mx-2">
             <Slider
@@ -1439,7 +1439,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
             </Slider>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── SECTION 2: POLAR COMMERCIAL REFRIGERATION (FULL-WIDTH PURE WHITE bg-white) ── */}
       {polarProducts.length > 0 && (
@@ -1618,7 +1618,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
       )}
 
       {/* ── 3 CATEGORY PROMO BANNERS AFTER THOR (CLOTHING, CONSUMABLES, TABLEWARE) ── */}
-      <section className="py-4 md:py-5 w-full overflow-hidden">
+      {false && <section className="py-4 md:py-5 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
           <div className="relative -mx-2">
             <Slider
@@ -1702,7 +1702,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
             </Slider>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── SECTION 4: MULTI-BUY WHOLESALE DEALS (FULL-WIDTH PURE WHITE bg-white) ── */}
       {false && multiBuyProducts.length > 0 && (
@@ -1788,7 +1788,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
       )}
 
       {/* ── 3 CATEGORY PROMO BANNERS AFTER MULTI-BUY DEALS (CLEANING, CLEARANCE, SIMCO) ── */}
-      <section className="py-4 md:py-5 w-full overflow-hidden">
+      {false && <section className="py-4 md:py-5 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
           <div className="relative -mx-2">
             <Slider
@@ -1869,7 +1869,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
             </Slider>
           </div>
         </div>
-      </section>
+      </section>}
 
 
       {/* ── SECTION 7: TOP BRANDS (FULL-WIDTH SLIGHT GRAY bg-[#F8FAFC]) ── */}
