@@ -690,7 +690,8 @@ export function Home() {
       const cat = (p.category || '').toLowerCase();
       return brand.includes('polar') || (name.includes('polar') && (cat.includes('refrig') || name.includes('freezer') || name.includes('fridge') || name.includes('cooler') || name.includes('counter')));
     });
-    if (matched.length >= 4) return matched.slice(0, 12);
+    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+    if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
 
     const refrigFallback = products
       .filter((p: any) => {
@@ -698,10 +699,11 @@ export function Home() {
         const name = (p.name || '').toLowerCase();
         return cat.includes('refrig') || name.includes('fridge') || name.includes('freezer') || name.includes('cooler') || name.includes('counter') || name.includes('ice');
       })
+      .sort(byPrice)
       .slice(0, 10)
       .map(p => ({ ...p, brand: p.brand || 'POLAR' }));
 
-    return [...matched, ...refrigFallback].slice(0, 12);
+    return [...matched, ...refrigFallback].sort(byPrice).slice(0, 12);
   }, [products]);
 
   // Thor Range products
@@ -712,7 +714,8 @@ export function Home() {
       const cat = (p.category || '').toLowerCase();
       return brand.includes('thor') || name.includes('thor') || (cat.includes('cook') && (name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('hotplate')));
     });
-    if (matched.length >= 4) return matched.slice(0, 12);
+    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+    if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
 
     const cookingFallback = products
       .filter((p: any) => {
@@ -720,10 +723,11 @@ export function Home() {
         const name = (p.name || '').toLowerCase();
         return cat.includes('cook') || name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('burner');
       })
+      .sort(byPrice)
       .slice(0, 10)
       .map(p => ({ ...p, brand: p.brand || 'THOR' }));
 
-    return [...matched, ...cookingFallback].slice(0, 12);
+    return [...matched, ...cookingFallback].sort(byPrice).slice(0, 12);
   }, [products]);
 
   // Popular Departments Products Filter (8 items for 4x2 grid)
