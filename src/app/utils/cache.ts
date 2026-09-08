@@ -42,9 +42,11 @@ export function isCacheValid(cacheData: CacheData | null): boolean {
   // Get current cache version
   const currentVersion = localStorage.getItem(CACHE_VERSION_KEY) || '1';
   const cacheVersion = cacheData.version || '1';
+  if (currentVersion !== cacheVersion) return false;
 
-  // Cache is valid if version matches (no time expiration!)
-  return currentVersion === cacheVersion;
+  // Expire cache after 10 minutes so category/content changes propagate
+  const TTL_MS = 10 * 60 * 1000;
+  return (Date.now() - cacheData.timestamp) < TTL_MS;
 }
 
 /**
