@@ -1840,11 +1840,25 @@ app.delete("/make-server-d1fbc049/categories/:id", async (c) => {
     }
     
     const id = c.req.param('id');
+
+    // Remove from flat categories list
     const categories = await kv.get('categories') || [];
     const filtered = categories.filter((cat: any) => cat !== id);
-    
     await kv.set('categories', filtered);
-    
+
+    // Also remove from category_tree (recursive removal of node and its children)
+    const tree = await kv.get('category_tree').catch(() => []) as any[] || [];
+    const removeNode = (nodes: any[], targetId: string): any[] => {
+      return nodes
+        .filter((n: any) => n.id !== targetId && n.slug !== targetId && n.path !== targetId)
+        .map((n: any) => n.children ? { ...n, children: removeNode(n.children, targetId) } : n);
+    };
+    const updatedTree = removeNode(tree, id);
+    await kv.set('category_tree', updatedTree);
+
+    // Invalidate server cache
+    await invalidateCMSCache('Category deleted');
+
     return c.json({ success: true });
   } catch (error) {
     console.log('Delete category error:', error);
