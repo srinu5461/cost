@@ -336,6 +336,7 @@ export function Home() {
   const sliderRef = useRef<any>(null);
   const featuredSliderRef = useRef<any>(null);
   const multiBuySliderRef = useRef<any>(null);
+  const simcoSliderRef = useRef<any>(null);
   const polarSliderRef = useRef<any>(null);
   const thorSliderRef = useRef<any>(null);
   const categorySliderRef = useRef<any>(null);
@@ -683,6 +684,17 @@ export function Home() {
   }, [products]);
 
   // Polar Refrigeration products
+  const simcoProducts = useMemo(() => {
+    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+    return products
+      .filter((p: any) => {
+        const brand = (p.brand || '').toLowerCase();
+        const src = (p.importSource || '').toLowerCase();
+        return brand.includes('simco') || src.includes('simco');
+      })
+      .sort(byPrice);
+  }, [products]);
+
   const polarProducts = useMemo(() => {
     const matched = products.filter((p: any) => {
       const brand = (p.brand || '').toLowerCase();
@@ -1279,7 +1291,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
       {/* ── FULL-WIDTH ALTERNATING 2-COLOR SECTIONS (WHITE / SLIGHT GRAY bg-[#F8FAFC]) ── */}
 
       {/* ── SECTION 1: FEATURED COMMERCIAL EQUIPMENT (FULL-WIDTH SLIGHT GRAY bg-[#F8FAFC]) ── */}
-      {displayFeaturedProducts.length > 0 && (
+      {false && displayFeaturedProducts.length > 0 && (
         <section className="max-[599px]:py-2 py-4 md:py-5 w-full">
           <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
             <div className="flex items-center justify-between max-[599px]:mb-2 mb-4 sm:mb-5">
@@ -1444,6 +1456,63 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
           </div>
         </div>
       </section>}
+
+      {/* ── SIMCO RANGE ── */}
+      {simcoProducts.length > 0 && (
+        <section className="max-[599px]:py-2 py-4 md:py-5 w-full">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 w-full">
+            <div className="flex items-center justify-between max-[599px]:mb-2 mb-4 sm:mb-5">
+              <div>
+                <div className="flex flex-col min-[600px]:flex-row items-start min-[600px]:items-center gap-1 min-[600px]:gap-2">
+                  <span className="text-[10px] sm:text-xs font-black text-[#0284C7] bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                    SIMCO
+                  </span>
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold max-[599px]:font-semibold text-slate-900 tracking-tight">
+                    Simco Commercial Equipment
+                  </h2>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 hidden sm:block">
+                  Full range of Simco commercial kitchen equipment.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/products?brand=simco" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                  View all
+                </Link>
+                <div className="hidden sm:flex items-center gap-1">
+                  <button onClick={() => simcoSliderRef.current?.slickPrev()} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer" aria-label="Previous Simco Products"><ChevronLeft className="size-5" /></button>
+                  <button onClick={() => simcoSliderRef.current?.slickNext()} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 hover:text-[#E31837] shadow-2xs transition-all cursor-pointer" aria-label="Next Simco Products"><ChevronRight className="size-5" /></button>
+                </div>
+              </div>
+            </div>
+            <div className="relative -mx-2.5">
+              <Slider
+                key={`simco-slider-${productSlidesToShow}`}
+                ref={simcoSliderRef}
+                dots={false}
+                infinite={true}
+                speed={500}
+                slidesToShow={productSlidesToShow}
+                slidesToScroll={1}
+                autoplay={true}
+                autoplaySpeed={5000}
+                arrows={false}
+                swipe={true}
+                swipeToSlide={true}
+                touchMove={true}
+                draggable={true}
+                touchThreshold={10}
+              >
+                {simcoProducts.map((product) => (
+                  <div key={`simco-${product.id}`} className="px-2.5 h-full pb-3">
+                    <FeaturedEquipmentCard product={product} />
+                  </div>
+                ))}
+              </Slider>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── SECTION 2: POLAR COMMERCIAL REFRIGERATION (FULL-WIDTH PURE WHITE bg-white) ── */}
       {polarProducts.length > 0 && (
