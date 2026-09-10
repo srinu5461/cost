@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useCMS } from '../context/CMSContext';
 import { QuoteModal } from './QuoteModal';
+import { categoryToSlug } from '../utils/slugify';
+import { buildCategoryTree } from '../utils/categoryTree';
 import {
   Facebook,
   Instagram,
@@ -10,6 +12,10 @@ import {
   Mail,
   Phone,
   MapPin,
+  ShieldCheck,
+  Headphones,
+  Truck,
+  Award,
   ChevronRight,
   Lock,
   FileText
@@ -88,7 +94,7 @@ function ApplePayLogo() {
   return (
     <div className="bg-white px-2.5 py-1 rounded-md flex items-center justify-center shadow-xs h-7">
       <span className="font-bold text-xs text-black tracking-tight flex items-center gap-0.5">
-        <span className="text-sm leading-none"></span>Pay
+        <span className="text-sm leading-none"></span>Pay
       </span>
     </div>
   );
@@ -129,24 +135,31 @@ export function Footer() {
         address: '5/14 Latham Street, Botany NSW 2019, Australia',
         socialMedia: {},
       },
-      categoryTree: [],
     };
   }
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const location = useLocation();
   const isHomePage = location.pathname === '/';
-  const { footer } = data;
-
-  // Top-level categories for footer
-  const topCategories = (data.categoryTree || []).slice(0, 8);
-
-  return (
+const { footer } = data;
+const builtCategoryTree = buildCategoryTree(data.categoryTree || []);
+const FOOTER_CATEGORY_NAMES = [
+  'refrigeration',
+  'simco equipment',
+  'commercial kitchen machines',
+  'kitchenware',
+];
+const topCategories = FOOTER_CATEGORY_NAMES
+  .map(name => builtCategoryTree.find((c: any) => c.name?.toLowerCase().includes(name)))
+  .filter(Boolean)
+  .slice(0, 5);
+    return (
     <footer className="bg-[#0B1220] text-slate-300 w-full font-sans border-t border-slate-800/80">
 
       {/* ── PRE-FOOTER PROMO BANNER (HOMEPAGE ONLY) ── */}
       {isHomePage && (
         <div className="w-full relative overflow-hidden py-6 sm:py-8 flex items-center justify-center border-b border-slate-800/80 bg-[#070D18]">
+          {/* Background Image with Light Transparent Gradient Overlay */}
           <div className="absolute inset-0 z-0">
             <img
               src="/images/prefooterkitchen.png"
@@ -155,6 +168,8 @@ export function Footer() {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-[#070D18]/65 via-[#070D18]/35 to-[#070D18]/65" />
           </div>
+
+          {/* Content Container */}
           <div className="max-w-4xl mx-auto px-4 text-center z-10 relative flex flex-col items-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <span className="w-6 h-[1.5px] bg-[#E31837]" />
@@ -190,234 +205,163 @@ export function Footer() {
         </div>
       )}
 
-      {/* ── MAIN FOOTER GRID ── */}
+      {/* ── SECTION 1: MAIN FOOTER GRID ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-10">
 
-          {/* Column 1: Brand Info */}
-          <div className="space-y-4 lg:col-span-1">
-            <BrandLogo />
-            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed font-normal">
-              {footer.about || 'Your trusted partner for professional catering equipment. We provide commercial-grade products from leading brands.'}
-            </p>
-            <div className="flex items-center gap-2.5 pt-2">
-              <a href={footer.socialMedia?.facebook || '#'} target="_blank" rel="noopener noreferrer" aria-label="Facebook"
-                className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
-                <Facebook className="size-4" />
-              </a>
-              <a href={footer.socialMedia?.instagram || '#'} target="_blank" rel="noopener noreferrer" aria-label="Instagram"
-                className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
-                <Instagram className="size-4" />
-              </a>
-              <a href={footer.socialMedia?.linkedin || '#'} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
-                className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
-                <Linkedin className="size-4" />
-              </a>
-              <a href={footer.socialMedia?.youtube || '#'} target="_blank" rel="noopener noreferrer" aria-label="YouTube"
-                className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
-                <Youtube className="size-4" />
-              </a>
-            </div>
+        {/* Top row: phone + social */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-slate-800/60">
+          <div className="flex items-center gap-3">
+            <Phone className="size-4 text-[#E31837]" />
+            <a href={`tel:${(footer.phone || '1800 151 624').replace(/\s/g, '')}`} className="text-white font-extrabold text-base sm:text-lg hover:text-[#E31837] transition-colors tracking-tight">
+              Call Us : {footer.phone || '1800 151 624'}
+            </a>
           </div>
-
-          {/* Column 2: Categories */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xs font-black text-white uppercase tracking-wider">CATEGORIES</h3>
-              <div className="w-6 h-0.5 bg-[#E31837] mt-1.5" />
-            </div>
-            <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
-              {topCategories.length > 0 ? topCategories.map((cat: any) => (
-                <li key={cat.id}>
-                  <Link
-                    to={`/products?category=${cat.slug}`}
-                    className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group"
-                  >
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>{cat.name}</span>
-                  </Link>
-                </li>
-              )) : (
-                <li>
-                  <Link to="/products" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>All Products</span>
-                  </Link>
-                </li>
-              )}
-            </ul>
+          <div className="flex items-center gap-2.5">
+            <a href={footer.socialMedia?.facebook || '#'} target="_blank" rel="noopener noreferrer" aria-label="Facebook"
+              className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
+              <Facebook className="size-4" />
+            </a>
+            <a href={footer.socialMedia?.instagram || '#'} target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+              className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
+              <Instagram className="size-4" />
+            </a>
+            <a href={footer.socialMedia?.linkedin || '#'} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
+              className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
+              <Linkedin className="size-4" />
+            </a>
+            <a href={footer.socialMedia?.youtube || '#'} target="_blank" rel="noopener noreferrer" aria-label="YouTube"
+              className="size-9 rounded-full bg-slate-800/90 hover:bg-[#E31837] text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700/50">
+              <Youtube className="size-4" />
+            </a>
           </div>
+        </div>
 
-          {/* Columns 3 & 4: Quick Links & Help & Support */}
-          <div className="grid grid-cols-2 gap-4 sm:gap-8 md:col-span-2 lg:col-span-2 lg:grid-cols-2">
-            {/* Column 3: Quick Links */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">QUICK LINKS</h3>
-                <div className="w-6 h-0.5 bg-[#E31837] mt-1.5" />
-              </div>
-              <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
-                <li>
-                  <Link to="/products" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>All Products</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/delivery-information" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>Delivery Information</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>About Us</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>Contact Us</span>
-                  </Link>
-                </li>
-              </ul>
-            </div>
+        {/* Main columns: Quick Links | each top-level category as its own column */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-0 divide-x divide-slate-800/60">
 
-            {/* Column 4: Help & Support */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">HELP &amp; SUPPORT</h3>
-                <div className="w-6 h-0.5 bg-[#E31837] mt-1.5" />
-              </div>
-              <ul className="space-y-2.5 text-xs sm:text-sm font-medium">
-                <li>
-                  <Link to="/terms-and-conditions" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>Terms &amp; Conditions</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/return-refund-policy" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>Returns &amp; Refund Policy</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/warranty-repairs" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>Warranty &amp; Repairs</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/privacy-policy" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>Privacy Policy</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/faq" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
-                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    <span>FAQs</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/login" className="text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1.5 text-xs pt-1">
-                    <Lock className="size-3 text-[#E31837]" />
-                    <span>Admin Login</span>
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Column 5: Contact Us */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xs font-black text-white uppercase tracking-wider">CONTACT US</h3>
-              <div className="w-6 h-0.5 bg-[#E31837] mt-1.5" />
-            </div>
-            <ul className="space-y-3.5 text-xs sm:text-sm font-medium">
-              <li className="flex items-center gap-3 text-slate-300">
-                <div className="size-7 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-center shrink-0">
-                  <Mail className="size-4 text-[#E31837]" />
-                </div>
-                <a href={`mailto:${footer.email || 'info@costplus100.com.au'}`} className="hover:text-white transition-colors">
-                  {footer.email || 'info@costplus100.com.au'}
+          {/* Column: Quick Links */}
+          <div className="space-y-3 px-6 first:pl-0">
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">QUICK LINKS</h3>
+            <div className="w-5 h-0.5 bg-[#E31837]" />
+            <ul className="space-y-2.5 text-sm font-medium">
+              <li><Link to="/products" className="text-slate-400 hover:text-white transition-colors">All Products</Link></li>
+              <li><Link to="/delivery-information" className="text-slate-400 hover:text-white transition-colors">Delivery Info</Link></li>
+              <li><Link to="/about" className="text-slate-400 hover:text-white transition-colors">About Us</Link></li>
+              <li><Link to="/contact" className="text-slate-400 hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link to="/terms-and-conditions" className="text-slate-400 hover:text-white transition-colors">Terms &amp; Conditions</Link></li>
+              <li><Link to="/return-refund-policy" className="text-slate-400 hover:text-white transition-colors">Returns &amp; Refunds</Link></li>
+              <li><Link to="/warranty-repairs" className="text-slate-400 hover:text-white transition-colors">Warranty &amp; Repairs</Link></li>
+              <li><Link to="/privacy-policy" className="text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/faq" className="text-slate-400 hover:text-white transition-colors">FAQs</Link></li>
+              <li>
+                <a href={`mailto:${footer.email || 'info@costplus100.com.au'}`} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+                  <Mail className="size-3 text-[#E31837]" />{footer.email || 'info@costplus100.com.au'}
                 </a>
               </li>
-              <li className="flex items-center gap-3 text-slate-300">
-                <div className="size-7 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-center shrink-0">
-                  <Phone className="size-4 text-[#E31837]" />
-                </div>
-                <a href="tel:1800516246" className="hover:text-white transition-colors font-bold text-white">
-                  {footer.phone || '1800 151 624'}
-                </a>
-              </li>
-              <li className="flex items-start gap-3 text-slate-300">
-                <div className="size-7 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin className="size-4 text-[#E31837]" />
-                </div>
-                <span className="text-xs sm:text-sm text-slate-300 leading-snug">
-                  {footer.address || '5/14 Latham Street, Botany NSW 2019, Australia'}
+              <li>
+                <span className="text-slate-500 flex items-start gap-1 text-[11px]">
+                  <MapPin className="size-3 text-[#E31837] mt-0.5 shrink-0" />{footer.address || '5/14 Latham Street, Botany NSW 2019'}
                 </span>
               </li>
+              <li><Link to="/admin/login" className="text-slate-600 hover:text-slate-400 transition-colors flex items-center gap-1 text-[11px] pt-1"><Lock className="size-3 text-[#E31837]" />Admin Login</Link></li>
             </ul>
           </div>
 
+          {/* One column per top-level category */}
+          {topCategories.length > 0 ? topCategories.slice(0, 4).map((cat: any) => (
+            <div key={cat.id} className="space-y-3 px-6">
+              <Link
+                to={`/products/c/${categoryToSlug(cat.fullPath || cat.slug)}`}
+                className="text-xs font-black text-white uppercase tracking-wider hover:text-[#E31837] transition-colors block leading-tight"
+              >
+                {cat.name}
+              </Link>
+              <div className="w-5 h-0.5 bg-[#E31837]" />
+              <ul className="space-y-2.5 text-sm font-medium">
+                {cat.children && cat.children.slice(0, 8).map((child: any) => (
+                  <li key={child.id}>
+                    <Link
+                      to={`/products/c/${categoryToSlug(child.fullPath || child.slug)}`}
+                      className="text-slate-400 hover:text-white transition-colors leading-snug block"
+                    >
+                      {child.name}
+                    </Link>
+                  </li>
+                ))}
+                {cat.children && cat.children.length > 8 && (
+                  <li>
+                    <Link
+                      to={`/products/c/${categoryToSlug(cat.fullPath || cat.slug)}`}
+                      className="text-[#E31837] hover:text-red-400 transition-colors text-xs font-bold"
+                    >
+                      View all →
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )) : (
+            <div className="space-y-3 px-6">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider">CATEGORIES</h3>
+              <div className="w-5 h-0.5 bg-[#E31837]" />
+              <Link to="/products" className="text-slate-400 hover:text-white transition-colors text-sm">All Products</Link>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* ── BOTTOM BAR ── */}
+      {/* ── SECTION 3: BOTTOM BAR (Shipping, Payments, Copyright) ── */}
       <div className="w-full border-t border-slate-800/80 bg-[#070D18]/50 pb-20 min-[600px]:pb-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
 
-            {/* Shipping Partners */}
-            <div className="flex items-center gap-2.5 flex-wrap justify-center lg:justify-start">
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                SHIPPING PARTNERS
-              </span>
-              <div className="flex items-center gap-2">
-                <div className="bg-white rounded-md px-2 py-1 flex items-center justify-center min-w-[110px] h-7 shadow-xs">
-                  <COPELogo className="h-5.5 w-full" />
-                </div>
-                <div className="bg-white rounded-md px-2 py-1 flex items-center justify-center min-w-[95px] h-7 shadow-xs">
-                  <StarTrackLogo className="h-5 w-full" />
-                </div>
+          {/* Shipping Partners (COPE Sensitive Freight + StarTrack ONLY - Compact) */}
+          <div className="flex items-center gap-2.5 flex-wrap justify-center lg:justify-start">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              SHIPPING PARTNERS
+            </span>
+            <div className="flex items-center gap-2">
+              <div className="bg-white rounded-md px-2 py-1 flex items-center justify-center min-w-[110px] h-7 shadow-xs">
+                <COPELogo className="h-5.5 w-full" />
+              </div>
+              <div className="bg-white rounded-md px-2 py-1 flex items-center justify-center min-w-[95px] h-7 shadow-xs">
+                <StarTrackLogo className="h-5 w-full" />
               </div>
             </div>
-
-            <div className="hidden lg:block h-5 w-px bg-slate-800" />
-
-            {/* Secure Payments */}
-            <div className="flex items-center gap-2.5 flex-wrap justify-center lg:justify-start">
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                SECURE PAYMENTS
-              </span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <img src="/pyamentimages/visa.png" alt="Visa" className="h-6.5 object-contain rounded px-0.5" />
-                <img src="/pyamentimages/mastercard.png" alt="Mastercard" className="h-6.5 object-contain rounded px-0.5" />
-                <img src="/pyamentimages/amercianexpress.png" alt="American Express" className="h-6.5 object-contain rounded px-0.5" />
-                <div className="bg-slate-800 border border-slate-700 rounded-md px-1.5 py-0.5 flex items-center h-6.5">
-                  <SquareLogoWhite className="h-5 w-auto" />
-                </div>
-                <img src="/pyamentimages/gpay.png" alt="Google Pay" className="h-6.5 object-contain rounded px-0.5" />
-              </div>
-            </div>
-
-            <div className="hidden lg:block h-6 w-px bg-slate-800" />
-
-            {/* Copyright */}
-            <div className="text-center lg:text-right">
-              <p className="text-xs text-slate-400 font-medium">
-                &copy; {new Date().getFullYear()} <span className="text-[#E31837] font-bold">CostPlus100</span>. All rights reserved.
-              </p>
-            </div>
-
           </div>
+
+          <div className="hidden lg:block h-5 w-px bg-slate-800" />
+
+          {/* Secure Payments (Compact Payment Images) */}
+          <div className="flex items-center gap-2.5 flex-wrap justify-center lg:justify-start">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              SECURE PAYMENTS
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <img src="/pyamentimages/visa.png" alt="Visa" className="h-6.5 object-contain rounded px-0.5" />
+              <img src="/pyamentimages/mastercard.png" alt="Mastercard" className="h-6.5 object-contain rounded px-0.5" />
+              <img src="/pyamentimages/amercianexpress.png" alt="American Express" className="h-6.5 object-contain rounded px-0.5" />
+              <div className="bg-slate-800 border border-slate-700 rounded-md px-1.5 py-0.5 flex items-center h-6.5">
+                <SquareLogoWhite className="h-5 w-auto" />
+              </div>
+              <img src="/pyamentimages/gpay.png" alt="Google Pay" className="h-6.5 object-contain rounded px-0.5" />
+            </div>
+          </div>
+
+          <div className="hidden lg:block h-6 w-px bg-slate-800" />
+
+          {/* Copyright + ABN */}
+          <div className="text-center lg:text-right">
+            <p className="text-xs text-slate-400 font-medium">
+              &copy; {new Date().getFullYear()} <span className="text-[#E31837] font-bold">CostPlus100</span>. All rights reserved.
+            </p>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">ABN 21 152 496 826</p>
+          </div>
+
         </div>
       </div>
+    </div>
 
       <QuoteModal open={showQuoteModal} onClose={() => setShowQuoteModal(false)} />
     </footer>
