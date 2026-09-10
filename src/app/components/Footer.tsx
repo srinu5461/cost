@@ -304,6 +304,12 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/warranty-repairs" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
+                    <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    <span>Warranty &amp; Repairs</span>
+                  </Link>
+                </li>
+                <li>
                   <Link to="/privacy-policy" className="text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 group">
                     <ChevronRight className="size-3.5 text-[#E31837] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                     <span>Privacy Policy</span>

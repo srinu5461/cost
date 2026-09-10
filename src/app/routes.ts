@@ -84,6 +84,10 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').catch(err => {
   console.error('Failed to load PrivacyPolicy:', err);
   return { default: () => null };
 }));
+const WarrantyRepairs = lazy(() => import('./pages/WarrantyRepairs').catch(err => {
+  console.error('Failed to load WarrantyRepairs:', err);
+  return { default: () => null };
+}));
 
 // Test/Debug Pages - Lazy load
 const ProviderTest = lazy(() => import('./pages/ProviderTest').then(m => ({ default: m.ProviderTest })));
@@ -251,6 +255,7 @@ export const router = createBrowserRouter(
           { path: 'terms-and-conditions', Component: TermsAndConditions },
           { path: 'return-refund-policy', Component: ReturnRefundPolicy },
           { path: 'privacy-policy', Component: PrivacyPolicy },
+          { path: 'warranty-repairs', Component: WarrantyRepairs },
           { path: 'provider-test', Component: ProviderTest },
           { path: 'email-test', Component: EmailTest },
           { path: 'product-query', Component: ProductQuery },

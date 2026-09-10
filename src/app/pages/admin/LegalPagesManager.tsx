@@ -1,6 +1,6 @@
 // Legal Pages Manager - Admin panel for editing Terms, Return Policy, and Privacy Policy
 import { useState, useEffect, useMemo } from 'react';
-import { Save, FileText, RefreshCw, Shield, AlertCircle, CheckCircle, Eye, Download } from 'lucide-react';
+import { Save, FileText, RefreshCw, Shield, AlertCircle, CheckCircle, Eye, Download, Wrench } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
@@ -9,7 +9,7 @@ import 'react-quill/dist/quill.snow.css';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
-type PageType = 'terms-and-conditions' | 'return-refund-policy' | 'privacy-policy' | 'delivery-information';
+type PageType = 'terms-and-conditions' | 'return-refund-policy' | 'privacy-policy' | 'delivery-information' | 'warranty-repairs';
 
 interface PageContent {
   content: string;
@@ -587,6 +587,7 @@ export default function LegalPagesManager() {
     'return-refund-policy': { content: '', lastUpdated: '' },
     'privacy-policy': { content: '', lastUpdated: '' },
     'delivery-information': { content: '', lastUpdated: '' },
+    'warranty-repairs': { content: '', lastUpdated: '' },
   });
 
   useEffect(() => {
@@ -594,8 +595,8 @@ export default function LegalPagesManager() {
   }, []);
 
   const loadAllPages = async () => {
-    const pageTypes: PageType[] = ['terms-and-conditions', 'return-refund-policy', 'privacy-policy', 'delivery-information'];
-    
+    const pageTypes: PageType[] = ['terms-and-conditions', 'return-refund-policy', 'privacy-policy', 'delivery-information', 'warranty-repairs'];
+
     for (const pageType of pageTypes) {
       try {
         const response = await fetch(`${API_URL}/legal/${pageType}`, {
@@ -627,8 +628,8 @@ export default function LegalPagesManager() {
     setMessage('');
 
     try {
-      const pageTypes: PageType[] = ['terms-and-conditions', 'return-refund-policy', 'privacy-policy', 'delivery-information'];
-      
+      const pageTypes: PageType[] = ['terms-and-conditions', 'return-refund-policy', 'privacy-policy', 'delivery-information', 'warranty-repairs'];
+
       for (const pageType of pageTypes) {
         const response = await fetch(`${API_URL}/legal/${pageType}`, {
           method: 'POST',
@@ -747,6 +748,12 @@ export default function LegalPagesManager() {
       title: 'Delivery Information',
       description: 'Details about our delivery process and times',
       publicUrl: '/delivery-information',
+    },
+    'warranty-repairs': {
+      icon: Wrench,
+      title: 'Warranty & Repairs',
+      description: 'Manufacturer warranty coverage and repair process',
+      publicUrl: '/warranty-repairs',
     },
   };
 
