@@ -683,64 +683,101 @@ export function Home() {
     return [...matched, ...fallback].slice(0, 12);
   }, [products]);
 
-  // Polar Refrigeration products
+  // ⚡ Brand products fetched directly from server (fast, works in incognito)
+  const [brandFetched, setBrandFetched] = useState<{ simco: any[]; polar: any[]; thor: any[] } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchBrands = async () => {
+      try {
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049/homepage-brands`,
+          { headers: { 'Authorization': `Bearer ${publicAnonKey}` } }
+        );
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        if (!cancelled) {
+          setBrandFetched({
+            simco: json.simco || [],
+            polar: json.polar || [],
+            thor: json.thor || [],
+          });
+        }
+      } catch {
+        // silently fail — fall back to CDN products
+      }
+    };
+    fetchBrands();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Simco products — use server fetch first, fall back to full CDN products once loaded
   const simcoProducts = useMemo(() => {
-    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
-    return products
-      .filter((p: any) => {
-        const brand = (p.brand || '').toLowerCase();
-        const src = (p.importSource || '').toLowerCase();
-        return brand.includes('simco') || src.includes('simco');
-      })
-      .sort(byPrice);
-  }, [products]);
+    if (products.length > 0) {
+      const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+      return products
+        .filter((p: any) => {
+          const brand = (p.brand || '').toLowerCase();
+          const src = (p.importSource || '').toLowerCase();
+          return brand.includes('simco') || src.includes('simco');
+        })
+        .sort(byPrice);
+    }
+    return brandFetched?.simco || [];
+  }, [products, brandFetched]);
 
   const polarProducts = useMemo(() => {
-    const matched = products.filter((p: any) => {
-      const brand = (p.brand || '').toLowerCase();
-      const name = (p.name || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      return brand.includes('polar') || (name.includes('polar') && (cat.includes('refrig') || name.includes('freezer') || name.includes('fridge') || name.includes('cooler') || name.includes('counter')));
-    });
-    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
-    if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
-
-    const refrigFallback = products
-      .filter((p: any) => {
-        const cat = (p.category || '').toLowerCase();
+    if (products.length > 0) {
+      const matched = products.filter((p: any) => {
+        const brand = (p.brand || '').toLowerCase();
         const name = (p.name || '').toLowerCase();
-        return cat.includes('refrig') || name.includes('fridge') || name.includes('freezer') || name.includes('cooler') || name.includes('counter') || name.includes('ice');
-      })
-      .sort(byPrice)
-      .slice(0, 10)
-      .map(p => ({ ...p, brand: p.brand || 'POLAR' }));
+        const cat = (p.category || '').toLowerCase();
+        return brand.includes('polar') || (name.includes('polar') && (cat.includes('refrig') || name.includes('freezer') || name.includes('fridge') || name.includes('cooler') || name.includes('counter')));
+      });
+      const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+      if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
 
-    return [...matched, ...refrigFallback].sort(byPrice).slice(0, 12);
-  }, [products]);
+      const refrigFallback = products
+        .filter((p: any) => {
+          const cat = (p.category || '').toLowerCase();
+          const name = (p.name || '').toLowerCase();
+          return cat.includes('refrig') || name.includes('fridge') || name.includes('freezer') || name.includes('cooler') || name.includes('counter') || name.includes('ice');
+        })
+        .sort(byPrice)
+        .slice(0, 10)
+        .map(p => ({ ...p, brand: p.brand || 'POLAR' }));
+
+      return [...matched, ...refrigFallback].sort(byPrice).slice(0, 12);
+    }
+    return brandFetched?.polar || [];
+  }, [products, brandFetched]);
 
   // Thor Range products
   const thorProducts = useMemo(() => {
-    const matched = products.filter((p: any) => {
-      const brand = (p.brand || '').toLowerCase();
-      const name = (p.name || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      return brand.includes('thor') || name.includes('thor') || (cat.includes('cook') && (name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('hotplate')));
-    });
-    const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
-    if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
-
-    const cookingFallback = products
-      .filter((p: any) => {
-        const cat = (p.category || '').toLowerCase();
+    if (products.length > 0) {
+      const matched = products.filter((p: any) => {
+        const brand = (p.brand || '').toLowerCase();
         const name = (p.name || '').toLowerCase();
-        return cat.includes('cook') || name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('burner');
-      })
-      .sort(byPrice)
-      .slice(0, 10)
-      .map(p => ({ ...p, brand: p.brand || 'THOR' }));
+        const cat = (p.category || '').toLowerCase();
+        return brand.includes('thor') || name.includes('thor') || (cat.includes('cook') && (name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('hotplate')));
+      });
+      const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+      if (matched.length >= 4) return matched.sort(byPrice).slice(0, 12);
 
-    return [...matched, ...cookingFallback].sort(byPrice).slice(0, 12);
-  }, [products]);
+      const cookingFallback = products
+        .filter((p: any) => {
+          const cat = (p.category || '').toLowerCase();
+          const name = (p.name || '').toLowerCase();
+          return cat.includes('cook') || name.includes('range') || name.includes('oven') || name.includes('fryer') || name.includes('griddle') || name.includes('burner');
+        })
+        .sort(byPrice)
+        .slice(0, 10)
+        .map(p => ({ ...p, brand: p.brand || 'THOR' }));
+
+      return [...matched, ...cookingFallback].sort(byPrice).slice(0, 12);
+    }
+    return brandFetched?.thor || [];
+  }, [products, brandFetched]);
 
   // Popular Departments Products Filter (8 items for 4x2 grid)
   const departmentProducts = useMemo(() => {

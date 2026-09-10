@@ -28,7 +28,6 @@ import orders from './orders.tsx';
 import pickupLocations from './pickup-locations.tsx';
 import menuBrands from './menu-brands.tsx';
 import syncProducts from './sync-products.tsx';
-import importSimco from './routes-import-simco.ts';
 import { registerSitemapRoute } from './sitemap.tsx';
 
 const app = new Hono();
@@ -325,12 +324,14 @@ app.get("/make-server-d1fbc049/db/keys", async (c) => {
 // ⚡ SERVER-SIDE CACHE (No time expiration - only cleared manually by admin)
 let cmsDataCache: any = null;
 let homepageDataCache: any = null;
+let homepageBrandsCache: { data: any; timestamp: number } | null = null;
 
 // Cache invalidation function - ONLY way to clear cache
 async function invalidateCMSCache(reason: string = 'Manual invalidation') {
   console.log(`🔄 [SERVER CACHE] Invalidation triggered: ${reason}`);
   cmsDataCache = null;
   homepageDataCache = null;
+  homepageBrandsCache = null;
 
   // Also clear KV caches
   try {
@@ -714,6 +715,108 @@ app.get("/make-server-d1fbc049/homepage-data", async (c) => {
       header: { title: 'Costplus100', description: 'Catering Equipment' },
       footer: { about: 'Costplus100 - Catering Equipment Supplier' },
       homepage: { title: 'Welcome to Costplus100' }
+    }, 500);
+  }
+});
+
+// ⚡ Homepage brand sections endpoint - returns Simco, Polar, Thor products
+// Fast: reads individual product keys by brand prefix, no full 13k load
+// Sorted by price descending, min price $50, max 20 per brand
+app.get("/make-server-d1fbc049/homepage-brands", async (c) => {
+  try {
+    console.log('⚡ HOMEPAGE BRANDS FETCH - targeted brand products');
+    const startTime = Date.now();
+
+    // Check in-memory brand cache (5 min TTL)
+    const brandCache = homepageBrandsCache;
+    if (brandCache && (Date.now() - brandCache.timestamp) < 5 * 60 * 1000) {
+      console.log(`✅ [BRAND CACHE HIT] Returning cached brand products`);
+      return c.json(brandCache.data, 200, {
+        'Cache-Control': 'public, max-age=300',
+        'X-Cache': 'HIT',
+      });
+    }
+
+    // Load all products from KV store
+    // Try single key first (fast), fallback to prefix scan
+    let allProducts: any[] = await kv.get('products').catch(() => null);
+    if (!allProducts || !Array.isArray(allProducts) || allProducts.length === 0) {
+      allProducts = await kv.getByPrefix('products:').catch(() => []);
+    }
+
+    if (!Array.isArray(allProducts)) allProducts = [];
+
+    const MIN_PRICE = 50; // exclude items under $50
+    const MAX_PER_BRAND = 20;
+
+    const byPriceDesc = (a: any, b: any) => (b.price || 0) - (a.price || 0);
+
+    // Filter helper
+    const filterBrand = (
+      keywords: string[],
+      catKeywords: string[] = []
+    ) => {
+      const matched = allProducts.filter((p: any) => {
+        const brand = (p.brand || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        const src = (p.importSource || '').toLowerCase();
+        const cat = (p.category || '').toLowerCase();
+        const price = p.price || 0;
+        if (price < MIN_PRICE) return false;
+        const brandMatch = keywords.some(k => brand.includes(k) || src.includes(k) || name.includes(k));
+        if (brandMatch) return true;
+        if (catKeywords.length > 0) {
+          return catKeywords.some(k => cat.includes(k));
+        }
+        return false;
+      });
+      return matched.sort(byPriceDesc).slice(0, MAX_PER_BRAND);
+    };
+
+    const simcoProducts = filterBrand(['simco']);
+    const polarProducts = filterBrand(
+      ['polar'],
+      ['refrig', 'freezer', 'cool', 'chiller']
+    );
+    const thorProducts = filterBrand(
+      ['thor'],
+      ['cook', 'oven', 'range', 'fryer', 'griddle']
+    );
+
+    // Collect unique brand logos from any products that have them
+    const brandLogoMap = new Map<string, string>();
+    allProducts.forEach((p: any) => {
+      if (p.brand && (p.brandLogoUrl || p.brandLogo) && !brandLogoMap.has(p.brand)) {
+        brandLogoMap.set(p.brand, p.brandLogoUrl || p.brandLogo);
+      }
+    });
+    const brandLogos = Object.fromEntries(brandLogoMap);
+
+    const fetchTime = Date.now() - startTime;
+    console.log(`✅ Homepage brands loaded in ${fetchTime}ms: simco=${simcoProducts.length}, polar=${polarProducts.length}, thor=${thorProducts.length}`);
+
+    const responseData = {
+      simco: simcoProducts,
+      polar: polarProducts,
+      thor: thorProducts,
+      brandLogos,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Cache in memory for 5 minutes
+    homepageBrandsCache = { data: responseData, timestamp: Date.now() };
+
+    return c.json(responseData, 200, {
+      'Cache-Control': 'public, max-age=300', // 5 min browser cache (works in incognito!)
+      'X-Cache': 'MISS',
+    });
+  } catch (error) {
+    console.error('Error in /homepage-brands:', error);
+    return c.json({
+      simco: [],
+      polar: [],
+      thor: [],
+      brandLogos: {},
     }, 500);
   }
 });
@@ -1883,18 +1986,9 @@ app.post("/make-server-d1fbc049/categories/import-bulk", async (c) => {
     }
     
     console.log(`Importing ${categoryNodes.length} hierarchical categories...`);
-
-    // Preserve any Simco nodes
-    const existingTreeImport = await kv.get('category_tree').catch(() => []) as any[] || [];
-    const simcoImportNodes = existingTreeImport.filter((n: any) =>
-      String(n.id).startsWith('SC-') || n.id === 'G-SIMCO'
-    );
-    const incomingImportIds = new Set(categoryNodes.map((n: any) => n.id));
-    const simcoToAddImport = simcoImportNodes.filter((n: any) => !incomingImportIds.has(n.id));
-    const mergedImport = [...categoryNodes, ...simcoToAddImport];
-
+    
     // Store the full category tree structure
-    await kv.set('category_tree', mergedImport);
+    await kv.set('category_tree', categoryNodes);
     
     // Also create a flat list for backwards compatibility
     const flatCategories = ['All Equipment'];
@@ -1979,22 +2073,13 @@ app.put("/make-server-d1fbc049/categories/tree", async (c) => {
     }
     
     console.log(`Received ${categoryTree.length} category nodes, saving to KV store...`);
-
-    // Preserve any Simco nodes that were added externally
-    const existingTree = await kv.get('category_tree').catch(() => []) as any[] || [];
-    const simcoNodes = existingTree.filter((n: any) =>
-      String(n.id).startsWith('SC-') || n.id === 'G-SIMCO'
-    );
-    const incomingIds = new Set(categoryTree.map((n: any) => n.id));
-    const simcoToAdd = simcoNodes.filter((n: any) => !incomingIds.has(n.id));
-    const mergedTree = [...categoryTree, ...simcoToAdd];
-
+    
     // Update the category tree
-    await kv.set('category_tree', mergedTree);
-
-    console.log(`Category tree saved: ${categoryTree.length} nodes + ${simcoToAdd.length} Simco nodes preserved`);
-
-    return c.json({ success: true, count: mergedTree.length });
+    await kv.set('category_tree', categoryTree);
+    
+    console.log('Category tree saved successfully!');
+    
+    return c.json({ success: true, count: categoryTree.length });
   } catch (error) {
     console.error('=== UPDATE CATEGORY TREE ERROR ===');
     console.error('Error type:', error?.constructor?.name);
@@ -3356,19 +3441,19 @@ app.post("/make-server-d1fbc049/shipping/calculate", async (c) => {
   try {
     console.log('=== SHIPPING CALCULATION REQUEST ===');
     
-    const { postcode, cartTotal, categories } = await c.req.json();
-    
+    const { postcode, cartTotal, categories, cartItems } = await c.req.json();
+
     console.log('Shipping calculation params:', { postcode, cartTotal, categoriesCount: categories?.length });
-    
+
     if (!postcode || cartTotal === undefined || !categories) {
-      return c.json({ 
+      return c.json({
         error: 'Missing required fields',
         required: ['postcode', 'cartTotal', 'categories']
       }, 400);
     }
-    
+
     // Calculate shipping using the shipping logic
-    const result = calculateShipping(postcode, cartTotal, categories);
+    const result = calculateShipping(postcode, cartTotal, categories, cartItems);
     
     console.log('Shipping calculation result:', result);
     
@@ -3519,104 +3604,6 @@ registerSitemapRoute(app, kv);
 app.route('/make-server-d1fbc049/ai', ai);
 app.route('/make-server-d1fbc049/legal', legal);
 app.route('/make-server-d1fbc049/cms', cms);
-app.route('/make-server-d1fbc049/import-simco', importSimco);
-
-// ─── BLOG ENDPOINTS ──────────────────────────────────────────────────────────
-
-app.get('/make-server-d1fbc049/blog/posts', async (c) => {
-  try {
-    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
-    const published = posts
-      .filter((p: any) => p.status === 'published')
-      .sort((a: any, b: any) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-    return c.json({ posts: published });
-  } catch (e) {
-    return c.json({ error: String(e) }, 500);
-  }
-});
-
-app.get('/make-server-d1fbc049/blog/posts/:slug', async (c) => {
-  try {
-    const slug = c.req.param('slug');
-    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
-    const post = posts.find((p: any) => p.slug === slug && p.status === 'published');
-    if (!post) return c.json({ error: 'Not found' }, 404);
-    return c.json({ post });
-  } catch (e) {
-    return c.json({ error: String(e) }, 500);
-  }
-});
-
-app.get('/make-server-d1fbc049/admin/blog/posts', async (c) => {
-  try {
-    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
-    return c.json({ posts: posts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) });
-  } catch (e) {
-    return c.json({ error: String(e) }, 500);
-  }
-});
-
-app.post('/make-server-d1fbc049/admin/blog/posts', async (c) => {
-  try {
-    const body = await c.req.json();
-    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
-    const now = new Date().toISOString();
-    const slug = (body.slug || body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '-' + Date.now();
-    const post = {
-      id: crypto.randomUUID(),
-      title: body.title,
-      slug,
-      excerpt: body.excerpt || '',
-      content: body.content || '',
-      coverImage: body.coverImage || '',
-      tags: body.tags || [],
-      author: body.author || 'CostPlus Team',
-      status: body.status || 'draft',
-      createdAt: now,
-      publishedAt: body.status === 'published' ? now : null,
-    };
-    await kv.set('blog_posts', [...posts, post]);
-    return c.json({ post });
-  } catch (e) {
-    return c.json({ error: String(e) }, 500);
-  }
-});
-
-app.put('/make-server-d1fbc049/admin/blog/posts/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const body = await c.req.json();
-    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
-    const idx = posts.findIndex((p: any) => p.id === id);
-    if (idx === -1) return c.json({ error: 'Not found' }, 404);
-    const existing = posts[idx];
-    const updated = {
-      ...existing,
-      ...body,
-      id: existing.id,
-      createdAt: existing.createdAt,
-      publishedAt: body.status === 'published' && !existing.publishedAt ? new Date().toISOString() : existing.publishedAt,
-    };
-    posts[idx] = updated;
-    await kv.set('blog_posts', posts);
-    return c.json({ post: updated });
-  } catch (e) {
-    return c.json({ error: String(e) }, 500);
-  }
-});
-
-app.delete('/make-server-d1fbc049/admin/blog/posts/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const posts: any[] = await kv.get('blog_posts').catch(() => []) || [];
-    await kv.set('blog_posts', posts.filter((p: any) => p.id !== id));
-    return c.json({ success: true });
-  } catch (e) {
-    return c.json({ error: String(e) }, 500);
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Legacy CMS routes for About page (kept for backwards compatibility)
 app.get('/make-server-d1fbc049/cms/about', async (c) => {
