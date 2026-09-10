@@ -1984,7 +1984,11 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                       <img
                         src={featuredBrand.logoUrl}
                         alt={featuredBrand.name}
-                        className="max-h-20 sm:max-h-40 max-w-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1'; }}
+                        className="max-h-20 sm:max-h-40 max-w-full object-contain group-hover:scale-105 transition-all duration-700 ease-out opacity-0"
+                        style={{ transition: 'opacity 0.4s ease, transform 0.7s ease' }}
                       />
                     ) : (
                       <div className="w-full aspect-square max-w-[100px] sm:max-w-[145px] bg-slate-900 text-white rounded-md p-2 sm:p-3.5 flex flex-col items-center justify-center shadow-xs group-hover:scale-105 transition-transform duration-700 ease-out">
@@ -2017,7 +2021,11 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                             <img
                               src={brand.logoUrl}
                               alt={brand.name}
-                              className="max-h-10 sm:max-h-16 max-w-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
+                              loading="lazy"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1'; }}
+                              className="max-h-10 sm:max-h-16 max-w-full object-contain group-hover:scale-105 transition-all duration-700 ease-out opacity-0"
+                              style={{ transition: 'opacity 0.4s ease, transform 0.7s ease' }}
                             />
                           ) : (
                             <div className="w-full h-9 sm:h-11 bg-slate-50 border border-slate-100 rounded-md flex items-center justify-center p-1 sm:p-2 group-hover:bg-slate-100 group-hover:scale-105 transition-all duration-700 ease-out">
