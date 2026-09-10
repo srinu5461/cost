@@ -330,6 +330,7 @@ export function Home() {
 
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const [sectionsConfig, setSectionsConfig] = useState<any[]>([]);
+  const [simcoBrandFilter, setSimcoBrandFilter] = useState<string>('all');
 
   // ⚡ STATIC HERO: Use as fallback only when no banners
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -711,20 +712,29 @@ export function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // Simco products — use server fetch first, fall back to full CDN products once loaded
-  const simcoProducts = useMemo(() => {
+  // Simco Group products — importSource='simco' covers all sub-brands
+  const simcoAllProducts = useMemo(() => {
     if (products.length > 0) {
       const byPrice = (a: any, b: any) => (b.price || 0) - (a.price || 0);
       return products
-        .filter((p: any) => {
-          const brand = (p.brand || '').toLowerCase();
-          const src = (p.importSource || '').toLowerCase();
-          return brand.includes('simco') || src.includes('simco');
-        })
+        .filter((p: any) => (p.importSource || '').toLowerCase() === 'simco' || ((p.importSource || '').toLowerCase() === 'csv' && (p.brand || '').toLowerCase() === 'cooktek'))
         .sort(byPrice);
     }
     return brandFetched?.simco || [];
   }, [products, brandFetched]);
+
+  const simcoProducts = useMemo(() => {
+    if (simcoBrandFilter === 'all') return simcoAllProducts;
+    return simcoAllProducts.filter((p: any) => {
+      const brand = (p.brand || '').toLowerCase();
+      if (simcoBrandFilter === 'simco') return brand === 'simco' || brand === 'simcohood';
+      if (simcoBrandFilter === 'atosa') return brand === 'atosa';
+      if (simcoBrandFilter === 'cookrite') return brand === 'cookrite' || brand === 'cooktek';
+      if (simcoBrandFilter === 'mixrite') return brand === 'mixrite';
+      if (simcoBrandFilter === 'other') return ['jasper', 'preppal'].includes(brand);
+      return true;
+    });
+  }, [simcoAllProducts, simcoBrandFilter]);
 
   const polarProducts = useMemo(() => {
     if (products.length > 0) {
@@ -1522,9 +1532,32 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                 </div>
               </div>
             </div>
+            {/* Brand filter bubbles */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              {[
+                { key: 'all', label: 'All Brands' },
+                { key: 'simco', label: 'Simco' },
+                { key: 'atosa', label: 'Atosa' },
+                { key: 'cookrite', label: 'Cookrite' },
+                { key: 'mixrite', label: 'Mixrite' },
+                { key: 'other', label: 'Jasper & More' },
+              ].map(b => (
+                <button
+                  key={b.key}
+                  onClick={() => setSimcoBrandFilter(b.key)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    simcoBrandFilter === b.key
+                      ? 'bg-[#0284C7] text-white border-[#0284C7] shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-[#0284C7] hover:text-[#0284C7]'
+                  }`}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
             <div className="relative -mx-2.5">
               <Slider
-                key={`simco-slider-${productSlidesToShow}`}
+                key={`simco-slider-${productSlidesToShow}-${simcoBrandFilter}`}
                 ref={simcoSliderRef}
                 dots={false}
                 infinite={true}
