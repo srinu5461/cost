@@ -1216,18 +1216,6 @@ export function ProductDetail() {
                 </div>
               )}
 
-              {/* Cost+$100 Info Box (Light Purple Container) */}
-              <div className="bg-purple-50/80 border border-purple-200/80 rounded-xl p-3 my-2">
-                <div className="flex items-center gap-2">
-                  <div className="size-4 rounded-full bg-purple-200 flex items-center justify-center text-purple-800 font-extrabold text-[10px] shrink-0">
-                    ⓘ
-                  </div>
-                  <span className="text-xs font-extrabold text-purple-950">Cost+$100 Transparent Pricing</span>
-                </div>
-                <p className="text-[11px] text-purple-800 font-medium mt-0.5 leading-relaxed pl-6">
-                  You're seeing our cost price + $100 — total transparency, no hidden markups.
-                </p>
-              </div>
 
               {/* Product Code & Stock Status */}
               <div className="space-y-1 pt-0.5">
@@ -1329,34 +1317,11 @@ export function ProductDetail() {
             {/* Secure Payment Logos */}
             <div className="mt-3 border border-slate-200/80 rounded-xl p-3 bg-slate-50/50">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Secure Payment</div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Visa */}
-                <div className="bg-white border border-slate-200 rounded px-2 py-1 flex items-center justify-center h-7">
-                  <svg viewBox="0 0 48 16" className="h-4 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <text x="0" y="13" fontFamily="Arial" fontWeight="bold" fontSize="14" fill="#1A1F71">VISA</text>
-                  </svg>
-                </div>
-                {/* Mastercard */}
-                <div className="bg-white border border-slate-200 rounded px-2 py-1 flex items-center justify-center h-7 gap-0.5">
-                  <div className="w-4 h-4 rounded-full bg-[#EB001B] opacity-90" />
-                  <div className="w-4 h-4 rounded-full bg-[#F79E1B] opacity-90 -ml-1.5" />
-                </div>
-                {/* PayPal */}
-                <div className="bg-white border border-slate-200 rounded px-2 py-1 flex items-center justify-center h-7">
-                  <svg viewBox="0 0 60 16" className="h-4 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <text x="0" y="13" fontFamily="Arial" fontWeight="bold" fontSize="12" fill="#003087">Pay</text>
-                    <text x="24" y="13" fontFamily="Arial" fontWeight="bold" fontSize="12" fill="#009cde">Pal</text>
-                  </svg>
-                </div>
-                {/* Afterpay */}
-                <div className="bg-[#B2FCE4] border border-slate-200 rounded px-2 py-1 flex items-center justify-center h-7">
-                  <span className="text-[10px] font-black text-[#0F1111] tracking-tight">afterpay</span>
-                </div>
-                {/* Bank Transfer */}
-                <div className="bg-white border border-slate-200 rounded px-2 py-1 flex items-center justify-center h-7 gap-1">
-                  <svg className="size-3 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-                  <span className="text-[9px] font-bold text-slate-600">Bank Transfer</span>
-                </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <img src="/pyamentimages/visa.png" alt="Visa" className="h-7 object-contain rounded px-0.5" />
+                <img src="/pyamentimages/mastercard.png" alt="Mastercard" className="h-7 object-contain rounded px-0.5" />
+                <img src="/pyamentimages/amercianexpress.png" alt="American Express" className="h-7 object-contain rounded px-0.5" />
+                <img src="/pyamentimages/gpay.png" alt="Google Pay" className="h-7 object-contain rounded px-0.5" />
               </div>
             </div>
 
