@@ -1117,33 +1117,22 @@ export function ProductDetail() {
           {/* ── RIGHT COLUMN: PRODUCT INFO & PRICING (COMPACT & BALANCED) ── */}
           <div className="lg:col-span-6 space-y-3.5">
             
-            {/* Top Metadata Pills Row (Category, Brand, SKU) */}
-            <div className="flex items-center gap-2 flex-wrap text-[11px] font-semibold text-slate-700">
-              <span className="bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/60">
-                Category: <span className="font-bold text-slate-900">{productCategory}</span>
-              </span>
-              {/* Brand Logo */}
-{productBrand && (
-  <div className="mb-3">
-    {productBrandLogo ? (
-      <img
-        src={productBrandLogo}
-        alt={productBrand}
-        className="h-8 object-contain max-w-[120px]"
-      />
-    ) : (
-      <span className="text-[11px] font-black text-[#0284C7] uppercase tracking-wider block">
-        {productBrand}
-      </span>
-    )}
-  </div>
-)}
-              {productCode && (
-                <span className="bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/60">
-                  SKU: <span className="font-bold text-slate-900">{productCode}</span>
-                </span>
-              )}
-            </div>
+            {/* Brand Logo */}
+            {productBrand && (
+              <div className="mb-1">
+                {productBrandLogo ? (
+                  <img
+                    src={productBrandLogo}
+                    alt={productBrand}
+                    className="h-8 object-contain max-w-[120px]"
+                  />
+                ) : (
+                  <span className="text-[11px] font-black text-[#0284C7] uppercase tracking-wider block">
+                    {productBrand}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Product Title Section */}
             <div>
@@ -1158,17 +1147,6 @@ export function ProductDetail() {
                 )}
               </div>
 
-              {/* Sub-description / Spec short summary */}
-              <p className="text-xs font-medium text-slate-500 mt-1 leading-relaxed">
-                {displayProduct.shortDescription || `${displayProduct.description ? displayProduct.description.slice(0, 110) : `700W. Total usable capacity: 770 Ltr. R290`}`}
-              </p>
-
-              {/* Brand uppercase blue text */}
-              {productBrand && (
-                <span className="text-[11px] font-black text-[#0284C7] uppercase tracking-wider mt-1.5 block">
-                  {productBrand}
-                </span>
-              )}
 
               {/* Rating + Reviews + Wishlist & Share Row */}
               <div className="flex items-center justify-between pt-2.5 border-b border-slate-200/60 pb-2.5 mt-1">
@@ -1204,31 +1182,32 @@ export function ProductDetail() {
             </div>
 
             {/* Pricing Section */}
-            <div className="space-y-1.5">
-              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cost+$100 Price</div>
-              
+            <div className="space-y-1.5">              
               {hasPromotion ? (
                 <div>
-                  <div className="flex items-baseline gap-2 mb-0.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-xs text-slate-400 font-semibold">Retail Price</span>
                     <span className="text-base text-slate-400 line-through font-bold">${wasPrice!.toFixed(2)}</span>
-                    <span className="bg-[#E31837] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">SAVE ${promotionalSavings!.toFixed(2)}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
+                    <span className="bg-[#E31837] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">SAVE ${promotionalSavings!.toFixed(2)}</span>
                     <span className="text-xs font-bold text-slate-500">ex GST</span>
                   </div>
                 </div>
               ) : (showUniversalCostPlus || showLegacyCostPlus) ? (
                 <div>
-                  <div className="flex items-baseline gap-2 mb-0.5">
-                    {displayProduct.price > displayPrice && (
+                  {displayProduct.price > displayPrice && (
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-xs text-slate-400 font-semibold">Retail Price</span>
                       <span className="text-lg text-slate-400 line-through font-bold">${displayProduct.price.toFixed(2)}</span>
-                    )}
-                    <span className="bg-[#8B5CF6] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">COST+$100</span>
-                  </div>
+                    </div>
+                  )}
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
-                    <span className="text-xs font-bold text-slate-500">ex GST</span>
+                   <span className="text-xs font-bold text-slate-500">ex GST</span>
+
+                    <span className="bg-[#8B5CF6] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">COSTPlUS100 Price</span>
                   </div>
                 </div>
               ) : (
@@ -1238,18 +1217,6 @@ export function ProductDetail() {
                 </div>
               )}
 
-              {/* Cost+$100 Info Box (Light Purple Container) */}
-              <div className="bg-purple-50/80 border border-purple-200/80 rounded-xl p-3 my-2">
-                <div className="flex items-center gap-2">
-                  <div className="size-4 rounded-full bg-purple-200 flex items-center justify-center text-purple-800 font-extrabold text-[10px] shrink-0">
-                    ⓘ
-                  </div>
-                  <span className="text-xs font-extrabold text-purple-950">Cost+$100 Transparent Pricing</span>
-                </div>
-                <p className="text-[11px] text-purple-800 font-medium mt-0.5 leading-relaxed pl-6">
-                  You're seeing our cost price + $100 — total transparency, no hidden markups.
-                </p>
-              </div>
 
               {/* Product Code & Stock Status */}
               <div className="space-y-1 pt-0.5">
@@ -1348,20 +1315,16 @@ export function ProductDetail() {
               </div>
             </div>
 
-            {/* Click & Collect Info Card */}
-            <Card className="border-amber-200/80 bg-amber-50/40 rounded-xl mt-3">
-              <CardContent className="p-3">
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="size-4.5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-extrabold text-xs text-slate-900">Click & Collect Available</div>
-                    <button className="text-[11px] text-amber-700 font-semibold hover:underline cursor-pointer">
-                      Check stock at your local warehouse &gt;
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Secure Payment Logos */}
+            <div className="mt-3 border border-slate-200/80 rounded-xl p-3 bg-slate-50/50">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Secure Payment</div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <img src="/pyamentimages/visa.png" alt="Visa" className="h-7 object-contain rounded px-0.5" />
+                <img src="/pyamentimages/mastercard.png" alt="Mastercard" className="h-7 object-contain rounded px-0.5" />
+                <img src="/pyamentimages/amercianexpress.png" alt="American Express" className="h-7 object-contain rounded px-0.5" />
+                <img src="/pyamentimages/gpay.png" alt="Google Pay" className="h-7 object-contain rounded px-0.5" />
+              </div>
+            </div>
 
           </div>
         </div>
