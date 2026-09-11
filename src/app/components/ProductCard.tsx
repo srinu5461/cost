@@ -179,7 +179,11 @@ addToCart(productWithPromo);
   const isKnownBackorderProduct = productCode.toUpperCase() === 'GH429-A';
  const uropaPromisedDate = product?.uropaPromisedDate || '';
 const uropaAvailabilityMessage = (product as any)?.uropaAvailabilityMessage || '';
-const backOrderAvailable = Boolean(product?.backOrderAvailable || (product as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' || uropaPromisedDate);
+// Only treat as backorder when Uropa explicitly says so — require the enum or a non-empty message
+const backOrderAvailable = Boolean(
+  (product as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' ||
+  (product?.backOrderAvailable && uropaAvailabilityMessage)
+);
 const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
   const rawInStock = product?.inStock ?? (product as any)?.in_stock ?? (product as any)?.is_in_stock;
   const stockQty = product?.stockQuantity ?? (product as any)?.stock_quantity ?? (product as any)?.stock ?? (product as any)?.qty;

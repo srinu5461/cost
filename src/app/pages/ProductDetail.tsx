@@ -869,14 +869,12 @@ export function ProductDetail() {
   const productDescription = displayProduct?.description;
   const productBrand = displayProduct?.brand;
   const uropaPromisedDate = displayProduct?.uropaPromisedDate || (displayProduct as any)?.uropa_promised_date || (displayProduct as any)?.promised_date || '';
+  const backorderMessage = (displayProduct as any)?.uropaAvailabilityMessage || (displayProduct as any)?.backorderMessage || '';
+  // Only treat as backorder when Uropa explicitly says so — require the enum or a non-empty message
   const backOrderAvailable = Boolean(
-    displayProduct?.backOrderAvailable ||
-    (displayProduct as any)?.back_order_available ||
-    (displayProduct as any)?.backorder ||
-    (displayProduct as any)?.status === 'BACKORDER' ||
-    (displayProduct as any)?.availability === 'backorder'
+    (displayProduct as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' ||
+    (displayProduct?.backOrderAvailable && backorderMessage)
   );
-  const backorderMessage = (displayProduct as any)?.uropaAvailabilityMessage || (displayProduct as any)?.backorderMessage || 'On backorder, availability to be confirmed';
   const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
 
   const rawInStock = displayProduct?.inStock ?? (displayProduct as any)?.in_stock ?? (displayProduct as any)?.is_in_stock;
