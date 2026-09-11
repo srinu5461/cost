@@ -573,6 +573,39 @@ const DEFAULT_CONTENT = {
       </a>
     </p>
   `,
+  'warranty-repairs': `
+    <h2>Warranties and Repairs</h2>
+    <p>At Costplus100 we pride ourselves on the high standard of servicing and customer support we can provide. The standard warranty offered on our products is one year (parts and labour). All our engineers are highly trained and have specialised knowledge of all products; we are able to offer nationwide coverage for warranty and servicing.</p>
+
+    <h2>Warranty</h2>
+    <p>Before logging any warranty claim, please ensure you read the trouble shooting guide which is included in your product manual. All product manuals can be downloaded from the product page on our website under the Useful Documents tab. This may resolve the problem without the need for a technician to attend your premises.</p>
+    <p>Polar and Thor units purchased after 1st February 2017 come with a <strong>2 year warranty</strong> as standard. Units purchased before this date are supplied with a 1 year warranty.*</p>
+    <p style="font-size: 12px;">*2 year warranty covers on-site parts &amp; labour. Polar ice machines come with a 1 year warranty only.</p>
+    <p>Please note that any repair found to be the result of not maintaining the unit in accordance with the product manual may incur charges for technician labour and parts.</p>
+    <p>Some warranties are handled directly by our suppliers and their technicians. For these products, we will contact you to advise of the process.</p>
+
+    <h2>Reporting a Fault</h2>
+    <p>To report a fault and arrange a repair, please contact our support centre on <strong>1300 503 043</strong> or visit the Uropa warranty portal below.</p>
+    <p style="font-weight: 700;">How to report a fault:</p>
+    <ol>
+      <li>Visit the <a href="https://booking.mendrhub.com/?tenantid=0d95fb74-2828-43f0-9108-b91c9f874190" target="_blank" style="color: #E31837; font-weight: bold;">Uropa Warranty Website</a> or scan the QR code in your product documentation.</li>
+      <li>Follow the instructions to register your product for warranty.</li>
+    </ol>
+    <p><strong>Terms &amp; Conditions:</strong> Only machines from the following brands can be registered for warranty: Polar, Thor, Apuro, Waring, Nisbets Essentials, EazyZap, Caterlite and Vogue Weighstation. For any products not listed, please contact our customer service team on <strong>1300 503 043</strong>. Apuro purchases made prior to August 1st 2023 only have 1 year warranty.</p>
+
+    <h2>Spare Parts &amp; Accessories</h2>
+    <p>We stock spares and accessories for most machines on our website, which are listed with each machine. Contact us to check availability for the part you need.</p>
+
+    <h2>Installation Services</h2>
+    <p>We recommend installation by our own engineers, particularly for dish/warewashing machines as installation is more complex for these products.</p>
+    <p>* Following an initial installation survey, an agreed installation date will be arranged post-delivery. Out of hours installation is available alongside removal of packaging and old equipment (subject to further charges). Quotation dependant on machines and locality; equipment to be installed needs to be within 1m of supply and services.</p>
+
+    <h2>Contact Us</h2>
+    <ul>
+      <li>Phone: <strong>1300 503 043</strong></li>
+      <li>Email: <a href="mailto:warranties@uropa.com.au" style="color: #E31837;">warranties@uropa.com.au</a></li>
+    </ul>
+  `,
 };
 
 export default function LegalPagesManager() {
