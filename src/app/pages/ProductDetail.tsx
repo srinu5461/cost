@@ -876,7 +876,7 @@ export function ProductDetail() {
     (displayProduct as any)?.status === 'BACKORDER' ||
     (displayProduct as any)?.availability === 'backorder'
   );
-  const backorderMessage = (displayProduct as any)?.backorderMessage || 'On backorder, availability to be confirmed';
+  const backorderMessage = (displayProduct as any)?.uropaAvailabilityMessage || (displayProduct as any)?.backorderMessage || 'On backorder, availability to be confirmed';
   const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
 
   const rawInStock = displayProduct?.inStock ?? (displayProduct as any)?.in_stock ?? (displayProduct as any)?.is_in_stock;
