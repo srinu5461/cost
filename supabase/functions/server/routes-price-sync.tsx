@@ -2280,11 +2280,39 @@ priceSync.get('/debug-product/:code', async (c) => {
       basePrice: uropaProduct.basePrice,
     };
 
+    // Extract stock/backorder fields
+    const stockExtraction = {
+      'stock.stockLevelStatus': uropaProduct.stock?.stockLevelStatus,
+      'stock.value': uropaProduct.stock?.value,
+      'stock.stockLevel': uropaProduct.stock?.stockLevel,
+      'stockLevelStatus': uropaProduct.stockLevelStatus,
+      'availability': uropaProduct.availability,
+      'availabilityStatus': uropaProduct.availabilityStatus,
+      'backOrderDate': uropaProduct.backOrderDate,
+      'backOrderAvailable': uropaProduct.backOrderAvailable,
+      'availableForPickup': uropaProduct.availableForPickup,
+      'deliveryMode': uropaProduct.deliveryMode,
+      'deliveryModeCode': uropaProduct.deliveryModeCode,
+      'uropaPromisedDate': uropaProduct.uropaPromisedDate,
+      'promisedDate': uropaProduct.promisedDate,
+      'expectedDate': uropaProduct.expectedDate,
+      'leadTime': uropaProduct.leadTime,
+      'purchasable': uropaProduct.purchasable,
+    };
+
+    const stockStructure = {
+      stock: uropaProduct.stock,
+      availability: uropaProduct.availability,
+    };
+
     return c.json({
       success: true,
       productCode,
       priceExtraction,
       priceStructure,
+      stockExtraction,
+      stockStructure,
+      fullProduct: uropaProduct,
       topLevelKeys: Object.keys(uropaProduct),
     });
 
