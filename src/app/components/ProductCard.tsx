@@ -507,16 +507,11 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
               <span className="text-slate-500 font-medium">
                 Code: <span className="font-extrabold text-slate-900">{productCode}</span>
               </span>
-              {productInStock ? (
-                <div className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
-                  <Check className="size-3 text-emerald-600 stroke-[3]" />
-                  <span>In Stock</span>
-                </div>
-              ) : backOrderAvailable ? (
+              {backOrderAvailable ? (
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
                   <div className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shadow-2xs">
                     <Check className="size-3 text-amber-600 stroke-[3]" />
-                    <span>Available on Backorder</span>
+                    <span>On Backorder</span>
                   </div>
                   {uropaPromisedDate && (
                     <span className="text-[10px] text-amber-600 font-medium">
@@ -528,6 +523,11 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                       {uropaAvailabilityMessage}
                     </span>
                   )}
+                </div>
+              ) : productInStock ? (
+                <div className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
+                  <Check className="size-3 text-emerald-600 stroke-[3]" />
+                  <span>In Stock</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 font-bold text-red-700 bg-red-50 border border-red-200/80 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
@@ -677,28 +677,28 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
           <span className="text-slate-500 font-medium truncate pr-2">
             Code: <span className="font-extrabold text-slate-900">{productCode}</span>
           </span>
-          {productInStock ? (
+          {backOrderAvailable ? (
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <div className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shadow-2xs">
+                <Check className="size-3 text-amber-600 stroke-[3]" />
+                <span>On Backorder</span>
+              </div>
+              {uropaPromisedDate && (
+                <span className="text-[10px] text-amber-600 font-medium">
+                  Est. {new Date(uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              )}
+              {!uropaPromisedDate && uropaAvailabilityMessage && (
+                <span className="text-[10px] text-amber-600 font-medium text-right">
+                  {uropaAvailabilityMessage}
+                </span>
+              )}
+            </div>
+          ) : productInStock ? (
             <div className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
               <Check className="size-3 text-emerald-600 stroke-[3]" />
               <span>In Stock</span>
             </div>
-          ) : backOrderAvailable ? (
-            <div className="flex flex-col items-end gap-0.5 shrink-0">
-    <div className="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shadow-2xs">
-      <Check className="size-3 text-amber-600 stroke-[3]" />
-      <span>Backorder</span>
-    </div>
-    {uropaPromisedDate && (
-      <span className="text-[10px] text-amber-600 font-medium">
-        Est. {new Date(uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
-      </span>
-    )}
-     {!uropaPromisedDate && uropaAvailabilityMessage && (
-      <span className="text-[10px] text-amber-600 font-medium text-right">
-        {uropaAvailabilityMessage}
-      </span>
-    )}
-  </div>
           ) : (
             <div className="flex items-center gap-1 font-bold text-red-700 bg-red-50 border border-red-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
               <AlertCircle className="size-3 text-red-600" />
