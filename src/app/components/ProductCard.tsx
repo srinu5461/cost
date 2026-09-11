@@ -179,7 +179,6 @@ addToCart(productWithPromo);
   const isKnownBackorderProduct = productCode.toUpperCase() === 'GH429-A';
  const uropaPromisedDate = product?.uropaPromisedDate || '';
 const uropaAvailabilityMessage = (product as any)?.uropaAvailabilityMessage || '';
-// Only treat as backorder when Uropa explicitly says so — require the enum or a non-empty message
 const backOrderAvailable = Boolean(
   (product as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' ||
   (product?.backOrderAvailable && uropaAvailabilityMessage)
