@@ -876,6 +876,7 @@ export function ProductDetail() {
     (displayProduct as any)?.status === 'BACKORDER' ||
     (displayProduct as any)?.availability === 'backorder'
   );
+  const backorderMessage = (displayProduct as any)?.backorderMessage || 'On backorder, availability to be confirmed';
   const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
 
   const rawInStock = displayProduct?.inStock ?? (displayProduct as any)?.in_stock ?? (displayProduct as any)?.is_in_stock;
@@ -1230,11 +1231,11 @@ export function ProductDetail() {
                     <span>In Stock</span>
                   </div>
                 )}
-                {!productInStock && backOrderAvailable && (
+                {backOrderAvailable && (
                   <div className="flex flex-col gap-1 py-2 px-3 bg-amber-50 border border-amber-200 rounded mt-1">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="size-4 text-amber-600 shrink-0" />
-                      <span className="text-xs font-bold text-amber-800">Available on Backorder</span>
+                      <span className="text-xs font-bold text-amber-800">{backorderMessage}</span>
                     </div>
                     {uropaPromisedDate && (
                       <span className="text-[11px] text-amber-700 font-medium pl-6">

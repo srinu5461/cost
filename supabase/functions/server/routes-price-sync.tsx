@@ -246,9 +246,26 @@ priceSync.post('/run', async (c) => {
             );
             
             // Check if price changed (allow 0.01 difference for rounding)
+            // Extract availability/backorder info from Uropa
+            const availMsg = uropaProduct.availabilityMessage;
+            const isBackorder = availMsg?.messageEnum === 'AM_ON_BACKORDER';
+            const backorderMessage = availMsg?.message || null;
+            const backorderColor = availMsg?.availabilityColor || null;
+
             if (Math.abs(uropaCost - dbCost) < 0.01) {
-              // No change
-              console.log(`✅ [Price Sync] No change for ${productCode}: DB cost=${dbCost}, Uropa cost=${uropaCost}`);
+              // Price unchanged — but still update backorder status if it changed
+              const currentBackorder = product.backOrderAvailable || false;
+              if (isBackorder !== currentBackorder) {
+                const updated = {
+                  ...product,
+                  backOrderAvailable: isBackorder,
+                  backorderMessage: backorderMessage,
+                  backorderColor: backorderColor,
+                  lastSyncedWithUropa: new Date().toISOString(),
+                };
+                await kv.set(`products:${product.id}`, updated);
+                console.log(`🔄 [Price Sync] Backorder status updated for ${productCode}: ${isBackorder}`);
+              }
               return null;
             }
 
@@ -280,6 +297,10 @@ priceSync.post('/run', async (c) => {
               markupPercent: pricingResult.markupPercent,
               marginPercent: pricingResult.marginPercent,
               tierLabel: pricingResult.tierLabel,
+              // 🔥 BACKORDER / AVAILABILITY
+              backOrderAvailable: isBackorder,
+              backorderMessage: backorderMessage,
+              backorderColor: backorderColor,
               // Timestamps
               lastPriceUpdate: new Date().toISOString(),
               lastSyncedWithUropa: new Date().toISOString(),
@@ -2204,6 +2225,86 @@ priceSync.post('/bulk-update-costs', async (c) => {
       success: false,
       error: error.message || 'Unknown error during bulk update'
     }, 500);
+  }
+});
+
+// ============================================
+// POST /price-sync/sync-availability - Sync backorder/availability status for all products
+// ============================================
+priceSync.post('/sync-availability', async (c) => {
+  try {
+    console.log('🔄 [Availability Sync] Starting availability synchronization...');
+
+    const allProducts = await kv.getByPrefix('products:');
+    console.log(`📦 [Availability Sync] Found ${allProducts.length} products`);
+
+    const token = await getToken();
+    if (!token) {
+      return c.json({ success: false, error: 'Uropa API token not configured' }, 400);
+    }
+
+    const BATCH_SIZE = 20;
+    let updated = 0;
+    let failed = 0;
+    const changes: any[] = [];
+
+    for (let i = 0; i < allProducts.length; i += BATCH_SIZE) {
+      const batch = allProducts.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(batch.map(async (product: any) => {
+        const productCode = product.code || product.productCode || product.sku || product.id;
+        if (!productCode) return;
+
+        try {
+          const uropaUrl = `${UROPA_API_BASE}/products/${productCode}?lang=en&curr=AUD&fields=FULL`;
+          const response = await fetch(uropaUrl, {
+            method: 'GET',
+            headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' }
+          });
+
+          if (!response.ok) return;
+          const uropaProduct = await response.json();
+
+          const availMsg = uropaProduct.availabilityMessage;
+          const isBackorder = availMsg?.messageEnum === 'AM_ON_BACKORDER';
+          const backorderMessage = availMsg?.message || null;
+          const backorderColor = availMsg?.availabilityColor || null;
+
+          const currentBackorder = product.backOrderAvailable || false;
+          if (isBackorder !== currentBackorder || !product.backorderMessage) {
+            await kv.set(`products:${product.id}`, {
+              ...product,
+              backOrderAvailable: isBackorder,
+              backorderMessage,
+              backorderColor,
+              lastSyncedWithUropa: new Date().toISOString(),
+            });
+            updated++;
+            if (isBackorder) {
+              changes.push({ productCode, message: backorderMessage });
+              console.log(`🔴 [Availability Sync] ${productCode} is on backorder`);
+            }
+          }
+        } catch (err: any) {
+          failed++;
+          console.error(`❌ [Availability Sync] ${productCode}:`, err.message);
+        }
+      }));
+
+      if (i + BATCH_SIZE < allProducts.length) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: `Availability sync complete. Updated ${updated} products, ${failed} failed.`,
+      backorderProducts: changes,
+      summary: { total: allProducts.length, updated, failed }
+    });
+
+  } catch (error: any) {
+    console.error('❌ [Availability Sync] Error:', error);
+    return c.json({ success: false, error: error.message }, 500);
   }
 });
 
