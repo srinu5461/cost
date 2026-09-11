@@ -585,13 +585,13 @@ const DEFAULT_CONTENT = {
     <p>Some warranties are handled directly by our suppliers and their technicians. For these products, we will contact you to advise of the process.</p>
 
     <h2>Reporting a Fault</h2>
-    <p>To report a fault and arrange a repair, please contact our support centre on <strong>1300 503 043</strong> or visit the Uropa warranty portal below.</p>
+    <p>To report a fault and arrange a repair, please contact our support centre on <strong>1800 151 624</strong> or visit the Uropa warranty portal below.</p>
     <p style="font-weight: 700;">How to report a fault:</p>
     <ol>
       <li>Visit the <a href="https://booking.mendrhub.com/?tenantid=0d95fb74-2828-43f0-9108-b91c9f874190" target="_blank" style="color: #E31837; font-weight: bold;">Uropa Warranty Website</a> or scan the QR code in your product documentation.</li>
       <li>Follow the instructions to register your product for warranty.</li>
     </ol>
-    <p><strong>Terms &amp; Conditions:</strong> Only machines from the following brands can be registered for warranty: Polar, Thor, Apuro, Waring, Nisbets Essentials, EazyZap, Caterlite and Vogue Weighstation. For any products not listed, please contact our customer service team on <strong>1300 503 043</strong>. Apuro purchases made prior to August 1st 2023 only have 1 year warranty.</p>
+    <p><strong>Terms &amp; Conditions:</strong> Only machines from the following brands can be registered for warranty: Polar, Thor, Apuro, Waring, Nisbets Essentials, EazyZap, Caterlite and Vogue Weighstation. For any products not listed, please contact our customer service team on <strong>1800 151 624</strong>. Apuro purchases made prior to August 1st 2023 only have 1 year warranty.</p>
 
     <h2>Spare Parts &amp; Accessories</h2>
     <p>We stock spares and accessories for most machines on our website, which are listed with each machine. Contact us to check availability for the part you need.</p>
@@ -602,8 +602,8 @@ const DEFAULT_CONTENT = {
 
     <h2>Contact Us</h2>
     <ul>
-      <li>Phone: <strong>1300 503 043</strong></li>
-      <li>Email: <a href="mailto:warranties@uropa.com.au" style="color: #E31837;">warranties@uropa.com.au</a></li>
+      <li>Phone: <strong>1800 151 624</strong></li>
+      <li>Email: <a href="mailto:info@costplus100.com.au" style="color: #E31837;">info@costplus100.com.au</a></li>
     </ul>
   `,
 };
