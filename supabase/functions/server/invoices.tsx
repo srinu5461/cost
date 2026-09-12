@@ -174,6 +174,8 @@ invoices.post('/generate-from-order/:orderId', async (c) => {
       sku: item.code || item.product?.code || '',
       quantity: item.quantity || 1,
       price: item.price || item.product?.price || 0,
+      uropaPromisedDate: item.uropaPromisedDate || item.uropa_promised_date || null,
+      backorderMessage: item.backorderMessage || item.backorder_message || null,
     }));
     
     // Calculate totals
@@ -254,6 +256,8 @@ invoices.post('/generate-from-order/:orderId', async (c) => {
           <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0;">
             <strong style="color: #2D3748; display: block; margin-bottom: 4px;">${item.name}</strong>
             ${item.sku ? `<span style="color: #6B7280; font-size: 12px;">SKU: ${item.sku}</span>` : ''}
+            ${item.uropaPromisedDate ? `<span style="color: #D97706; font-size: 12px; display: block; margin-top: 2px;">Expected delivery: ${new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>` : ''}
+            ${!item.uropaPromisedDate && item.backorderMessage && item.backorderMessage.toLowerCase() !== 'in stock' ? `<span style="color: #D97706; font-size: 12px; display: block; margin-top: 2px;">${item.backorderMessage}</span>` : ''}
           </td>
           <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
           <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">$${item.price.toFixed(2)}</td>
@@ -379,6 +383,8 @@ invoices.post('/:id/send-email', async (c) => {
         <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0;">
           <strong style="color: #2D3748; display: block; margin-bottom: 4px;">${item.name || item.description || 'Item'}</strong>
           ${item.sku ? `<span style="color: #6B7280; font-size: 12px;">SKU: ${item.sku}</span>` : ''}
+          ${item.uropaPromisedDate ? `<span style="color: #D97706; font-size: 12px; display: block; margin-top: 2px;">Expected delivery: ${new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>` : ''}
+          ${!item.uropaPromisedDate && item.backorderMessage && item.backorderMessage.toLowerCase() !== 'in stock' ? `<span style="color: #D97706; font-size: 12px; display: block; margin-top: 2px;">${item.backorderMessage}</span>` : ''}
         </td>
         <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
         <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">$${(item.price || 0).toFixed(2)}</td>
