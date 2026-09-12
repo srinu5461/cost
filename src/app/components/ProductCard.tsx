@@ -580,7 +580,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
           <div className="flex items-center gap-2.5 sm:w-80 w-full mt-2">
             <button
               onClick={handleAddToCart}
-              disabled={!productInStock}
+              disabled={!productInStock && !backOrderAvailable}
               className={`flex-[1.5] text-xs font-black py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${!productInStock
                   ? 'bg-[#E31837] opacity-50 pointer-events-none cursor-not-allowed shadow-none'
                   : 'bg-[#E31837] hover:bg-[#C8102E] text-white cursor-pointer shadow-md'
@@ -894,7 +894,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={handleAddToCart}
-            disabled={!productInStock}
+            disabled={!productInStock && !backOrderAvailable}
             className={`flex-[1.5] text-[10px] sm:text-xs font-black py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 whitespace-nowrap ${!productInStock
                 ? 'bg-[#E31837] opacity-50 pointer-events-none cursor-not-allowed shadow-none'
                 : 'bg-[#E31837] hover:bg-[#C8102E] text-white cursor-pointer shadow-md'

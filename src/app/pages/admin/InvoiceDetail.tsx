@@ -319,7 +319,17 @@ export function InvoiceDetail() {
             </div>
             {invoice.items.map((item, index) => (
               <div key={index} className="grid grid-cols-12 gap-4 py-2 border-b">
-                <div className="col-span-6">{item.name}</div>
+                <div className="col-span-6">
+                  <div>{item.name}</div>
+                  {item.uropaPromisedDate && (
+                    <div className="text-xs text-amber-600 mt-0.5">
+                      Expected delivery: {new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                  )}
+                  {!item.uropaPromisedDate && item.backorderMessage && (
+                    <div className="text-xs text-amber-600 mt-0.5">{item.backorderMessage}</div>
+                  )}
+                </div>
                 <div className="col-span-2 text-right">{item.quantity}</div>
                 <div className="col-span-2 text-right">${item.price.toFixed(2)}</div>
                 <div className="col-span-2 text-right font-semibold">

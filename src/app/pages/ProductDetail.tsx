@@ -1284,12 +1284,12 @@ export function ProductDetail() {
                 <Button
                   size="lg"
                   className={`flex-1 h-11 font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 ${
-                    !productInStock
+                    !productInStock && !backOrderAvailable
                       ? 'bg-[#E31837] opacity-50 pointer-events-none cursor-not-allowed shadow-none text-white'
                       : 'bg-[#E31837] hover:bg-[#C8102E] text-white cursor-pointer shadow-md'
                   }`}
                   onClick={handleAddToCart}
-                  disabled={!productInStock}
+                  disabled={!productInStock && !backOrderAvailable}
                 >
                   <ShoppingCart className="size-4" />
                   <span>Add to Cart</span>
@@ -1299,12 +1299,12 @@ export function ProductDetail() {
                 <Button
                   size="lg"
                   className={`flex-1 h-11 font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 ${
-                    !productInStock
+                    !productInStock && !backOrderAvailable
                       ? 'bg-[#0B132A] opacity-50 pointer-events-none cursor-not-allowed shadow-none text-white'
                       : 'bg-[#0B132A] hover:bg-slate-800 text-white cursor-pointer shadow-md'
                   }`}
                   onClick={handleBuyNow}
-                  disabled={!productInStock}
+                  disabled={!productInStock && !backOrderAvailable}
                 >
                   <Zap className="size-4 fill-white text-white" />
                   <span>Buy Now</span>
