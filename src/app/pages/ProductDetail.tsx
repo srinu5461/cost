@@ -871,8 +871,7 @@ export function ProductDetail() {
   const uropaPromisedDate = displayProduct?.uropaPromisedDate || (displayProduct as any)?.uropa_promised_date || (displayProduct as any)?.promised_date || '';
   const backorderMessage = (displayProduct as any)?.uropaAvailabilityMessage || (displayProduct as any)?.backorderMessage || '';
   const backOrderAvailable = Boolean(
-    (backorderMessage || uropaPromisedDate) &&
-    ((displayProduct as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' || displayProduct?.backOrderAvailable)
+    (displayProduct as any)?.uropaMessageEnum === 'AM_ON_BACKORDER'
   );
   const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
 

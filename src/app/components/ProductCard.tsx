@@ -180,8 +180,7 @@ addToCart(productWithPromo);
  const uropaPromisedDate = product?.uropaPromisedDate || '';
 const uropaAvailabilityMessage = (product as any)?.uropaAvailabilityMessage || '';
 const backOrderAvailable = Boolean(
-  (uropaAvailabilityMessage || uropaPromisedDate) &&
-  ((product as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' || product?.backOrderAvailable)
+  (product as any)?.uropaMessageEnum === 'AM_ON_BACKORDER'
 );
 const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
   const rawInStock = product?.inStock ?? (product as any)?.in_stock ?? (product as any)?.is_in_stock;
