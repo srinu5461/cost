@@ -3116,7 +3116,7 @@ export function Checkout() {
                     </div>
                   )}
                   <div className="flex justify-between items-center text-[14px]">
-                    <span className="text-slate-500 font-medium">GST (10%)</span>
+                    <span className="text-slate-500 font-medium">GST (10%{(shippingCalculated && !usePickup && shipping > 0) ? ' incl. shipping' : ''})</span>
                     <div className="flex-1 border-b border-dashed border-slate-200 mx-4 relative top-[-6px]"></div>
                     <span className="font-bold text-[#0f172a]">${gst.toFixed(2)}</span>
                   </div>
@@ -3199,7 +3199,21 @@ export function Checkout() {
                   <span className="text-xl sm:text-2xl font-extrabold text-white leading-none">${total.toFixed(2)}</span>
                 </div>
 
-                <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-xl p-3.5 flex items-center justify-between mt-4 shadow-2xs">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mt-4">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">We Accept</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <img src="/pyamentimages/visa.png" alt="Visa" className="h-6 object-contain rounded" />
+                    <img src="/pyamentimages/mastercard.png" alt="Mastercard" className="h-6 object-contain rounded" />
+                    <img src="/pyamentimages/amercianexpress.png" alt="American Express" className="h-6 object-contain rounded" />
+                    <img src="/pyamentimages/gpay.png" alt="Google Pay" className="h-6 object-contain rounded" />
+                    <div className="bg-slate-800 rounded px-1.5 py-0.5 flex items-center h-6">
+                      <SquareLogoBlack className="h-4 w-auto" style={{ filter: 'invert(1)' }} />
+                    </div>
+                    <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" className="h-6 object-contain rounded" />
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-xl p-3.5 flex items-center justify-between mt-3 shadow-2xs">
                   <div className="flex items-center gap-2">
                     <div className="bg-emerald-100 p-1.5 rounded-full border border-emerald-200">
                       <Lock className="size-3.5 text-emerald-700" />
