@@ -718,7 +718,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
           ) : isDirectShip ? (
             <div className="flex items-center gap-1 font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
               <Truck className="size-3 text-slate-500" />
-              <span>Dispatched by Supplier</span>
+              <span>Supplier Direct</span>
             </div>
           ) : productInStock ? (
             <div className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
