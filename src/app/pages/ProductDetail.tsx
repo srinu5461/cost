@@ -870,9 +870,13 @@ export function ProductDetail() {
   const productBrand = displayProduct?.brand;
   const uropaPromisedDate = displayProduct?.uropaPromisedDate || (displayProduct as any)?.uropa_promised_date || (displayProduct as any)?.promised_date || '';
   const backorderMessage = (displayProduct as any)?.uropaAvailabilityMessage || (displayProduct as any)?.backorderMessage || '';
+  const uropaMessageEnum = (displayProduct as any)?.uropaMessageEnum || '';
+  const uropaShipDirect = (displayProduct as any)?.uropaShipDirect || '';
+  // AM_DIRECT = "Despatched By Supplier" — not warehouse stock, treat as out of stock
+  const isDirectShip = uropaMessageEnum === 'AM_DIRECT' || uropaShipDirect === 'DIRECT';
   const backOrderAvailable = Boolean(
     uropaPromisedDate ||
-    ((displayProduct as any)?.uropaMessageEnum === 'AM_ON_BACKORDER' && backorderMessage.toLowerCase() !== 'in stock')
+    (uropaMessageEnum === 'AM_ON_BACKORDER' && backorderMessage.toLowerCase() !== 'in stock')
   );
   const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > new Date() : false;
 
@@ -891,7 +895,7 @@ export function ProductDetail() {
     computedInStock = true;
   }
 
-  const productInStock = promisedDateInFuture ? false : computedInStock;
+  const productInStock = (promisedDateInFuture || isDirectShip) ? false : computedInStock;
   const productRating = displayProduct?.rating || 4.7;
   const productBrandLogo = displayProduct?.brandLogo || displayProduct?.brandLogoUrl;
   const productCode = displayProduct?.code || displayProduct?.sku || '';

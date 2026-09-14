@@ -258,6 +258,8 @@ priceSync.post('/run', async (c) => {
             const uropaInStock = uropaStockStatus === 'inStock';
             const uropaBackOrderAvailable = uropaProduct.stock?.backorderAvailable || uropaProduct.backorderAvailable || false;
             const uropaAvailabilityMessage = uropaProduct.availabilityMessage?.message || null;
+            const uropaMessageEnum = uropaProduct.availabilityMessage?.messageEnum || null;
+            const uropaShipDirect = uropaProduct.shipDirect || null;
             const uropaPromisedDate = uropaProduct.availabilityMessage?.promisedDate ||
               (uropaAvailabilityMessage?.match(/\d{2}\/\d{2}\/\d{2,4}/)?.[0]) || null;
 
@@ -268,7 +270,8 @@ priceSync.post('/run', async (c) => {
               // Price unchanged — still update stock/availability fields
               const stockUpdated = product.inStock !== uropaInStock ||
                 product.backOrderAvailable !== uropaBackOrderAvailable ||
-                product.uropaPromisedDate !== uropaPromisedDate;
+                product.uropaPromisedDate !== uropaPromisedDate ||
+                product.uropaMessageEnum !== uropaMessageEnum;
 
               if (stockUpdated) {
                 await kv.set(`products:${product.id}`, {
@@ -276,6 +279,9 @@ priceSync.post('/run', async (c) => {
                   inStock: uropaInStock,
                   backOrderAvailable: uropaBackOrderAvailable,
                   uropaPromisedDate,
+                  uropaMessageEnum,
+                  uropaAvailabilityMessage,
+                  uropaShipDirect,
                   lastSyncedWithUropa: new Date().toISOString(),
                 });
                 console.log(`📦 [Price Sync] Stock updated for ${productCode}: inStock=${uropaInStock}, backOrder=${uropaBackOrderAvailable}`);
@@ -312,6 +318,9 @@ priceSync.post('/run', async (c) => {
               inStock: uropaInStock,
               backOrderAvailable: uropaBackOrderAvailable,
               uropaPromisedDate,
+              uropaMessageEnum,
+              uropaAvailabilityMessage,
+              uropaShipDirect,
               lastPriceUpdate: new Date().toISOString(),
               lastSyncedWithUropa: new Date().toISOString(),
             };
@@ -497,6 +506,8 @@ priceSync.post('/run-batch', async (c) => {
         const uropaInStock = uropaStockStatus === 'inStock';
         const uropaBackOrderAvailable = uropaProduct.stock?.backorderAvailable || uropaProduct.backorderAvailable || false;
         const uropaAvailabilityMessage = uropaProduct.availabilityMessage?.message || null;
+        const uropaMessageEnum = uropaProduct.availabilityMessage?.messageEnum || null;
+        const uropaShipDirect = uropaProduct.shipDirect || null;
         const uropaPromisedDate = uropaProduct.availabilityMessage?.promisedDate ||
           (uropaAvailabilityMessage?.match(/\d{2}\/\d{2}\/\d{2,4}/)?.[0]) || null;
 
@@ -512,6 +523,9 @@ priceSync.post('/run-batch', async (c) => {
           inStock: uropaInStock,
           backOrderAvailable: uropaBackOrderAvailable,
           uropaPromisedDate,
+          uropaMessageEnum,
+          uropaAvailabilityMessage,
+          uropaShipDirect,
           lastPriceUpdate: new Date().toISOString(),
         };
 
