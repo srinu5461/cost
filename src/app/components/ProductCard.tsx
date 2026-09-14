@@ -531,6 +531,11 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                     </span>
                   )}
                 </div>
+              ) : isDirectShip ? (
+                <div className="flex items-center gap-1 font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
+                  <Truck className="size-3 text-slate-500" />
+                  <span>Dispatched by Supplier</span>
+                </div>
               ) : productInStock ? (
                 <div className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
                   <Check className="size-3 text-emerald-600 stroke-[3]" />
@@ -584,8 +589,8 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
           <div className="flex items-center gap-2.5 sm:w-80 w-full mt-2">
             <button
               onClick={handleAddToCart}
-              disabled={!productInStock && !backOrderAvailable}
-              className={`flex-[1.5] text-xs font-black py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${!productInStock
+              disabled={!productInStock && !backOrderAvailable && !isDirectShip}
+              className={`flex-[1.5] text-xs font-black py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${(!productInStock && !backOrderAvailable && !isDirectShip)
                   ? 'bg-[#E31837] opacity-50 pointer-events-none cursor-not-allowed shadow-none'
                   : 'bg-[#E31837] hover:bg-[#C8102E] text-white cursor-pointer shadow-md'
                 }`}
@@ -613,7 +618,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
           className="block w-full h-44 sm:h-52 rounded-xl bg-slate-50/60 p-3 flex items-center justify-center mb-3 relative overflow-hidden group/img cursor-pointer"
         >
           {/* Out of Stock Badge — top-left */}
-          {!productInStock && (
+          {!productInStock && !isDirectShip && (
             <span className="absolute top-2 left-2 text-[10px] sm:text-xs font-extrabold bg-red-600 text-white uppercase tracking-wider px-2 py-0.5 rounded shadow-md z-10">
               OUT OF STOCK
             </span>
@@ -700,6 +705,11 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                   {uropaAvailabilityMessage}
                 </span>
               )}
+            </div>
+          ) : isDirectShip ? (
+            <div className="flex items-center gap-1 font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
+              <Truck className="size-3 text-slate-500" />
+              <span>Dispatched by Supplier</span>
             </div>
           ) : productInStock ? (
             <div className="flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0 shadow-2xs">
@@ -898,8 +908,8 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={handleAddToCart}
-            disabled={!productInStock && !backOrderAvailable}
-            className={`flex-[1.5] text-[10px] sm:text-xs font-black py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 whitespace-nowrap ${!productInStock
+            disabled={!productInStock && !backOrderAvailable && !isDirectShip}
+            className={`flex-[1.5] text-[10px] sm:text-xs font-black py-2 sm:py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 whitespace-nowrap ${(!productInStock && !backOrderAvailable && !isDirectShip)
                 ? 'bg-[#E31837] opacity-50 pointer-events-none cursor-not-allowed shadow-none'
                 : 'bg-[#E31837] hover:bg-[#C8102E] text-white cursor-pointer shadow-md'
               }`}

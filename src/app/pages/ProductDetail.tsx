@@ -28,7 +28,8 @@ import {
   RotateCcw,
   X,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  AlertCircle
 } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { buildCategoryTree } from '../utils/categoryTree';
@@ -1245,7 +1246,13 @@ export function ProductDetail() {
                     )}
                   </div>
                 )}
-                {!productInStock && !backOrderAvailable && (
+                {isDirectShip && (
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 mt-1">
+                    <Truck className="size-3.5 text-slate-500 shrink-0" />
+                    <span>Dispatched by Supplier</span>
+                  </div>
+                )}
+                {!productInStock && !backOrderAvailable && !isDirectShip && (
                   <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 mt-1">
                     <X className="size-3.5 text-red-600 shrink-0" />
                     <span>Out of Stock</span>
@@ -1288,12 +1295,12 @@ export function ProductDetail() {
                 <Button
                   size="lg"
                   className={`flex-1 h-11 font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 ${
-                    !productInStock && !backOrderAvailable
+                    !productInStock && !backOrderAvailable && !isDirectShip
                       ? 'bg-[#E31837] opacity-50 pointer-events-none cursor-not-allowed shadow-none text-white'
                       : 'bg-[#E31837] hover:bg-[#C8102E] text-white cursor-pointer shadow-md'
                   }`}
                   onClick={handleAddToCart}
-                  disabled={!productInStock && !backOrderAvailable}
+                  disabled={!productInStock && !backOrderAvailable && !isDirectShip}
                 >
                   <ShoppingCart className="size-4" />
                   <span>Add to Cart</span>
@@ -1303,18 +1310,28 @@ export function ProductDetail() {
                 <Button
                   size="lg"
                   className={`flex-1 h-11 font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 ${
-                    !productInStock && !backOrderAvailable
+                    !productInStock && !backOrderAvailable && !isDirectShip
                       ? 'bg-[#0B132A] opacity-50 pointer-events-none cursor-not-allowed shadow-none text-white'
                       : 'bg-[#0B132A] hover:bg-slate-800 text-white cursor-pointer shadow-md'
                   }`}
                   onClick={handleBuyNow}
-                  disabled={!productInStock && !backOrderAvailable}
+                  disabled={!productInStock && !backOrderAvailable && !isDirectShip}
                 >
                   <Zap className="size-4 fill-white text-white" />
                   <span>Buy Now</span>
                 </Button>
               </div>
             </div>
+
+            {/* Dispatched by Supplier warning */}
+            {isDirectShip && (
+              <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                <AlertCircle className="size-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 font-medium leading-snug">
+                  This item is dispatched directly by our supplier. Please confirm stock availability before placing your order.
+                </p>
+              </div>
+            )}
 
             {/* Secure Payment Logos */}
             <div className="mt-3 border border-slate-200/80 rounded-xl p-3 bg-slate-50/50">
