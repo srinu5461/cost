@@ -334,6 +334,11 @@ export function OrderConfirmation() {
                     const itemCode = item.product?.code || item.code || 'N/A';
                     const itemPrice = item.product?.price || item.price || 0;
                     const itemQuantity = item.quantity || 1;
+                    const itemUropaMessageEnum = item.uropaMessageEnum || item.product?.uropaMessageEnum || '';
+                    const itemUropaShipDirect = item.uropaShipDirect || item.product?.uropaShipDirect || '';
+                    const itemIsDirectShip = itemUropaMessageEnum === 'AM_DIRECT' || itemUropaShipDirect === 'DIRECT';
+                    const itemPromisedDate = item.uropaPromisedDate || item.product?.uropaPromisedDate || '';
+                    const itemBackorderMsg = item.backorderMessage || item.product?.uropaAvailabilityMessage || '';
 
                     return (
                       <div key={index} className="flex gap-4">
@@ -356,9 +361,31 @@ export function OrderConfirmation() {
                           <p className="text-sm text-muted-foreground mb-2">
                             Quantity: {itemQuantity}
                           </p>
-                          <p className="font-semibold">
+                          <p className="font-semibold mb-2">
                             ${(itemPrice * itemQuantity).toFixed(2)}
                           </p>
+                          {itemIsDirectShip && (
+                            <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-1">
+                              <span className="text-amber-600 text-sm shrink-0">⚠️</span>
+                              <p className="text-xs text-amber-800 font-medium leading-snug">
+                                Dispatched by supplier — our team will confirm availability and contact you before dispatch.
+                              </p>
+                            </div>
+                          )}
+                          {!itemIsDirectShip && itemPromisedDate && (
+                            <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-1">
+                              <span className="text-amber-600 text-sm shrink-0">📅</span>
+                              <p className="text-xs text-amber-800 font-medium leading-snug">
+                                On backorder — expected {new Date(itemPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </p>
+                            </div>
+                          )}
+                          {!itemIsDirectShip && !itemPromisedDate && itemBackorderMsg && itemBackorderMsg.toLowerCase() !== 'in stock' && (
+                            <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-1">
+                              <span className="text-amber-600 text-sm shrink-0">📅</span>
+                              <p className="text-xs text-amber-800 font-medium leading-snug">{itemBackorderMsg}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

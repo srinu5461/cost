@@ -359,12 +359,17 @@ export function InvoiceDetail() {
                   <div key={index} className="flex gap-4 px-4 py-3 items-center">
                     <div className="flex-1 min-w-0">
                       <p className="font-extrabold text-[#0f172a] truncate">{item.name}</p>
-                      {item.uropaPromisedDate && (
-                        <p className="text-[11px] text-amber-600 font-medium mt-0.5">
-                          Expected delivery: {new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {((item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT') && (
+                        <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
+                          ⚠️ Dispatched by supplier — availability to be confirmed
                         </p>
                       )}
-                      {!item.uropaPromisedDate && item.backorderMessage && item.backorderMessage.toLowerCase() !== 'in stock' && (
+                      {!((item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT') && item.uropaPromisedDate && (
+                        <p className="text-[11px] text-amber-600 font-medium mt-0.5">
+                          📅 Expected delivery: {new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      )}
+                      {!((item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT') && !item.uropaPromisedDate && item.backorderMessage && item.backorderMessage.toLowerCase() !== 'in stock' && (
                         <p className="text-[11px] text-amber-600 font-medium mt-0.5">{item.backorderMessage}</p>
                       )}
                     </div>
