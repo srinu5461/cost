@@ -1212,9 +1212,11 @@ export function ProductDetail() {
                   )}
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
-                   <span className="text-xs font-bold text-slate-500">ex GST</span>
-
+                    <span className="text-xs font-bold text-slate-500">ex GST</span>
                     <span className="bg-[#8B5CF6] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">COSTPlUS100 Price</span>
+                    {displayProduct.price > displayPrice && (
+                      <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">{Math.round(((displayProduct.price - displayPrice) / displayProduct.price) * 100)}% OFF</span>
+                    )}
                   </div>
                 </div>
               ) : (
