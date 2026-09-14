@@ -312,9 +312,6 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
               SAVE ${(productPrice - promotion!.promotionalPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
-              {Math.round(((productPrice - promotion!.promotionalPrice) / productPrice) * 100)}% OFF
-            </span>
             <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
           </div>
         </div>
@@ -360,11 +357,6 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <span className="bg-[#8B5CF6] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs whitespace-nowrap">
               Costplus100 Price
             </span>
-            {productPrice > displayPrice && (
-              <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
-                {Math.round(((productPrice - displayPrice) / productPrice) * 100)}% OFF
-              </span>
-            )}
           </div>
         </div>
       );
@@ -426,9 +418,6 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             </span>
             <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
               SAVE ${(oldWasPrice - productPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
-              {Math.round(((oldWasPrice - productPrice) / oldWasPrice) * 100)}% OFF
             </span>
             <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
           </div>
@@ -778,9 +767,6 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                 <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
                   SAVE ${(productPrice - promotion!.promotionalPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
-                  {Math.round(((productPrice - promotion!.promotionalPrice) / productPrice) * 100)}% OFF
-                </span>
                 <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
               </div>
             </>
@@ -820,11 +806,6 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                 <span className="bg-[#8B5CF6] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs whitespace-nowrap">
                   Costplus100 Price
                 </span>
-                {productPrice > displayPrice && (
-                  <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
-                    {Math.round(((productPrice - displayPrice) / productPrice) * 100)}% OFF
-                  </span>
-                )}
               </div>
             </>
           ) : hasCostPrice ? (
@@ -877,9 +858,6 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                 </span>
                 <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
                   SAVE ${(oldWasPrice - productPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
-                  {Math.round(((oldWasPrice - productPrice) / oldWasPrice) * 100)}% OFF
                 </span>
                 <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
               </div>
