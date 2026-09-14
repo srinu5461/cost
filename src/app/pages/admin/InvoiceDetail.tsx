@@ -359,19 +359,26 @@ export function InvoiceDetail() {
                   <div key={index} className="flex gap-4 px-4 py-3 items-center">
                     <div className="flex-1 min-w-0">
                       <p className="font-extrabold text-[#0f172a] truncate">{item.name}</p>
-                      {((item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT') && (
-                        <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
-                          ⚠️ Dispatched by supplier — availability to be confirmed
-                        </p>
-                      )}
-                      {!((item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT') && item.uropaPromisedDate && (
-                        <p className="text-[11px] text-amber-600 font-medium mt-0.5">
-                          📅 Expected delivery: {new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
-                      )}
-                      {!((item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT') && !item.uropaPromisedDate && item.backorderMessage && item.backorderMessage.toLowerCase() !== 'in stock' && (
-                        <p className="text-[11px] text-amber-600 font-medium mt-0.5">{item.backorderMessage}</p>
-                      )}
+                      {(() => {
+                        const isDirectShip = (item as any).uropaMessageEnum === 'AM_DIRECT' || (item as any).uropaShipDirect === 'DIRECT'
+                          || (item.backorderMessage || '').toLowerCase().includes('despatch') || (item.backorderMessage || '').toLowerCase().includes('supplier');
+                        const hasPromisedDate = !isDirectShip && item.uropaPromisedDate;
+                        const hasBackorderMsg = !isDirectShip && !item.uropaPromisedDate && item.backorderMessage && item.backorderMessage.toLowerCase() !== 'in stock';
+                        if (isDirectShip) return (
+                          <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
+                            ⚠️ Dispatched by supplier — availability to be confirmed
+                          </p>
+                        );
+                        if (hasPromisedDate) return (
+                          <p className="text-[11px] text-amber-600 font-medium mt-0.5">
+                            📅 Expected delivery: {new Date(item.uropaPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        );
+                        if (hasBackorderMsg) return (
+                          <p className="text-[11px] text-amber-600 font-medium mt-0.5">{item.backorderMessage}</p>
+                        );
+                        return null;
+                      })()}
                     </div>
                     <div className="w-16 text-center">
                       <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs">{item.quantity}</span>

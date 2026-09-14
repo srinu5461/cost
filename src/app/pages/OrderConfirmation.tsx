@@ -336,9 +336,10 @@ export function OrderConfirmation() {
                     const itemQuantity = item.quantity || 1;
                     const itemUropaMessageEnum = item.uropaMessageEnum || item.product?.uropaMessageEnum || '';
                     const itemUropaShipDirect = item.uropaShipDirect || item.product?.uropaShipDirect || '';
-                    const itemIsDirectShip = itemUropaMessageEnum === 'AM_DIRECT' || itemUropaShipDirect === 'DIRECT';
                     const itemPromisedDate = item.uropaPromisedDate || item.product?.uropaPromisedDate || '';
                     const itemBackorderMsg = item.backorderMessage || item.product?.uropaAvailabilityMessage || '';
+                    const itemIsDirectShip = itemUropaMessageEnum === 'AM_DIRECT' || itemUropaShipDirect === 'DIRECT'
+                      || itemBackorderMsg.toLowerCase().includes('despatch') || itemBackorderMsg.toLowerCase().includes('supplier');
 
                     return (
                       <div key={index} className="flex gap-4">
