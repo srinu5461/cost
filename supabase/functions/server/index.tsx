@@ -1353,6 +1353,22 @@ app.get("/make-server-d1fbc049/products/query/:code", async (c) => {
   }
 });
 
+// ⚡ Update product stock by code
+app.patch("/make-server-d1fbc049/products/stock-by-code/:code", async (c) => {
+  try {
+    const code = c.req.param('code');
+    const body = await c.req.json();
+    const productKey = `products:${code}`;
+    const product = await kv.get(productKey);
+    if (!product) return c.json({ error: 'Product not found', code }, 404);
+    const updated = { ...product, ...body, code };
+    await kv.set(productKey, updated);
+    return c.json({ success: true, code, updated: body });
+  } catch (error) {
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 // ⚡ Single product cache (edge caching for 5 minutes)
 const singleProductCache = new Map<string, { product: any; timestamp: number }>();
 const PRODUCT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
