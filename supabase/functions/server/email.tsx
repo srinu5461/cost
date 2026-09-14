@@ -481,11 +481,23 @@ export async function sendOrderConfirmationEmail(recipientEmail: string, order: 
       ? `<span style="color: #9ca3af; text-decoration: line-through; font-size: 12px;">$${itemPrice.toFixed(2)}</span><br><strong>$${displayPrice.toFixed(2)}</strong>${pricingBadge}`
       : `$${displayPrice.toFixed(2)}`;
 
+    const itemBackorderMsg = item.backorderMessage || item.product?.uropaAvailabilityMessage || '';
+    const itemIsDirectShip = item.uropaMessageEnum === 'AM_DIRECT' || item.uropaShipDirect === 'DIRECT'
+      || itemBackorderMsg.toLowerCase().includes('despatch') || itemBackorderMsg.toLowerCase().includes('supplier');
+    const itemPromisedDate = item.uropaPromisedDate || item.product?.uropaPromisedDate || '';
+    const itemNotice = itemIsDirectShip
+      ? `<br><span style="color: #b45309; font-size: 12px; font-weight: 600;">⚠️ Dispatched by supplier — availability to be confirmed</span>`
+      : itemPromisedDate
+        ? `<br><span style="color: #b45309; font-size: 12px;">📅 Expected delivery: ${new Date(itemPromisedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>`
+        : (itemBackorderMsg && itemBackorderMsg.toLowerCase() !== 'in stock')
+          ? `<br><span style="color: #b45309; font-size: 12px;">📅 ${itemBackorderMsg}</span>`
+          : '';
+
     return `
       <tr>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
           <strong>${item.name || item.product?.name || 'Product'}</strong><br>
-          <span style="color: #6b7280; font-size: 13px;">Code: ${item.code || item.product?.code || 'N/A'}</span>
+          <span style="color: #6b7280; font-size: 13px;">Code: ${item.code || item.product?.code || 'N/A'}</span>${itemNotice}
         </td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
           ${itemQuantity}
@@ -798,19 +810,32 @@ email.post('/shipping-quote', async (c) => {
     console.log('PDF generated, size:', pdfBuffer.length, 'bytes');
 
     // Build HTML email
-    const orderItemsHtml = order.order_items?.map((item: any) => `
+    const orderItemsHtml = order.order_items?.map((item: any) => {
+      const bMsg = item.backorderMessage || item.product?.uropaAvailabilityMessage || '';
+      const isDirect = item.uropaMessageEnum === 'AM_DIRECT' || item.uropaShipDirect === 'DIRECT'
+        || bMsg.toLowerCase().includes('despatch') || bMsg.toLowerCase().includes('supplier');
+      const pDate = item.uropaPromisedDate || item.product?.uropaPromisedDate || '';
+      const notice = isDirect
+        ? `<br><span style="color: #b45309; font-size: 12px; font-weight: 600;">⚠️ Dispatched by supplier — availability to be confirmed</span>`
+        : pDate
+          ? `<br><span style="color: #b45309; font-size: 12px;">📅 Expected: ${new Date(pDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>`
+          : (bMsg && bMsg.toLowerCase() !== 'in stock')
+            ? `<br><span style="color: #b45309; font-size: 12px;">📅 ${bMsg}</span>`
+            : '';
+      return `
       <tr>
-        <td style=\"padding: 10px; border-bottom: 1px solid #ddd;\">
-          ${item.product?.name || 'Product'}
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+          ${item.product?.name || 'Product'}${notice}
         </td>
-        <td style=\"padding: 10px; border-bottom: 1px solid #ddd; text-align: center;\">
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">
           ${item.quantity}
         </td>
-        <td style=\"padding: 10px; border-bottom: 1px solid #ddd; text-align: right;\">
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">
           $${((item.product?.price || 0) * item.quantity).toFixed(2)}
         </td>
       </tr>
-    `).join('') || '';
+    `;
+    }).join('') || '';
     
     // Get customer name from either shipping or billing info
     const finalCustomerName = customerName || 
