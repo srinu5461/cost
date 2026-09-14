@@ -1030,11 +1030,15 @@ export function ProductDetail() {
                 setShowImageZoom(true);
               }}
             >
-              {/* Top-Left OUT OF STOCK / LOW PRICE Badge */}
+              {/* Top-Left OUT OF STOCK / SUPPLIER DIRECT / LOW PRICE Badge */}
               <div className="absolute top-3 left-3 z-10 pointer-events-none">
-                {!productInStock ? (
+                {!productInStock && !isDirectShip ? (
                   <span className="bg-red-600 hover:bg-red-600 text-white font-extrabold text-[10px] sm:text-xs px-2.5 py-1 rounded-md shadow-xs uppercase tracking-wider">
                     OUT OF STOCK
+                  </span>
+                ) : isDirectShip ? (
+                  <span className="bg-slate-600 text-white font-extrabold text-[10px] sm:text-xs px-2.5 py-1 rounded-md shadow-xs uppercase tracking-wider">
+                    SUPPLIER DIRECT
                   </span>
                 ) : (
                   <span className="bg-[#E31837] text-white font-extrabold text-[10px] sm:text-xs px-2.5 py-1 rounded-md shadow-xs uppercase tracking-wider">
@@ -1194,6 +1198,7 @@ export function ProductDetail() {
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
                     <span className="bg-[#E31837] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">SAVE ${promotionalSavings!.toFixed(2)}</span>
+                    <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">{Math.round((promotionalSavings! / wasPrice!) * 100)}% OFF</span>
                     <span className="text-xs font-bold text-slate-500">ex GST</span>
                   </div>
                 </div>

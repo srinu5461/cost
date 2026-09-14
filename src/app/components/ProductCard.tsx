@@ -312,6 +312,9 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
               SAVE ${(productPrice - promotion!.promotionalPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
+            <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
+              {Math.round(((productPrice - promotion!.promotionalPrice) / productPrice) * 100)}% OFF
+            </span>
             <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
           </div>
         </div>
@@ -418,6 +421,9 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             </span>
             <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
               SAVE ${(oldWasPrice - productPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
+              {Math.round(((oldWasPrice - productPrice) / oldWasPrice) * 100)}% OFF
             </span>
             <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
           </div>
@@ -576,12 +582,15 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                 <span className="text-slate-400 font-medium">({productRating || 0})</span>
               </div>
 
-              <div className="h-3 w-px bg-slate-200" />
-
-              <div className="flex items-center gap-1 text-slate-500 font-medium">
-                <Truck className="size-3.5 shrink-0" />
-                <span>Dispatched by Supplier</span>
-              </div>
+              {isDirectShip && (
+                <>
+                  <div className="h-3 w-px bg-slate-200" />
+                  <div className="flex items-center gap-1 text-slate-500 font-medium">
+                    <Truck className="size-3.5 shrink-0" />
+                    <span>Dispatched by Supplier</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -764,6 +773,9 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                 <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
                   SAVE ${(productPrice - promotion!.promotionalPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
+                <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
+                  {Math.round(((productPrice - promotion!.promotionalPrice) / productPrice) * 100)}% OFF
+                </span>
                 <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
               </div>
             </>
@@ -856,6 +868,9 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
                 <span className="bg-[#E31837] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
                   SAVE ${(oldWasPrice - productPrice).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
+                <span className="bg-orange-500 text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
+                  {Math.round(((oldWasPrice - productPrice) / oldWasPrice) * 100)}% OFF
+                </span>
                 <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
               </div>
             </>
@@ -895,13 +910,15 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <span className="text-slate-400 font-medium">({productRating || 0})</span>
           </div>
 
-          <div className="h-3 w-px bg-slate-200" />
-
-          {/* Supplier Shipping */}
-          <div className="flex items-center gap-1 text-slate-500 font-medium">
-            <Truck className="size-3 sm:size-3.5 shrink-0" />
-            <span>Dispatched by Supplier</span>
-          </div>
+          {isDirectShip && (
+            <>
+              <div className="h-3 w-px bg-slate-200" />
+              <div className="flex items-center gap-1 text-slate-500 font-medium">
+                <Truck className="size-3 sm:size-3.5 shrink-0" />
+                <span>Dispatched by Supplier</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── ACTION BUTTONS ── */}
