@@ -1783,6 +1783,12 @@ descriptionSync.post('/single/:code', async (c) => {
     const uropaImages = uropaData.images;
     const uropaProduct = uropaData.rawProduct;
     const allAttributes = uropaProduct.attributes || [];
+
+    // 📄 Extract documents from carousel response
+    const uropaDocuments: Array<{ altText: string; format: string; url: string }> =
+      (uropaProduct.documents || [])
+        .map((doc: any) => ({ altText: doc.altText || '', format: doc.format || '', url: doc.url || '' }))
+        .filter((doc: any) => doc.url);
     
     // 🔍 LOG RAW UROPA DATA
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -1828,6 +1834,7 @@ descriptionSync.post('/single/:code', async (c) => {
       specifications: specifications.length > 0 ? specifications : dbProduct.specifications,
       ageRestricted: uropaAgeRestricted,
       images: uropaImages.length > 0 ? uropaImages : dbProduct.images,
+      documents: uropaDocuments.length > 0 ? uropaDocuments : dbProduct.documents,
       lastDescriptionSync: new Date().toISOString(),
       descriptionSyncedWithUropa: true,
     };
