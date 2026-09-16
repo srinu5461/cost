@@ -303,7 +303,8 @@ export function getShippingZone(postcode: string): { zone: string; zoneName: str
 }
 
 // Items under this price threshold in excluded categories still get calculated shipping (not quote)
-const BULKY_PRICE_THRESHOLD = 200;
+const BULKY_PRICE_THRESHOLD = 500;
+const BULKY_CART_TOTAL_THRESHOLD = 1200;
 
 /**
  * Checks if cart contains categories that require shipping quote.
@@ -312,7 +313,8 @@ const BULKY_PRICE_THRESHOLD = 200;
  */
 export function requiresShippingQuote(
   categories: string[],
-  cartItems?: Array<{ category: string; price: number }>
+  cartItems?: Array<{ category: string; price: number }>,
+  cartTotal?: number
 ): { required: boolean; matchedCategories: string[] } {
   const matchedCategories: string[] = [];
 
@@ -334,6 +336,12 @@ export function requiresShippingQuote(
     }
     if (!isQuoteCategory) continue;
 
+    // If cart total exceeds the threshold, always require quote regardless of item price
+    if (cartTotal !== undefined && cartTotal > BULKY_CART_TOTAL_THRESHOLD) {
+      matchedCategories.push(category);
+      continue;
+    }
+
     // If we have per-item prices, only require quote if at least one item
     // in this category is >= the price threshold (i.e. truly bulky/heavy)
     if (cartItems && cartItems.length > 0) {
@@ -341,7 +349,7 @@ export function requiresShippingQuote(
         item.category.toLowerCase() === category.toLowerCase()
       );
       const hasBulkyItem = itemsInCategory.some(item => item.price >= BULKY_PRICE_THRESHOLD);
-      if (!hasBulkyItem) continue; // all items under $100 — skip quote for this category
+      if (!hasBulkyItem) continue; // all items under $500 — skip quote for this category
     }
 
     matchedCategories.push(category);
@@ -372,7 +380,7 @@ export function calculateShipping(
   matchedCategories?: string[];
 } {
   // Check if requires quote first
-  const quoteCheck = requiresShippingQuote(categories, cartItems);
+  const quoteCheck = requiresShippingQuote(categories, cartItems, cartTotal);
   
   if (quoteCheck.required) {
     return {
