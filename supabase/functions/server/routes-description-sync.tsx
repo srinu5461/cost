@@ -489,38 +489,21 @@ descriptionSync.get('/test-pdp/:code', async (c) => {
     if (!token) return c.json({ error: 'No token' }, 400);
 
     const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
-    // Fetch the public Nisbets AU product page and extract embedded JSON documents
-    // Product URL is stored in product data e.g. /polar-g-series.../ge580-a
-    const allProducts = await kv.getProducts();
-    const dbProduct = allProducts.find((p: any) => (p.code || p.sku) === productCode);
-    const productSlug = dbProduct?.url || dbProduct?.productUrl || `/${productCode.toLowerCase()}`;
-    const pageUrl = `https://www.nisbets.com.au${productSlug}`;
-    console.log(`🌐 [Test PDP] Fetching public page: ${pageUrl}`);
-
-    const response = await fetch(pageUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'text/html,application/xhtml+xml', 'User-Agent': 'Mozilla/5.0 (compatible)' }
-    });
+    // Use the same carousel endpoint as description sync
+    const carouselUrl = `${UROPA_API_BASE}/productRecommendations/productCarousel?vatToggle=EXVAT&productCodes=${productCode}&productIds=${productCode}&slotName=homeRecsTop&lang=en&curr=AUD`;
+    const response = await fetch(carouselUrl, { method: 'GET', headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' } });
     const status = response.status;
-    if (!response.ok) return c.json({ error: `Page fetch failed: ${status}`, pageUrl }, status);
+    if (!response.ok) return c.json({ error: `Carousel failed: ${status}`, carouselUrl }, status);
 
-    const html = await response.text();
-
-    // Extract documents JSON from embedded page data
-    const docMatch = html.match(/"documents"\s*:\s*(\[.*?\])/s);
-    let documents = null;
-    try { if (docMatch) documents = JSON.parse(docMatch[1]); } catch (_e) { /* parse failed */ }
-
-    // Also extract any PDF URLs directly
-    const pdfUrls = [...new Set([...html.matchAll(/https:\/\/media\.nisbets\.com\/asset\/au\/media\/[^"'\s<>]+\.pdf/gi)].map(m => m[0]))];
+    const data = await response.json();
+    const product = data.products?.[0] || data;
 
     return c.json({
-      pageUrl,
+      carouselUrl,
       status,
-      documents,
-      documentsCount: documents?.length || 0,
-      pdfUrlsInPage: pdfUrls,
-      pdfCount: pdfUrls.length,
+      documents: product.documents || null,
+      documentsCount: (product.documents || []).length,
+      productKeys: Object.keys(product).filter(k => ['documents','description','summary','images','attributes'].includes(k)),
     });
   } catch (error) {
     return c.json({ error: String(error) }, 500);
@@ -1341,24 +1324,15 @@ descriptionSync.post('/run', async (c) => {
             const uropaShortDescription = uropaProduct.summary || '';
             const uropaWarranty = uropaProduct.warranty || '';
 
-            // 📄 Fetch documents from FULL product endpoint (carousel doesn't return documents)
-            let uropaDocuments: Array<{ altText: string; format: string; url: string }> = [];
-            try {
-              const fullUrl = `${UROPA_API_BASE}/products/${productCode.toLowerCase()}?lang=en&curr=AUD&fields=FULL`;
-              const fullResponse = await fetch(fullUrl, { method: 'GET', headers });
-              if (fullResponse.ok) {
-                const fullData = await fullResponse.json();
-                uropaDocuments = (fullData.documents || [])
-                  .map((doc: any) => ({
-                    altText: doc.altText || '',
-                    format: doc.format || '',
-                    url: doc.url || '',
-                  }))
-                  .filter((doc: any) => doc.url);
-              }
-            } catch (_e) {
-              // FULL fetch failed — documents will remain empty, not fatal
-            }
+            // 📄 Extract documents directly from carousel response
+            const uropaDocuments: Array<{ altText: string; format: string; url: string }> =
+              (uropaProduct.documents || [])
+                .map((doc: any) => ({
+                  altText: doc.altText || '',
+                  format: doc.format || '',
+                  url: doc.url || '',
+                }))
+                .filter((doc: any) => doc.url);
 
             // 🏷️ Extract features from attributes array - Raw attributes from carousel endpoint
             const allAttributes = uropaProduct.attributes || [];
