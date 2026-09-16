@@ -302,12 +302,20 @@ export function getShippingZone(postcode: string): { zone: string; zoneName: str
   return null;
 }
 
+// Items under this price threshold in excluded categories still get calculated shipping (not quote)
+const BULKY_PRICE_THRESHOLD = 100;
+
 /**
- * Checks if cart contains categories that require shipping quote
+ * Checks if cart contains categories that require shipping quote.
+ * cartItems allows per-item price checking: items under $100 in excluded categories
+ * are treated as normal shippable items even if their category is otherwise excluded.
  */
-export function requiresShippingQuote(categories: string[]): { required: boolean; matchedCategories: string[] } {
+export function requiresShippingQuote(
+  categories: string[],
+  cartItems?: Array<{ category: string; price: number }>
+): { required: boolean; matchedCategories: string[] } {
   const matchedCategories: string[] = [];
-  
+
   for (const category of categories) {
     // Skip Simco subcategories that are light/small and don't need a quote
     const isSimcoNoQuote = SIMCO_NO_QUOTE_SUBCATEGORIES.some(sub =>
@@ -316,15 +324,29 @@ export function requiresShippingQuote(categories: string[]): { required: boolean
     if (isSimcoNoQuote) continue;
 
     // Check if category contains any of the quote-required keywords
+    let isQuoteCategory = false;
     for (const quoteCategory of QUOTE_REQUIRED_CATEGORIES) {
       if (category.toLowerCase().includes(quoteCategory.toLowerCase()) ||
           quoteCategory.toLowerCase().includes(category.toLowerCase())) {
-        matchedCategories.push(category);
+        isQuoteCategory = true;
         break;
       }
     }
+    if (!isQuoteCategory) continue;
+
+    // If we have per-item prices, only require quote if at least one item
+    // in this category is >= the price threshold (i.e. truly bulky/heavy)
+    if (cartItems && cartItems.length > 0) {
+      const itemsInCategory = cartItems.filter(item =>
+        item.category.toLowerCase() === category.toLowerCase()
+      );
+      const hasBulkyItem = itemsInCategory.some(item => item.price >= BULKY_PRICE_THRESHOLD);
+      if (!hasBulkyItem) continue; // all items under $100 — skip quote for this category
+    }
+
+    matchedCategories.push(category);
   }
-  
+
   return {
     required: matchedCategories.length > 0,
     matchedCategories
@@ -335,9 +357,10 @@ export function requiresShippingQuote(categories: string[]): { required: boolean
  * Calculates shipping cost based on postcode and cart total
  */
 export function calculateShipping(
-  postcode: string, 
-  cartTotal: number, 
-  categories: string[]
+  postcode: string,
+  cartTotal: number,
+  categories: string[],
+  cartItems?: Array<{ category: string; price: number }>
 ): {
   success: boolean;
   requiresQuote: boolean;
@@ -349,7 +372,7 @@ export function calculateShipping(
   matchedCategories?: string[];
 } {
   // Check if requires quote first
-  const quoteCheck = requiresShippingQuote(categories);
+  const quoteCheck = requiresShippingQuote(categories, cartItems);
   
   if (quoteCheck.required) {
     return {
