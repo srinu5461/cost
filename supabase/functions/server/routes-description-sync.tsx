@@ -1312,7 +1312,7 @@ descriptionSync.post('/run', async (c) => {
             } catch (_e) {
               // PDP fetch failed — documents will remain empty, not fatal
             }
-            
+
             // 🏷️ Extract features from attributes array - Raw attributes from carousel endpoint
             const allAttributes = uropaProduct.attributes || [];
             
@@ -1368,14 +1368,6 @@ descriptionSync.post('/run', async (c) => {
               needsUpdate = true;
             }
 
-            // Check if documents need update
-            const hasNewDocuments = uropaDocuments.length > 0 &&
-              JSON.stringify(product.documents) !== JSON.stringify(uropaDocuments);
-            if (hasNewDocuments) {
-              updatedFields.push('documents');
-              needsUpdate = true;
-            }
-
             // Check if features/attributes need update
             const hasNewFeatures = (combinedAttributes.length > 0 || uropaFeatures.length > 0) && 
               (!product.attributes || !product.features || 
@@ -1388,11 +1380,19 @@ descriptionSync.post('/run', async (c) => {
             }
 
             // Check if comparison data needs update
-            const hasNewComparisonData = uropaComparisonData && 
+            const hasNewComparisonData = uropaComparisonData &&
               JSON.stringify(product.comparisonData) !== JSON.stringify(uropaComparisonData);
-            
+
             if (hasNewComparisonData) {
               updatedFields.push('comparisonData');
+              needsUpdate = true;
+            }
+
+            // Check if documents need update
+            const hasNewDocuments = uropaDocuments.length > 0 &&
+              JSON.stringify(product.documents) !== JSON.stringify(uropaDocuments);
+            if (hasNewDocuments) {
+              updatedFields.push('documents');
               needsUpdate = true;
             }
 
