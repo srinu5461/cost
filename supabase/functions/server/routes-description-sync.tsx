@@ -1226,6 +1226,12 @@ descriptionSync.post('/batch', async (c) => {
 // ============================================
 descriptionSync.post('/run', async (c) => {
   const startTime = Date.now();
+
+  // Support pagination via query params: ?startPage=0&maxPages=5
+  // Each page = 50 products. Run multiple cron jobs with different startPage values.
+  const startPage = parseInt(c.req.query('startPage') || '0');
+  const maxPages = parseInt(c.req.query('maxPages') || '5'); // process 250 products per call
+
   const syncLog: DescriptionSyncLog = {
     timestamp: new Date().toISOString(),
     totalProducts: 0,
@@ -1241,7 +1247,7 @@ descriptionSync.post('/run', async (c) => {
   };
 
   try {
-    console.log('📝 [Description Sync] Starting description & features synchronization...');
+    console.log(`📝 [Description Sync] Starting sync (pages ${startPage}-${startPage + maxPages - 1})...`);
 
     // Get Uropa API credentials
     const token = await getToken();
@@ -1258,15 +1264,16 @@ descriptionSync.post('/run', async (c) => {
       'Content-Type': 'application/json'
     };
 
-    // Process products in pages to avoid loading all 5000 into memory at once
+    // Process products in pages to avoid loading all into memory at once
     const PAGE_SIZE = 50;
-    let page = 0;
+    let page = startPage;
     let hasMore = true;
     let batchIndex = 0;
+    const endPage = startPage + maxPages;
 
-    console.log(`📊 [Description Sync] Processing products in pages of ${PAGE_SIZE}`);
+    console.log(`📊 [Description Sync] Processing pages ${startPage} to ${endPage - 1} (${PAGE_SIZE} products each)`);
 
-    while (hasMore) {
+    while (hasMore && page < endPage) {
       const { products: batch, hasMore: more } = await kv.getProductsPaged(page, PAGE_SIZE);
       hasMore = more;
       page++;
