@@ -1925,7 +1925,7 @@ descriptionSync.post('/single/:code', async (c) => {
 // ============================================
 descriptionSync.post('/run-batch', async (c) => {
   const startTime = Date.now();
-  const BATCH_SIZE = 20;
+  const BATCH_SIZE = 200;
 
   try {
     const token = await getToken();
