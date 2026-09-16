@@ -1337,6 +1337,17 @@ export function ProductDetail() {
               </div>
             )}
 
+            {/* Warranty */}
+            {displayProduct.warranty && (
+              <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <Shield className="w-6 h-6 text-[#E31837] flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-extrabold text-slate-900">Warranty</p>
+                  <p className="text-sm font-medium text-slate-600">{displayProduct.warranty}</p>
+                </div>
+              </div>
+            )}
+
             {/* Secure Payment Logos */}
             <div className="mt-3 border border-slate-200/80 rounded-xl p-3 bg-slate-50/50">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Secure Payment</div>
@@ -1412,15 +1423,6 @@ export function ProductDetail() {
                 <p className="text-slate-600">
                   Professional-grade {productName} engineered for commercial food service kitchens. Designed for high performance, reliability, and daily commercial operation.
                 </p>
-              )}
-              {displayProduct.warranty && (
-                <div className="mt-6 flex items-start gap-3 p-4 rounded-lg border border-slate-200 bg-slate-50">
-                  <Shield className="w-5 h-5 text-[#E31837] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">Warranty</p>
-                    <p className="text-sm text-slate-600 mt-0.5">{displayProduct.warranty}</p>
-                  </div>
-                </div>
               )}
             </div>
           )}
