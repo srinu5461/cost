@@ -1296,7 +1296,7 @@ descriptionSync.post('/run', async (c) => {
             // 📄 Fetch documents from PDP endpoint (carousel doesn't return documents)
             let uropaDocuments: Array<{ altText: string; format: string; url: string }> = [];
             try {
-              const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode}`;
+              const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode.toLowerCase()}`;
               const pdpResponse = await fetch(pdpUrl, { method: 'GET', headers });
               if (pdpResponse.ok) {
                 const pdpData = await pdpResponse.json();
