@@ -55,6 +55,7 @@ export interface Product {
   
   specifications?: string; // Product specifications/details
   features: string[];
+  documents?: Array<{ altText: string; format: string; url: string }>; // Downloadable manuals/docs from Uropa
   
   // Related products/accessories
   accessories?: string[]; // Array of product IDs for accessories

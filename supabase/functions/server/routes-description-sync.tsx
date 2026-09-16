@@ -1112,6 +1112,14 @@ descriptionSync.post('/run', async (c) => {
             const uropaDescription = uropaProduct.description || '';
             const uropaShortDescription = uropaProduct.summary || '';
             const uropaWarranty = uropaProduct.warranty || '';
+
+            // 📄 Extract downloadable documents (manuals, spec sheets, etc.)
+            const uropaDocuments: Array<{ altText: string; format: string; url: string }> =
+              (uropaProduct.documents || []).map((doc: any) => ({
+                altText: doc.altText || '',
+                format: doc.format || '',
+                url: doc.url || '',
+              })).filter((doc: any) => doc.url);
             
             // 🏷️ Extract features from attributes array - Raw attributes from carousel endpoint
             const allAttributes = uropaProduct.attributes || [];
@@ -1168,6 +1176,14 @@ descriptionSync.post('/run', async (c) => {
               needsUpdate = true;
             }
 
+            // Check if documents need update
+            const hasNewDocuments = uropaDocuments.length > 0 &&
+              JSON.stringify(product.documents) !== JSON.stringify(uropaDocuments);
+            if (hasNewDocuments) {
+              updatedFields.push('documents');
+              needsUpdate = true;
+            }
+
             // Check if features/attributes need update
             const hasNewFeatures = (combinedAttributes.length > 0 || uropaFeatures.length > 0) && 
               (!product.attributes || !product.features || 
@@ -1216,7 +1232,10 @@ descriptionSync.post('/run', async (c) => {
               
               // 🔧 SPECIFICATIONS
               specifications: uropaSpecifications.length > 0 ? uropaSpecifications : product.specifications,
-              
+
+              // 📄 DOCUMENTS
+              documents: uropaDocuments.length > 0 ? uropaDocuments : product.documents,
+
               // 🕐 METADATA
               lastDescriptionSync: new Date().toISOString(),
               descriptionSyncedWithUropa: true,

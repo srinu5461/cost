@@ -130,8 +130,8 @@ export function ProductDetail() {
   const [zoomImageIndex, setZoomImageIndex] = useState(0);
   const [isWishlist, setIsWishlist] = useState(false);
 
-  // 📑 3-Tab System state (Description | Specification | Reviews)
-  const [activeTab, setActiveTab] = useState<'description' | 'specification' | 'reviews'>('description');
+  // 📑 Tab System state (Description | Specification | Reviews | Downloads)
+  const [activeTab, setActiveTab] = useState<'description' | 'specification' | 'reviews' | 'downloads'>('description');
 
   // 🔍 Amazon-style Image Magnifier state & position calculation
   const [isHovered, setIsHovered] = useState(false);
@@ -1387,6 +1387,19 @@ export function ProductDetail() {
             >
               Reviews (3)
             </button>
+
+            {displayProduct.documents && displayProduct.documents.length > 0 && (
+              <button
+                onClick={() => setActiveTab('downloads')}
+                className={`py-4 font-bold text-sm sm:text-base cursor-pointer transition-all border-b-2 whitespace-nowrap ${
+                  activeTab === 'downloads'
+                    ? 'border-[#E31837] text-slate-900'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Downloads ({displayProduct.documents.length})
+              </button>
+            )}
           </div>
 
           {/* Tab 1: Description */}
@@ -1484,6 +1497,46 @@ export function ProductDetail() {
               </div>
             );
           })()}
+
+          {/* Tab 4: Downloads */}
+          {activeTab === 'downloads' && displayProduct.documents && displayProduct.documents.length > 0 && (
+            <div className="p-6 sm:p-8">
+              <h3 className="text-base font-bold text-slate-900 mb-4">Product Documents</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {displayProduct.documents.map((doc, i) => {
+                  const formatLabels: Record<string, string> = {
+                    'MEDIA ZMANUAL': 'User Manual',
+                    'PRODINFOSHEET': 'Product Info Sheet',
+                    'ZDIAGRAM': 'Exploded Diagram',
+                    'ZSPEC SHEET': 'Spec Sheet',
+                  };
+                  const label = formatLabels[doc.format] || doc.altText || doc.format || 'Document';
+                  return (
+                    <a
+                      key={i}
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-[#E31837] hover:bg-red-50 transition-colors group"
+                    >
+                      <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                        <svg className="w-5 h-5 text-[#E31837]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-[#E31837] transition-colors">{label}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">PDF — Click to download</p>
+                      </div>
+                      <svg className="w-4 h-4 text-slate-400 group-hover:text-[#E31837] flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Tab 3: Reviews (Upgraded Premium Design) */}
           {activeTab === 'reviews' && (
