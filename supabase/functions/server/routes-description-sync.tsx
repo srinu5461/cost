@@ -587,6 +587,186 @@ descriptionSync.get('/test-uropa/:code', async (c) => {
 });
 
 // ============================================
+// GET /description-sync/test-sizes/:code - READ ONLY: Check variant/size data for one product
+// No DB writes — safe to run on any product code
+// ============================================
+descriptionSync.get('/test-sizes/:code', async (c) => {
+  try {
+    const productCode = c.req.param('code');
+    console.log(`🔍 [Test Sizes] Checking variants for: ${productCode}`);
+
+    const token = await getToken();
+    if (!token) {
+      return c.json({ error: 'Uropa API token not configured' }, 400);
+    }
+
+    const headers = {
+      'Authorization': formatAuthHeader(token),
+      'Content-Type': 'application/json',
+    };
+
+    // Use fields=FULL endpoint (same as price sync) — returns complete variant data
+    const UROPA_API_BASE_LOCAL = 'https://p1-api.nisbets.com.au/occ/v2/uropa-au';
+    const fullUrl = `${UROPA_API_BASE_LOCAL}/products/${productCode}?lang=en&curr=AUD&fields=FULL`;
+    console.log(`🌐 [Test Sizes] Fetching: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, { method: 'GET', headers });
+
+    if (!response.ok) {
+      return c.json({
+        error: `Uropa API error: ${response.status} ${response.statusText}`,
+        url: fullUrl,
+      }, response.status);
+    }
+
+    const p = await response.json();
+
+    // Extract variant/size related fields — no DB touch
+    const variantMatrix   = p.variantMatrix   || null;
+    const baseOptions     = p.baseOptions     || null;
+    const variantOptions  = p.variantOptions  || null;
+    const multidimensional = p.multidimensional ?? null;
+    const baseProduct     = p.baseProduct     || null;
+
+    // Build a clean summary of what sizes/variants look like (ALL sizes, including OOS)
+    const sizeOptionsSummary: Array<{
+      code: string;
+      name: string;
+      price: number | null;
+      currency: string;
+      stockStatus: string;     // raw Uropa stock string e.g. "inStock", "outOfStock", "lowStock"
+      inStock: boolean;
+      stockLevel: number | null;
+    }> = [];
+
+    // Try baseOptions first (most common for size variants)
+    if (Array.isArray(baseOptions) && baseOptions.length > 0) {
+      for (const opt of baseOptions) {
+        const options = opt.options || [];
+        for (const o of options) {
+          const stockStatus = o.stock?.stockLevelStatus || 'unknown';
+          sizeOptionsSummary.push({
+            code:        o.code || o.variantOptionQualifiers?.[0]?.value || '',
+            name:        o.variantOptionQualifiers?.map((q: any) => `${q.qualifier}: ${q.value}`).join(' | ') || o.code || '',
+            price:       o.priceData?.value ?? null,
+            currency:    o.priceData?.currencyIso || 'AUD',
+            stockStatus,
+            inStock:     stockStatus !== 'outOfStock',
+            stockLevel:  o.stock?.stockLevel ?? null,
+          });
+        }
+      }
+    }
+
+    // Try variantMatrix as fallback
+    if (sizeOptionsSummary.length === 0 && Array.isArray(variantMatrix) && variantMatrix.length > 0) {
+      for (const row of variantMatrix) {
+        const stockStatus = row.variantOption?.stock?.stockLevelStatus || 'unknown';
+        sizeOptionsSummary.push({
+          code:        row.variantOption?.code || '',
+          name:        row.variantValueCategory?.name || row.variantOption?.code || '',
+          price:       row.variantOption?.priceData?.value ?? null,
+          currency:    row.variantOption?.priceData?.currencyIso || 'AUD',
+          stockStatus,
+          inStock:     stockStatus !== 'outOfStock',
+          stockLevel:  row.variantOption?.stock?.stockLevel ?? null,
+        });
+      }
+    }
+
+    // Extract additional pricing/size fields found in this product type
+    const volumePrices    = p.volumePrices    || null;
+    const variant         = p.variant         || null;
+    const priceRange      = p.priceRange      || null;
+    const linkedProducts  = p.linkedProducts  || null;
+    const productRefs     = p.productReferences || null;
+    const substitutes     = p.substitutes     || null;
+    const stock           = p.stock           || null;
+    const priceDetail     = p.priceDetail     || null;
+
+    // Parse volumePrices into clean summary
+    const volumePriceSummary = Array.isArray(volumePrices)
+      ? volumePrices.map((vp: any) => ({
+          minQuantity:  vp.minQuantity ?? vp.minQty ?? null,
+          maxQuantity:  vp.maxQuantity ?? vp.maxQty ?? null,
+          price:        vp.value ?? vp.price?.value ?? null,
+          currency:     vp.currencyIso ?? vp.price?.currencyIso ?? 'AUD',
+          formattedValue: vp.formattedValue ?? null,
+        }))
+      : [];
+
+    // ── Probe for size variants using common suffix patterns ──────────────
+    // Pattern: base code (strip P_ prefix) + size suffix
+    const baseCode = productCode.replace(/^P_/i, '');
+    const SIZE_SUFFIXES = ['-xs','-s','-m','-l','-xl','-xxl','-2xl','-3xl',
+                           '-6','-8','-10','-12','-14','-16','-18','-20',
+                           '-sm','-med','-lg','-xlg',
+                           '-one-size','-os'];
+
+    const sizeVariants: Array<{
+      code: string;
+      fullCode: string;
+      price: number | null;
+      stockStatus: string;
+      stockLevel: number | null;
+      name: string;
+      inStock: boolean;
+    }> = [];
+
+    for (const suffix of SIZE_SUFFIXES) {
+      const variantCode = `${baseCode}${suffix}`;
+      try {
+        const variantUrl = `${UROPA_API_BASE_LOCAL}/products/${variantCode}?lang=en&curr=AUD&fields=FULL`;
+        const vRes = await fetch(variantUrl, { method: 'GET', headers,
+          signal: AbortSignal.timeout(4000) });
+        if (vRes.ok) {
+          const vp = await vRes.json();
+          // Only include if it's a real product (has a name/price)
+          if (vp.name || vp.priceDetail?.salesPrice) {
+            sizeVariants.push({
+              code:        suffix.replace('-',''),
+              fullCode:    variantCode,
+              price:       vp.priceDetail?.salesPrice ?? null,
+              stockStatus: vp.stock?.stockLevelStatus || 'unknown',
+              stockLevel:  vp.stock?.stockLevel ?? null,
+              name:        vp.name || variantCode,
+              inStock:     vp.stock?.stockLevelStatus !== 'outOfStock',
+            });
+          }
+        }
+      } catch {
+        // suffix not found — skip silently
+      }
+    }
+
+    return c.json({
+      success: true,
+      productCode,
+      baseCode,
+      note: 'READ ONLY — no database changes made',
+      // Size variants found by probing suffixes
+      sizeVariantsFound: sizeVariants.length > 0,
+      sizeVariantCount: sizeVariants.length,
+      sizeVariants,
+      // Standard Hybris variant check (was empty for P_BB142)
+      hasVariants: sizeOptionsSummary.length > 0,
+      sizeOptionsSummary,
+      // Volume/tiered pricing
+      hasVolumePrices: volumePriceSummary.length > 0,
+      volumePriceSummary,
+      // Other fields
+      stock,
+      priceDetail,
+      productRefs,
+    });
+
+  } catch (error) {
+    console.error('❌ [Test Sizes] Error:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// ============================================
 // GET /description-sync/debug/:productId - Debug single product data
 // ============================================
 descriptionSync.get('/debug/:productId', async (c) => {
