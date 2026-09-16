@@ -489,22 +489,20 @@ descriptionSync.get('/test-pdp/:code', async (c) => {
     if (!token) return c.json({ error: 'No token' }, 400);
 
     const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
-    const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode.toLowerCase()}`;
-    console.log(`🌐 [Test PDP] Fetching: ${pdpUrl}`);
+    const fullUrl = `${UROPA_API_BASE}/products/${productCode.toLowerCase()}?lang=en&curr=AUD&fields=FULL`;
+    console.log(`🌐 [Test PDP] Fetching: ${fullUrl}`);
 
-    const response = await fetch(pdpUrl, { method: 'GET', headers });
+    const response = await fetch(fullUrl, { method: 'GET', headers });
     const status = response.status;
-    if (!response.ok) return c.json({ error: `PDP failed: ${status}`, pdpUrl }, status);
+    if (!response.ok) return c.json({ error: `FULL fetch failed: ${status}`, fullUrl }, status);
 
     const data = await response.json();
-    const product = data.product || data;
     return c.json({
-      pdpUrl,
+      fullUrl,
       status,
-      topLevelKeys: Object.keys(data),
-      productKeys: Object.keys(product).slice(0, 20),
-      documents: product.documents || null,
-      documentsCount: (product.documents || []).length,
+      topLevelKeys: Object.keys(data).slice(0, 30),
+      documents: data.documents || null,
+      documentsCount: (data.documents || []).length,
     });
   } catch (error) {
     return c.json({ error: String(error) }, 500);
@@ -1325,15 +1323,14 @@ descriptionSync.post('/run', async (c) => {
             const uropaShortDescription = uropaProduct.summary || '';
             const uropaWarranty = uropaProduct.warranty || '';
 
-            // 📄 Fetch documents from PDP endpoint (carousel doesn't return documents)
+            // 📄 Fetch documents from FULL product endpoint (carousel doesn't return documents)
             let uropaDocuments: Array<{ altText: string; format: string; url: string }> = [];
             try {
-              const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode.toLowerCase()}`;
-              const pdpResponse = await fetch(pdpUrl, { method: 'GET', headers });
-              if (pdpResponse.ok) {
-                const pdpData = await pdpResponse.json();
-                const pdpProduct = pdpData.product || pdpData;
-                uropaDocuments = (pdpProduct.documents || [])
+              const fullUrl = `${UROPA_API_BASE}/products/${productCode.toLowerCase()}?lang=en&curr=AUD&fields=FULL`;
+              const fullResponse = await fetch(fullUrl, { method: 'GET', headers });
+              if (fullResponse.ok) {
+                const fullData = await fullResponse.json();
+                uropaDocuments = (fullData.documents || [])
                   .map((doc: any) => ({
                     altText: doc.altText || '',
                     format: doc.format || '',
@@ -1342,7 +1339,7 @@ descriptionSync.post('/run', async (c) => {
                   .filter((doc: any) => doc.url);
               }
             } catch (_e) {
-              // PDP fetch failed — documents will remain empty, not fatal
+              // FULL fetch failed — documents will remain empty, not fatal
             }
 
             // 🏷️ Extract features from attributes array - Raw attributes from carousel endpoint
