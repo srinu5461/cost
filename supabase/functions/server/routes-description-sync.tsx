@@ -1883,6 +1883,9 @@ descriptionSync.post('/single/:code', async (c) => {
         attributesCount: allAttributes.length,
         descriptionLength: uropaDescription.length,
         descriptionSample: uropaDescription.substring(0, 300),
+        documentsCount: uropaDocuments.length,
+        documents: uropaDocuments,
+        rawDocuments: uropaProduct.documents || null,
         specificationsCount: specifications.length,
         specificationsSample: specifications.slice(0, 20).map((s: any) => ({
           label: s.name,
@@ -1907,6 +1910,8 @@ descriptionSync.post('/single/:code', async (c) => {
         specificationsCount: (updatedProduct.specifications || []).length,
         ageRestricted: updatedProduct.ageRestricted || false,
         imagesCount: (updatedProduct.images || []).length,
+        documentsCount: (updatedProduct.documents || []).length,
+        documents: updatedProduct.documents || [],
       },
     });
 
