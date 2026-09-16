@@ -489,21 +489,29 @@ descriptionSync.get('/test-pdp/:code', async (c) => {
     if (!token) return c.json({ error: 'No token' }, 400);
 
     const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
+    // Try the page endpoint which is known to return documents
+    const pageUrl = `https://p1-api.nisbets.com.au/${productCode.toLowerCase()}`;
+    // Also try the CMS/page data endpoint
+    const cmsUrl = `${UROPA_API_BASE}/cms/pages?pageType=ProductPage&code=${productCode.toLowerCase()}&lang=en&curr=AUD`;
     const fullUrl = `${UROPA_API_BASE}/products/${productCode.toLowerCase()}?lang=en&curr=AUD&fields=FULL`;
-    console.log(`🌐 [Test PDP] Fetching: ${fullUrl}`);
 
-    const response = await fetch(fullUrl, { method: 'GET', headers });
-    const status = response.status;
-    if (!response.ok) return c.json({ error: `FULL fetch failed: ${status}`, fullUrl }, status);
+    const results: any = {};
 
-    const data = await response.json();
-    return c.json({
-      fullUrl,
-      status,
-      topLevelKeys: Object.keys(data).slice(0, 30),
-      documents: data.documents || null,
-      documentsCount: (data.documents || []).length,
-    });
+    // Test page URL
+    try {
+      const r = await fetch(pageUrl, { method: 'GET', headers: { ...{ 'Authorization': formatAuthHeader(token) }, 'Accept': 'application/json' } });
+      const d = await r.json();
+      results.pageUrl = { status: r.status, hasDocuments: !!(d.product?.documents?.length), documents: d.product?.documents || null };
+    } catch (e) { results.pageUrl = { error: String(e) }; }
+
+    // Test FULL endpoint documents field
+    try {
+      const r = await fetch(fullUrl, { method: 'GET', headers: { 'Authorization': formatAuthHeader(token) } });
+      const d = await r.json();
+      results.fullUrl = { status: r.status, hasDocuments: !!(d.documents?.length), documents: d.documents || null, allKeys: Object.keys(d) };
+    } catch (e) { results.fullUrl = { error: String(e) }; }
+
+    return c.json({ productCode, results });
   } catch (error) {
     return c.json({ error: String(error) }, 500);
   }
