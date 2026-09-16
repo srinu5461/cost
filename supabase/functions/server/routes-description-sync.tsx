@@ -489,32 +489,38 @@ descriptionSync.get('/test-pdp/:code', async (c) => {
     if (!token) return c.json({ error: 'No token' }, 400);
 
     const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
-    // The pdpUrl from Uropa page response — same token works here
-    const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode.toLowerCase()}`;
-    console.log(`🌐 [Test PDP] Fetching with auth: ${pdpUrl}`);
+    // Fetch the public Nisbets AU product page and extract embedded JSON documents
+    // Product URL is stored in product data e.g. /polar-g-series.../ge580-a
+    const allProducts = await kv.getProducts();
+    const dbProduct = allProducts.find((p: any) => (p.code || p.sku) === productCode);
+    const productSlug = dbProduct?.url || dbProduct?.productUrl || `/${productCode.toLowerCase()}`;
+    const pageUrl = `https://www.nisbets.com.au${productSlug}`;
+    console.log(`🌐 [Test PDP] Fetching public page: ${pageUrl}`);
 
-    const response = await fetch(pdpUrl, {
+    const response = await fetch(pageUrl, {
       method: 'GET',
-      headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json', 'Accept': 'application/json' }
+      headers: { 'Accept': 'text/html,application/xhtml+xml', 'User-Agent': 'Mozilla/5.0 (compatible)' }
     });
     const status = response.status;
-    const rawText = await response.text();
+    if (!response.ok) return c.json({ error: `Page fetch failed: ${status}`, pageUrl }, status);
 
-    let data: any = null;
-    try { data = JSON.parse(rawText); } catch (_e) { /* not JSON */ }
+    const html = await response.text();
 
-    if (!response.ok || !data) {
-      return c.json({ error: `PDP failed: ${status}`, pdpUrl, rawPreview: rawText.substring(0, 300) }, status);
-    }
+    // Extract documents JSON from embedded page data
+    const docMatch = html.match(/"documents"\s*:\s*(\[.*?\])/s);
+    let documents = null;
+    try { if (docMatch) documents = JSON.parse(docMatch[1]); } catch (_e) { /* parse failed */ }
 
-    const product = data.product || data;
+    // Also extract any PDF URLs directly
+    const pdfUrls = [...new Set([...html.matchAll(/https:\/\/media\.nisbets\.com\/asset\/au\/media\/[^"'\s<>]+\.pdf/gi)].map(m => m[0]))];
+
     return c.json({
-      pdpUrl,
+      pageUrl,
       status,
-      topLevelKeys: Object.keys(data),
-      productKeys: Object.keys(product).slice(0, 30),
-      documents: product.documents || null,
-      documentsCount: (product.documents || []).length,
+      documents,
+      documentsCount: documents?.length || 0,
+      pdfUrlsInPage: pdfUrls,
+      pdfCount: pdfUrls.length,
     });
   } catch (error) {
     return c.json({ error: String(error) }, 500);
