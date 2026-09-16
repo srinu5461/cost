@@ -489,29 +489,34 @@ descriptionSync.get('/test-pdp/:code', async (c) => {
     if (!token) return c.json({ error: 'No token' }, 400);
 
     const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
-    // Try the page endpoint which is known to return documents
-    const pageUrl = `https://p1-api.nisbets.com.au/${productCode.toLowerCase()}`;
-    // Also try the CMS/page data endpoint
-    const cmsUrl = `${UROPA_API_BASE}/cms/pages?pageType=ProductPage&code=${productCode.toLowerCase()}&lang=en&curr=AUD`;
-    const fullUrl = `${UROPA_API_BASE}/products/${productCode.toLowerCase()}?lang=en&curr=AUD&fields=FULL`;
+    // Scrape the Nisbets AU product page HTML to extract PDF document links
+    const nisbetsUrl = `https://www.nisbets.com.au/${productCode.toLowerCase()}`;
+    console.log(`🌐 [Test PDP] Scraping: ${nisbetsUrl}`);
 
-    const results: any = {};
+    const response = await fetch(nisbetsUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'text/html', 'User-Agent': 'Mozilla/5.0' }
+    });
+    const status = response.status;
+    if (!response.ok) return c.json({ error: `Page fetch failed: ${status}`, nisbetsUrl }, status);
 
-    // Test page URL
-    try {
-      const r = await fetch(pageUrl, { method: 'GET', headers: { ...{ 'Authorization': formatAuthHeader(token) }, 'Accept': 'application/json' } });
-      const d = await r.json();
-      results.pageUrl = { status: r.status, hasDocuments: !!(d.product?.documents?.length), documents: d.product?.documents || null };
-    } catch (e) { results.pageUrl = { error: String(e) }; }
+    const html = await response.text();
 
-    // Test FULL endpoint documents field
-    try {
-      const r = await fetch(fullUrl, { method: 'GET', headers: { 'Authorization': formatAuthHeader(token) } });
-      const d = await r.json();
-      results.fullUrl = { status: r.status, hasDocuments: !!(d.documents?.length), documents: d.documents || null, allKeys: Object.keys(d) };
-    } catch (e) { results.fullUrl = { error: String(e) }; }
+    // Extract PDF links from media.nisbets.com/asset/au/media/
+    const pdfMatches = [...html.matchAll(/https:\/\/media\.nisbets\.com\/asset\/au\/media\/[^"'\s]+\.pdf/gi)];
+    const pdfUrls = [...new Set(pdfMatches.map(m => m[0]))];
 
-    return c.json({ productCode, results });
+    // Also look for document data in inline JSON (next.js / hybris page data)
+    const docJsonMatch = html.match(/"documents"\s*:\s*(\[[\s\S]*?\])/);
+    const docJson = docJsonMatch ? JSON.parse(docJsonMatch[1]) : null;
+
+    return c.json({
+      nisbetsUrl,
+      status,
+      pdfUrlsFound: pdfUrls,
+      pdfCount: pdfUrls.length,
+      inlineDocuments: docJson,
+    });
   } catch (error) {
     return c.json({ error: String(error) }, 500);
   }
