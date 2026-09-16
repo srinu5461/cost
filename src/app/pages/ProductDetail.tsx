@@ -1397,7 +1397,7 @@ export function ProductDetail() {
                     : 'border-transparent text-slate-500 hover:text-slate-900'
                 }`}
               >
-                Downloads ({displayProduct.documents.length})
+                User Manuals ({displayProduct.documents.length})
               </button>
             )}
           </div>
