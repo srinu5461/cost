@@ -1853,35 +1853,6 @@ descriptionSync.post('/single/:code', async (c) => {
     // 🔥 CRITICAL: Save using productCode to ensure consistency
     await kv.set(`products:${productCode}`, updatedProduct);
 
-    // 🔥 CRITICAL: Also update the master products array (same as batch sync!)
-    try {
-      console.log('🔄 [Single Sync] Updating master products array...');
-      const allProducts = await kv.get('products');
-      
-      if (Array.isArray(allProducts) && allProducts.length > 0) {
-        console.log(`📦 [Single Sync] Found master array with ${allProducts.length} products`);
-        
-        // Find and update the product in the master array
-        const productIndex = allProducts.findIndex((p: any) => {
-          const pCode = p.code || p.productCode || p.sku || p.id;
-          return pCode === productCode;
-        });
-        
-        if (productIndex >= 0) {
-          console.log(`✅ [Single Sync] Found product at index ${productIndex} - updating`);
-          allProducts[productIndex] = updatedProduct;
-          await kv.set('products', allProducts);
-          console.log(`✅ [Single Sync] Master products array updated with fresh ${productCode} data`);
-        } else {
-          console.warn(`⚠️ [Single Sync] Product ${productCode} not found in master array`);
-        }
-      } else {
-        console.log('⚠️ [Single Sync] No master products array found - using individual keys only');
-      }
-    } catch (error) {
-      console.error('⚠️ [Single Sync] Failed to update master products array:', error);
-      // Don't fail the whole request
-    }
 
     // 🔥 Clear CMS cache to force frontend refresh
     try {
