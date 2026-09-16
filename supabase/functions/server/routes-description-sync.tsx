@@ -480,6 +480,38 @@ descriptionSync.get('/test-token', async (c) => {
 });
 
 // ============================================
+// GET /description-sync/test-pdp/:code - Test PDP endpoint directly (shows documents)
+// ============================================
+descriptionSync.get('/test-pdp/:code', async (c) => {
+  try {
+    const productCode = c.req.param('code');
+    const token = await getToken();
+    if (!token) return c.json({ error: 'No token' }, 400);
+
+    const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
+    const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode.toLowerCase()}`;
+    console.log(`🌐 [Test PDP] Fetching: ${pdpUrl}`);
+
+    const response = await fetch(pdpUrl, { method: 'GET', headers });
+    const status = response.status;
+    if (!response.ok) return c.json({ error: `PDP failed: ${status}`, pdpUrl }, status);
+
+    const data = await response.json();
+    const product = data.product || data;
+    return c.json({
+      pdpUrl,
+      status,
+      topLevelKeys: Object.keys(data),
+      productKeys: Object.keys(product).slice(0, 20),
+      documents: product.documents || null,
+      documentsCount: (product.documents || []).length,
+    });
+  } catch (error) {
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// ============================================
 // GET /description-sync/test-uropa/:code - Test Uropa API directly (returns raw response)
 // ============================================
 descriptionSync.get('/test-uropa/:code', async (c) => {
