@@ -1243,19 +1243,6 @@ descriptionSync.post('/run', async (c) => {
   try {
     console.log('📝 [Description Sync] Starting description & features synchronization...');
 
-    // Get only valid products (excludes sections/categories/metadata)
-    const allProducts = await kv.getProducts();
-    syncLog.totalProducts = allProducts.length;
-    console.log(`📦 [Description Sync] Found ${allProducts.length} valid products in database`);
-
-    if (allProducts.length === 0) {
-      return c.json({
-        success: false,
-        error: 'No products found in database',
-        log: syncLog,
-      });
-    }
-
     // Get Uropa API credentials
     const token = await getToken();
     if (!token) {
@@ -1271,22 +1258,26 @@ descriptionSync.post('/run', async (c) => {
       'Content-Type': 'application/json'
     };
 
-    // Batch process products
-    const BATCH_SIZE = 50; // Smaller batches to avoid overwhelming API
-    const batches: any[][] = [];
-    
-    for (let i = 0; i < allProducts.length; i += BATCH_SIZE) {
-      batches.push(allProducts.slice(i, i + BATCH_SIZE));
-    }
+    // Process products in pages to avoid loading all 5000 into memory at once
+    const PAGE_SIZE = 50;
+    let page = 0;
+    let hasMore = true;
+    let batchIndex = 0;
 
-    console.log(`📊 [Description Sync] Processing ${batches.length} batches of ${BATCH_SIZE} products each`);
+    console.log(`📊 [Description Sync] Processing products in pages of ${PAGE_SIZE}`);
 
-    // Process each batch
-    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-      const batch = batches[batchIndex];
-      console.log(`🔄 [Description Sync] Processing batch ${batchIndex + 1}/${batches.length}...`);
+    while (hasMore) {
+      const { products: batch, hasMore: more } = await kv.getProductsPaged(page, PAGE_SIZE);
+      hasMore = more;
+      page++;
 
-      // Process products in parallel within batch
+      if (batch.length === 0) break;
+
+      syncLog.totalProducts += batch.length;
+      console.log(`🔄 [Description Sync] Processing page ${batchIndex + 1} (${batch.length} products)...`);
+      batchIndex++;
+
+      // Process products in parallel within page
       const batchResults = await Promise.allSettled(
         batch.map(async (product) => {
           syncLog.productsChecked++;
@@ -1485,8 +1476,8 @@ descriptionSync.post('/run', async (c) => {
         })
       );
 
-      // Small delay between batches to be nice to the API
-      if (batchIndex < batches.length - 1) {
+      // Small delay between pages to be nice to the API
+      if (hasMore) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }

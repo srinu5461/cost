@@ -227,3 +227,22 @@ export const getProducts = async (): Promise<any[]> => {
   const allData = await getByPrefix('products:');
   return allData.filter(isValidProduct);
 };
+
+// Get a page of valid products directly from DB (avoids loading all products into memory)
+export const getProductsPaged = async (page: number, pageSize: number): Promise<{ products: any[]; hasMore: boolean }> => {
+  const supabase = client();
+  const start = page * pageSize;
+  const end = start + pageSize - 1;
+
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select("value")
+    .like("key", "products:%")
+    .range(start, end)
+    .order('updated_at', { ascending: true });
+
+  if (error) throw new Error(`getProductsPaged error: ${error.message}`);
+
+  const products = (data || []).map(d => d.value).filter(isValidProduct);
+  return { products, hasMore: (data || []).length === pageSize };
+};
