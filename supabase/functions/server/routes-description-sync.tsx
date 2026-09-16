@@ -1919,4 +1919,131 @@ descriptionSync.post('/single/:code', async (c) => {
   }
 });
 
+// ============================================
+// POST /description-sync/run-batch - Batch sync using offset pattern (like price sync)
+// Single cron calls this repeatedly; offset stored in KV auto-increments through all products
+// ============================================
+descriptionSync.post('/run-batch', async (c) => {
+  const startTime = Date.now();
+  const BATCH_SIZE = 20;
+
+  try {
+    const token = await getToken();
+    if (!token) {
+      return c.json({ error: 'Uropa API token not configured' }, 400);
+    }
+
+    // Get total product count
+    const total = await kv.countByPrefix('products:');
+
+    // Read current offset from KV
+    const currentOffset = (await kv.get('desc-sync:batch-offset')) || 0;
+    const offset = currentOffset >= total ? 0 : currentOffset;
+
+    console.log(`📦 [DescSync RunBatch] total=${total}, offset=${offset}, batch=${BATCH_SIZE}`);
+
+    // Fetch this batch
+    const batch = await kv.getByPrefixPaged('products:', offset, BATCH_SIZE);
+    const validBatch = batch.filter(kv.isValidProduct);
+
+    console.log(`🔄 [DescSync RunBatch] Processing ${validBatch.length} valid products (raw batch: ${batch.length})`);
+
+    let updated = 0;
+    let errors = 0;
+
+    for (const product of validBatch) {
+      const productCode = product.code || product.productCode || product.sku || product.id;
+      if (!productCode) continue;
+
+      try {
+        const uropaUrl = `${UROPA_API_BASE}/productRecommendations/productCarousel?vatToggle=EXVAT&productCodes=${productCode}&productIds=${productCode}&slotName=homeRecsTop&lang=en&curr=AUD`;
+        const response = await fetch(uropaUrl, {
+          method: 'GET',
+          headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (!response.ok) {
+          errors++;
+          continue;
+        }
+
+        const uropaResponse = await response.json();
+        const uropaProduct = uropaResponse.products?.[0] || uropaResponse;
+
+        // Description
+        const rawDesc = uropaProduct.description || '';
+        const rawSummary = uropaProduct.summary || '';
+        let combined = '';
+        if (rawDesc && rawSummary && rawDesc !== rawSummary) combined = `${rawDesc}\n\n${rawSummary}`;
+        else combined = rawDesc || rawSummary;
+        const description = combined ? sanitizeHtml(combined) : '';
+
+        // Specifications
+        const specifications = (uropaProduct.attributes || [])
+          .filter((a: any) => ['COMPARISONDATA', 'ATTRIBUTESDATA', 'FACETDATA'].includes(a.fieldType) && a.value)
+          .map((a: any) => ({ name: a.fieldName || a.fieldCode || a.name || a.code, value: typeof a.value === 'string' ? sanitizeHtml(a.value) : a.value, type: a.fieldType }));
+
+        // Images
+        const images: string[] = [];
+        const seen = new Set<string>();
+        (uropaProduct.images || []).forEach((img: any) => {
+          if (img?.url && !seen.has(img.url)) { seen.add(img.url); images.push(img.url); }
+        });
+
+        // Documents
+        const documents = (uropaProduct.documents || [])
+          .map((doc: any) => ({ altText: doc.altText || '', format: doc.format || '', url: doc.url || '' }))
+          .filter((doc: any) => doc.url);
+
+        // Age restricted
+        const ageRestricted = uropaProduct.ageRestricted === true;
+
+        const updatedProduct = {
+          ...product,
+          description: description || product.description,
+          specifications: specifications.length > 0 ? specifications : product.specifications,
+          images: images.length > 0 ? images : product.images,
+          documents: documents.length > 0 ? documents : product.documents,
+          ageRestricted,
+          lastDescriptionSync: new Date().toISOString(),
+        };
+
+        await kv.set(`products:${productCode}`, updatedProduct);
+        updated++;
+      } catch (err) {
+        console.error(`❌ [DescSync RunBatch] Error for ${productCode}:`, err);
+        errors++;
+      }
+    }
+
+    // Save next offset
+    const nextOffset = offset + BATCH_SIZE >= total ? 0 : offset + BATCH_SIZE;
+    await kv.set('desc-sync:batch-offset', nextOffset);
+
+    const duration = Date.now() - startTime;
+    const done = nextOffset === 0;
+
+    console.log(`✅ [DescSync RunBatch] updated=${updated}, errors=${errors}, nextOffset=${nextOffset}, done=${done}, duration=${duration}ms`);
+
+    return c.json({
+      success: true,
+      offset,
+      nextOffset,
+      total,
+      batchSize: batch.length,
+      validInBatch: validBatch.length,
+      updated,
+      errors,
+      duration,
+      done,
+      message: done ? `All ${total} products processed (cycle complete)` : `Processed ${offset + BATCH_SIZE} / ${total}`,
+    });
+
+  } catch (error) {
+    console.error('❌ [DescSync RunBatch] Critical error:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 export default descriptionSync;
