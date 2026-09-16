@@ -1413,6 +1413,15 @@ export function ProductDetail() {
                   Professional-grade {productName} engineered for commercial food service kitchens. Designed for high performance, reliability, and daily commercial operation.
                 </p>
               )}
+              {displayProduct.warranty && (
+                <div className="mt-6 flex items-start gap-3 p-4 rounded-lg border border-slate-200 bg-slate-50">
+                  <Shield className="w-5 h-5 text-[#E31837] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Warranty</p>
+                    <p className="text-sm text-slate-600 mt-0.5">{displayProduct.warranty}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

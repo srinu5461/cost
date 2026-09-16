@@ -1830,6 +1830,7 @@ descriptionSync.post('/single/:code', async (c) => {
       ageRestricted: uropaAgeRestricted,
       images: uropaImages.length > 0 ? uropaImages : dbProduct.images,
       documents: uropaDocuments.length > 0 ? uropaDocuments : dbProduct.documents,
+      warranty: uropaProduct.warranty || dbProduct.warranty || '',
       lastDescriptionSync: new Date().toISOString(),
       descriptionSyncedWithUropa: true,
     };
@@ -1999,6 +2000,9 @@ descriptionSync.post('/run-batch', async (c) => {
         // Age restricted
         const ageRestricted = uropaProduct.ageRestricted === true;
 
+        // Warranty
+        const warranty = uropaProduct.warranty || product.warranty || '';
+
         const updatedProduct = {
           ...product,
           description: description || product.description,
@@ -2006,6 +2010,7 @@ descriptionSync.post('/run-batch', async (c) => {
           images: images.length > 0 ? images : product.images,
           documents: documents.length > 0 ? documents : product.documents,
           ageRestricted,
+          warranty,
           lastDescriptionSync: new Date().toISOString(),
         };
 
