@@ -1770,7 +1770,7 @@ descriptionSync.post('/single/:code', async (c) => {
 
     // 🔥 USE SHARED FUNCTION - same as /compare endpoint!
     const uropaData = await fetchProductFromUropa(productCode, token, 10000);
-    
+
     // Extract data from shared function
     const uropaDescription = uropaData.description;
     const specifications = uropaData.specifications;
@@ -1778,6 +1778,22 @@ descriptionSync.post('/single/:code', async (c) => {
     const uropaImages = uropaData.images;
     const uropaProduct = uropaData.rawProduct;
     const allAttributes = uropaProduct.attributes || [];
+
+    // Fetch warranty from FULL endpoint (carousel doesn't return it)
+    let warranty = '';
+    try {
+      const fullRes = await fetch(
+        `${UROPA_API_BASE}/products/${productCode}?lang=en&curr=AUD&fields=FULL`,
+        { method: 'GET', headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(8000) }
+      );
+      if (fullRes.ok) {
+        const fullData = await fullRes.json();
+        warranty = fullData.warranty || '';
+        console.log(`🛡️ [Single Sync] warranty="${warranty}"`);
+      }
+    } catch (e) {
+      console.warn(`⚠️ [Single Sync] Could not fetch warranty for ${productCode}:`, e);
+    }
 
     // 📄 Extract documents from carousel response
     const uropaDocuments: Array<{ altText: string; format: string; url: string }> =
@@ -1830,7 +1846,7 @@ descriptionSync.post('/single/:code', async (c) => {
       ageRestricted: uropaAgeRestricted,
       images: uropaImages.length > 0 ? uropaImages : dbProduct.images,
       documents: uropaDocuments.length > 0 ? uropaDocuments : dbProduct.documents,
-      warranty: uropaProduct.warranty || dbProduct.warranty || '',
+      warranty: warranty || dbProduct.warranty || '',
       lastDescriptionSync: new Date().toISOString(),
       descriptionSyncedWithUropa: true,
     };
@@ -2000,8 +2016,18 @@ descriptionSync.post('/run-batch', async (c) => {
         // Age restricted
         const ageRestricted = uropaProduct.ageRestricted === true;
 
-        // Warranty
-        const warranty = uropaProduct.warranty || product.warranty || '';
+        // Warranty — fetch from FULL endpoint (carousel doesn't return it)
+        let warranty = product.warranty || '';
+        try {
+          const fullRes = await fetch(
+            `${UROPA_API_BASE}/products/${productCode}?lang=en&curr=AUD&fields=FULL`,
+            { method: 'GET', headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(8000) }
+          );
+          if (fullRes.ok) {
+            const fullData = await fullRes.json();
+            if (fullData.warranty) warranty = fullData.warranty;
+          }
+        } catch { /* skip */ }
 
         const updatedProduct = {
           ...product,
