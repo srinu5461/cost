@@ -1284,22 +1284,34 @@ descriptionSync.post('/run', async (c) => {
             }
 
             const uropaResponse = await response.json();
-            
+
             // 🔥 The carousel endpoint returns: { products: [...] }
             const uropaProduct = uropaResponse.products && uropaResponse.products.length > 0 ? uropaResponse.products[0] : uropaResponse;
-            
+
             // 📝 Extract description and features from Uropa response
             const uropaDescription = uropaProduct.description || '';
             const uropaShortDescription = uropaProduct.summary || '';
             const uropaWarranty = uropaProduct.warranty || '';
 
-            // 📄 Extract downloadable documents (manuals, spec sheets, etc.)
-            const uropaDocuments: Array<{ altText: string; format: string; url: string }> =
-              (uropaProduct.documents || []).map((doc: any) => ({
-                altText: doc.altText || '',
-                format: doc.format || '',
-                url: doc.url || '',
-              })).filter((doc: any) => doc.url);
+            // 📄 Fetch documents from PDP endpoint (carousel doesn't return documents)
+            let uropaDocuments: Array<{ altText: string; format: string; url: string }> = [];
+            try {
+              const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode}`;
+              const pdpResponse = await fetch(pdpUrl, { method: 'GET', headers });
+              if (pdpResponse.ok) {
+                const pdpData = await pdpResponse.json();
+                const pdpProduct = pdpData.product || pdpData;
+                uropaDocuments = (pdpProduct.documents || [])
+                  .map((doc: any) => ({
+                    altText: doc.altText || '',
+                    format: doc.format || '',
+                    url: doc.url || '',
+                  }))
+                  .filter((doc: any) => doc.url);
+              }
+            } catch (_e) {
+              // PDP fetch failed — documents will remain empty, not fatal
+            }
             
             // 🏷️ Extract features from attributes array - Raw attributes from carousel endpoint
             const allAttributes = uropaProduct.attributes || [];
