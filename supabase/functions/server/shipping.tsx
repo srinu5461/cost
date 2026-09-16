@@ -303,7 +303,7 @@ export function getShippingZone(postcode: string): { zone: string; zoneName: str
 }
 
 // Items under this price threshold in excluded categories still get calculated shipping (not quote)
-const BULKY_PRICE_THRESHOLD = 100;
+const BULKY_PRICE_THRESHOLD = 200;
 
 /**
  * Checks if cart contains categories that require shipping quote.
