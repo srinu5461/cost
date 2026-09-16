@@ -1763,11 +1763,8 @@ descriptionSync.post('/single/:code', async (c) => {
       return c.json({ error: 'Uropa API token not configured' }, 400);
     }
 
-    // Get product from database (only valid products)
-    const allProducts = await kv.getProducts();
-    const dbProduct = allProducts.find((p: any) =>
-      p.code === productCode || p.productCode === productCode || p.sku === productCode
-    );
+    // Get product from database by direct key lookup (avoid loading all 5000 products)
+    const dbProduct = await kv.get(`products:${productCode}`);
 
     if (!dbProduct) {
       return c.json({ error: 'Product not found in database' }, 404);
