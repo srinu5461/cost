@@ -489,33 +489,32 @@ descriptionSync.get('/test-pdp/:code', async (c) => {
     if (!token) return c.json({ error: 'No token' }, 400);
 
     const headers = { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json' };
-    // Scrape the Nisbets AU product page HTML to extract PDF document links
-    const nisbetsUrl = `https://www.nisbets.com.au/${productCode.toLowerCase()}`;
-    console.log(`🌐 [Test PDP] Scraping: ${nisbetsUrl}`);
+    // The pdpUrl from Uropa page response — same token works here
+    const pdpUrl = `${UROPA_API_BASE}/orgUsers/current/products/details/${productCode.toLowerCase()}`;
+    console.log(`🌐 [Test PDP] Fetching with auth: ${pdpUrl}`);
 
-    const response = await fetch(nisbetsUrl, {
+    const response = await fetch(pdpUrl, {
       method: 'GET',
-      headers: { 'Accept': 'text/html', 'User-Agent': 'Mozilla/5.0' }
+      headers: { 'Authorization': formatAuthHeader(token), 'Content-Type': 'application/json', 'Accept': 'application/json' }
     });
     const status = response.status;
-    if (!response.ok) return c.json({ error: `Page fetch failed: ${status}`, nisbetsUrl }, status);
+    const rawText = await response.text();
 
-    const html = await response.text();
+    let data: any = null;
+    try { data = JSON.parse(rawText); } catch (_e) { /* not JSON */ }
 
-    // Extract PDF links from media.nisbets.com/asset/au/media/
-    const pdfMatches = [...html.matchAll(/https:\/\/media\.nisbets\.com\/asset\/au\/media\/[^"'\s]+\.pdf/gi)];
-    const pdfUrls = [...new Set(pdfMatches.map(m => m[0]))];
+    if (!response.ok || !data) {
+      return c.json({ error: `PDP failed: ${status}`, pdpUrl, rawPreview: rawText.substring(0, 300) }, status);
+    }
 
-    // Also look for document data in inline JSON (next.js / hybris page data)
-    const docJsonMatch = html.match(/"documents"\s*:\s*(\[[\s\S]*?\])/);
-    const docJson = docJsonMatch ? JSON.parse(docJsonMatch[1]) : null;
-
+    const product = data.product || data;
     return c.json({
-      nisbetsUrl,
+      pdpUrl,
       status,
-      pdfUrlsFound: pdfUrls,
-      pdfCount: pdfUrls.length,
-      inlineDocuments: docJson,
+      topLevelKeys: Object.keys(data),
+      productKeys: Object.keys(product).slice(0, 30),
+      documents: product.documents || null,
+      documentsCount: (product.documents || []).length,
     });
   } catch (error) {
     return c.json({ error: String(error) }, 500);
