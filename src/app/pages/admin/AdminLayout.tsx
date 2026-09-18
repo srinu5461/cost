@@ -107,6 +107,7 @@ export function AdminLayout() {
         { icon: Package, label: 'Products (Virtualized)', path: '/admin/products-virtualized' },
         { icon: LayoutGrid, label: 'Categories', path: '/admin/categories' },
         { icon: Star, label: 'Featured Products', path: '/admin/featured-products' },
+        { icon: MessageSquare, label: 'Reviews', path: '/admin/reviews' },
         { icon: BadgePercent, label: 'Promotional Pricing', path: '/admin/promotional-pricing' },
         { icon: Layers, label: 'Sections Manager', path: '/admin/sections-manager' },
       ]

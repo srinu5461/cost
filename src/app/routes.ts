@@ -111,6 +111,7 @@ const ProductsManager = lazy(() => import('./pages/admin/ProductsManager').then(
 const ProductsVirtualized = lazy(() => import('./pages/admin/ProductsVirtualized').then(m => ({ default: m.ProductsVirtualized })));
 const CategoriesManager = lazy(() => import('./pages/admin/CategoriesManager').then(m => ({ default: m.CategoriesManager })));
 const OrdersManager = lazy(() => import('./pages/admin/OrdersManager').then(m => ({ default: m.OrdersManager })));
+const ReviewsManager = lazy(() => import('./pages/admin/ReviewsManager').then(m => ({ default: m.ReviewsManager })));
 const CustomersManager = lazy(() => import('./pages/admin/CustomersManager').then(m => ({ default: m.CustomersManager })));
 const FeaturedProducts = lazy(() => import('./pages/admin/FeaturedProducts').then(m => ({ default: m.FeaturedProducts })));
 const SectionsManager = lazy(() => import('./pages/admin/SectionsManager').then(m => ({ default: m.SectionsManager })));
@@ -295,6 +296,7 @@ export const router = createBrowserRouter(
               { path: 'debug-products', Component: DebugProducts },
               { path: 'age-restricted-products', Component: AgeRestrictedProducts },
               { path: 'orders', Component: OrdersManager },
+              { path: 'reviews', Component: ReviewsManager },
               { path: 'customers', Component: CustomersManager },
               { path: 'quotations', Component: Quotations },
               { path: 'quotations/create', Component: CreateQuotation },

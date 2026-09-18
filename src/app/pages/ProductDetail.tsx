@@ -133,6 +133,15 @@ export function ProductDetail() {
   // 📑 Tab System state (Description | Specification | Reviews | Downloads)
   const [activeTab, setActiveTab] = useState<'description' | 'specification' | 'reviews' | 'downloads'>('description');
 
+  // Reviews state
+  const [liveReviews, setLiveReviews] = useState<any[]>([]);
+  const [reviewSummary, setReviewSummary] = useState<any>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', body: '' });
+  const [reviewHover, setReviewHover] = useState(0);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
   // 🔍 Amazon-style Image Magnifier state & position calculation
   const [isHovered, setIsHovered] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
@@ -494,6 +503,45 @@ export function ProductDetail() {
       console.log(`ℹ️  Product: ${displayProduct.name || displayProduct.code}`);
     }
   }, [displayProduct, apiProduct, data.products]);
+
+  // Fetch live reviews when reviews tab is opened
+  useEffect(() => {
+    if (activeTab !== 'reviews' || !displayProduct?.id) return;
+    setReviewsLoading(true);
+    Promise.all([
+      fetch(`${API_URL}/reviews/product/${displayProduct.id}`, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } }).then(r => r.json()),
+      fetch(`${API_URL}/reviews/summary/${displayProduct.id}`, { headers: { 'Authorization': `Bearer ${publicAnonKey}` } }).then(r => r.json()),
+    ]).then(([reviewsData, summaryData]) => {
+      if (reviewsData.success) setLiveReviews(reviewsData.reviews || []);
+      if (summaryData.success) setReviewSummary(summaryData.summary);
+    }).catch(console.error).finally(() => setReviewsLoading(false));
+  }, [activeTab, displayProduct?.id]);
+
+  const handleSubmitReview = async () => {
+    if (!reviewForm.body.trim()) return;
+    setSubmittingReview(true);
+    try {
+      await fetch(`${API_URL}/reviews/submit`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: displayProduct?.id,
+          productName: displayProduct?.name,
+          customerId: customerData?.id || null,
+          customerName: customerData?.name || customerData?.email || 'Customer',
+          rating: reviewForm.rating,
+          title: reviewForm.title,
+          body: reviewForm.body,
+        }),
+      });
+      setReviewSubmitted(true);
+      setReviewForm({ rating: 5, title: '', body: '' });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   // 🎯 Fetch promotional pricing for this product
   useEffect(() => {
@@ -1552,89 +1600,99 @@ export function ProductDetail() {
           {/* Tab 3: Reviews (Upgraded Premium Design) */}
           {activeTab === 'reviews' && (
             <div className="p-6 sm:p-8 space-y-8">
-              
-              {/* Rating Summary Banner Card */}
+
+              {/* Rating Summary Banner */}
               <div className="bg-gradient-to-br from-slate-50 to-slate-100/60 border border-slate-200/80 rounded-2xl p-6 sm:p-8">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-                  
-                  {/* Average Rating Big Score */}
+
+                  {/* Average Score */}
                   <div className="md:col-span-4 flex items-center gap-4">
                     <div className="size-20 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center">
                       <span className="text-5xl font-black text-slate-900">
-                        5
+                        {reviewSummary ? reviewSummary.avg : '–'}
                       </span>
                     </div>
                     <div>
                       <div className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Average Rating</div>
                       <div className="flex items-center gap-1 text-amber-400 mt-1">
                         {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
+                          <Star key={i} className={`size-4 ${reviewSummary && i < Math.round(reviewSummary.avg) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
                         ))}
                       </div>
                       <div className="text-xs font-semibold text-slate-500 mt-1">
-                        Based on <span className="text-slate-900 font-bold">3 verified reviews</span>
+                        Based on <span className="text-slate-900 font-bold">{reviewSummary?.count ?? 0} reviews</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Rating Breakdown Progress Bars */}
+                  {/* Breakdown bars */}
                   <div className="md:col-span-4 space-y-2 text-xs font-semibold text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-amber-500 font-bold shrink-0">5 ★★★★★</span>
-                      <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full w-full"></div>
-                      </div>
-                      <span className="w-9 text-right font-bold text-slate-700">100%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-slate-400 font-bold shrink-0">4 ★★★★☆</span>
-                      <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full w-0"></div>
-                      </div>
-                      <span className="w-9 text-right font-medium text-slate-400">0%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-slate-400 font-bold shrink-0">3 ★★★☆☆</span>
-                      <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full w-0"></div>
-                      </div>
-                      <span className="w-9 text-right font-medium text-slate-400">0%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-slate-400 font-bold shrink-0">2 ★★☆☆☆</span>
-                      <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full w-0"></div>
-                      </div>
-                      <span className="w-9 text-right font-medium text-slate-400">0%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-14 text-slate-400 font-bold shrink-0">1 ★☆☆☆☆</span>
-                      <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full w-0"></div>
-                      </div>
-                      <span className="w-9 text-right font-medium text-slate-400">0%</span>
-                    </div>
+                    {[5, 4, 3, 2, 1].map(n => {
+                      const count = reviewSummary?.breakdown?.[n] || 0;
+                      const pct = reviewSummary?.count ? Math.round((count / reviewSummary.count) * 100) : 0;
+                      const stars = '★'.repeat(n) + '☆'.repeat(5 - n);
+                      return (
+                        <div key={n} className="flex items-center gap-2">
+                          <span className={`w-14 shrink-0 font-bold ${pct > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{n} {stars}</span>
+                          <div className="flex-1 h-2 bg-slate-200/80 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className={`w-9 text-right font-bold ${pct > 0 ? 'text-slate-700' : 'text-slate-400'}`}>{pct}%</span>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Login Prompt / Write Review Box */}
+                  {/* Write Review / Login */}
                   <div className="md:col-span-4 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs text-center">
                     {customerData ? (
-                      <div>
-                        <p className="text-xs font-medium text-slate-600 mb-3">
-                          Logged in as <span className="font-bold text-slate-900">{customerData.name || customerData.email}</span>
-                        </p>
-                        <Button className="w-full bg-[#E31837] hover:bg-[#C8102E] text-white font-extrabold text-xs py-2.5 rounded-xl cursor-pointer shadow-sm">
-                          Write a Review
-                        </Button>
-                      </div>
+                      reviewSubmitted ? (
+                        <div>
+                          <p className="text-sm font-bold text-green-600 mb-1">✓ Review submitted!</p>
+                          <p className="text-xs text-slate-500">Your review is pending approval.</p>
+                        </div>
+                      ) : (
+                        <div className="text-left space-y-3">
+                          <p className="text-xs font-bold text-slate-700 text-center">Write a Review</p>
+                          {/* Star picker */}
+                          <div className="flex gap-1 justify-center">
+                            {[1,2,3,4,5].map(n => (
+                              <Star
+                                key={n}
+                                className={`size-6 cursor-pointer transition-colors ${n <= (reviewHover || reviewForm.rating) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                                onClick={() => setReviewForm(f => ({ ...f, rating: n }))}
+                                onMouseEnter={() => setReviewHover(n)}
+                                onMouseLeave={() => setReviewHover(0)}
+                              />
+                            ))}
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Title (optional)"
+                            value={reviewForm.title}
+                            onChange={e => setReviewForm(f => ({ ...f, title: e.target.value }))}
+                            className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#E31837]/30"
+                          />
+                          <textarea
+                            rows={3}
+                            placeholder="Share your experience…"
+                            value={reviewForm.body}
+                            onChange={e => setReviewForm(f => ({ ...f, body: e.target.value }))}
+                            className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#E31837]/30"
+                          />
+                          <Button
+                            onClick={handleSubmitReview}
+                            disabled={submittingReview || !reviewForm.body.trim()}
+                            className="w-full bg-[#E31837] hover:bg-[#C8102E] disabled:opacity-50 text-white font-extrabold text-xs py-2.5 rounded-xl cursor-pointer shadow-sm"
+                          >
+                            {submittingReview ? 'Submitting…' : 'Submit Review'}
+                          </Button>
+                        </div>
+                      )
                     ) : (
                       <div>
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 mb-1">
-                          Share your experience
-                        </p>
-                        <p className="text-xs text-slate-500 font-medium mb-3">
-                          To give a review, you need to login first.
-                        </p>
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 mb-1">Share your experience</p>
+                        <p className="text-xs text-slate-500 font-medium mb-3">Login to write a review.</p>
                         <button
                           onClick={() => navigate('/login')}
                           className="w-full border-2 border-slate-900 bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-2 text-xs font-extrabold transition-all cursor-pointer shadow-xs"
@@ -1647,102 +1705,53 @@ export function ProductDetail() {
                 </div>
               </div>
 
-              {/* Product Reviews List Cards */}
+              {/* Reviews List */}
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="text-base font-extrabold text-slate-900">
-                    Customer Feedback <span className="text-xs font-bold text-slate-400 ml-1">(3)</span>
+                    Customer Feedback <span className="text-xs font-bold text-slate-400 ml-1">({liveReviews.length})</span>
                   </h4>
-                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-md border border-slate-200/60 flex items-center gap-1.5 cursor-pointer hover:bg-slate-200/60 transition-colors">
-                    Filter: 5 Star Reviews ▾
-                  </span>
                 </div>
 
-                <div className="space-y-4">
-                  {/* Review Card 1 */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs space-y-3 hover:border-slate-300 transition-all">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex items-center gap-3">
-                        <div className="size-11 rounded-full overflow-hidden border border-slate-200 shrink-0">
-                          <img
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                            alt="Ivor Barber"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h5 className="text-sm font-extrabold text-slate-900">Ivor Barber Lesley Figueroa</h5>
-                            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/60 flex items-center gap-1">
-                              ✔ Verified Purchase
-                            </span>
+                {reviewsLoading ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">Loading reviews…</div>
+                ) : liveReviews.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">No reviews yet. Be the first to review this product!</div>
+                ) : (
+                  <div className="space-y-4">
+                    {liveReviews.map((review: any) => (
+                      <div key={review.id} className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs space-y-3 hover:border-slate-300 transition-all">
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <div className="flex items-center gap-3">
+                            <div className="size-11 rounded-full bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center text-lg font-bold text-slate-500">
+                              {review.customerName?.[0]?.toUpperCase() || '?'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h5 className="text-sm font-extrabold text-slate-900">{review.customerName}</h5>
+                                {review.verified && (
+                                  <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/60">
+                                    ✔ Verified Purchase
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                Reviewed on {new Date(review.createdAt).toLocaleDateString('en-AU')}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[11px] text-slate-400 font-medium mt-0.5">Reviewed on 4-8-2026</div>
-                        </div>
-                      </div>
-
-                      {/* Stars */}
-                      <div className="flex items-center text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                    </div>
-
-                    <p className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
-                      "I appreciated the choice. Great value for money. Delivery was fast to Sydney and the equipment arrived in perfect commercial condition!"
-                    </p>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs text-slate-500">
-                      <span className="text-[11px] font-medium">Was this review helpful?</span>
-                      <button className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-[#E31837] bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200/80 transition-colors cursor-pointer">
-                        👍 Helpful (12)
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Review Card 2 */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs space-y-3 hover:border-slate-300 transition-all">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex items-center gap-3">
-                        <div className="size-11 rounded-full overflow-hidden border border-slate-200 shrink-0">
-                          <img
-                            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
-                            alt="Blaine Keller"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h5 className="text-sm font-extrabold text-slate-900">Blaine Keller</h5>
-                            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/60 flex items-center gap-1">
-                              ✔ Verified Purchase
-                            </span>
+                          <div className="flex items-center text-amber-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`size-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                            ))}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-medium mt-0.5">Reviewed on 31-7-2026</div>
                         </div>
+                        {review.title && <p className="text-sm font-bold text-slate-800">"{review.title}"</p>}
+                        <p className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">{review.body}</p>
                       </div>
-
-                      {/* Stars */}
-                      <div className="flex items-center text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="size-4 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                    </div>
-
-                    <p className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
-                      "I appreciated this buy! Excellent experience with the Cost+$100 pricing transparency. Will definitely reorder for our next commercial kitchen setup."
-                    </p>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs text-slate-500">
-                      <span className="text-[11px] font-medium">Was this review helpful?</span>
-                      <button className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-[#E31837] bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded-lg border border-slate-200/80 transition-colors cursor-pointer">
-                        👍 Helpful (9)
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
