@@ -25,7 +25,7 @@ email.get('/config', async (c) => {
       smtpPort: 587,
       smtpSecure: false,
       senderEmail: 'admin@costplus100.com.au',
-      senderName: 'Costplus100',
+      senderName: 'Montalto Distribution',
       adminEmail: 'admin@costplus100.com.au',
       enableNotifications: true
     };
@@ -52,15 +52,15 @@ email.get('/company-info', async (c) => {
 
     const { get } = await import('./kv_custom.tsx');
     const companyInfo = await get('company_info') || {
-      companyName: 'COSTPLUS100 PTY LTD',
-      tradingName: 'Costplus100',
-      abn: '12 345 678 901',
-      address: '123 Industrial Drive',
-      city: 'Sydney',
+      companyName: 'MONTALTO DISTRIBUTION',
+      tradingName: 'Montalto Distribution',
+      abn: '21 152 496 826',
+      address: '6/4 Loftus Street',
+      city: 'Bowral',
       state: 'NSW',
-      postcode: '2000',
+      postcode: '2576',
       country: 'Australia',
-      phone: '1300 COSTPLUS',
+      phone: '0499 390 281',
       email: 'info@costplus100.com.au',
       website: 'www.costplus100.com.au',
       tagline: 'CATERING EQUIPMENT SOLUTIONS',
@@ -191,7 +191,7 @@ email.post('/test', async (c) => {
     // Get config
     const { get } = await import('./kv_custom.tsx');
     const config = await get('email_config') || {
-      senderName: 'Costplus100'
+      senderName: 'Montalto Distribution'
     };
 
     const emailHTML = `
@@ -216,7 +216,7 @@ email.post('/test', async (c) => {
       </html>
     `;
 
-    await sendEmail(to, 'Test Email from Costplus100', emailHTML);
+    await sendEmail(to, 'Test Email from Montalto Distribution', emailHTML);
 
     console.log('Test email sent successfully');
     return c.json({ success: true, message: 'Test email sent successfully' });
@@ -250,7 +250,7 @@ async function sendEmail(to: string, subject: string, html: string, attachments?
       smtpPort: 587,
       smtpSecure: false,
       senderEmail: 'info@costplus100.com.au',
-      senderName: 'Costplus100'
+      senderName: 'Montalto Distribution'
     };
 
     // Get SMTP credentials from environment
@@ -333,7 +333,7 @@ email.post('/send-password-reset', async (c) => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Password Reset - Costplus100</title>
+        <title>Password Reset - Montalto Distribution</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
         <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -343,7 +343,7 @@ email.post('/send-password-reset', async (c) => {
                 
                 <tr>
                   <td style="background-color: #2D3748; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 28px;">COSTPLUS100</h1>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px;">MONTALTO DISTRIBUTION</h1>
                   </td>
                 </tr>
 
@@ -370,7 +370,7 @@ email.post('/send-password-reset', async (c) => {
                 <tr>
                   <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
                     <p style="color: #6b7280; margin: 0; font-size: 12px;">
-                      © ${new Date().getFullYear()} Costplus100 Pty Ltd. All rights reserved.
+                      © ${new Date().getFullYear()} Montalto Distribution. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -385,7 +385,7 @@ email.post('/send-password-reset', async (c) => {
     
     await sendEmail(
       recipientEmail,
-      'Password Reset Request - Costplus100',
+      'Password Reset Request - Montalto Distribution',
       emailHTML
     );
     
@@ -410,32 +410,25 @@ export async function sendOrderConfirmationEmail(recipientEmail: string, order: 
   // Get company information from database
   const { get } = await import('./kv_custom.tsx');
   const companyInfo = await get('company_info') || {
-    companyName: 'COSTPLUS100 PTY LTD',
-    tradingName: 'Costplus100',
-    abn: '12 345 678 901',
-    address: '123 Industrial Drive',
-    city: 'Sydney',
+    companyName: 'MONTALTO DISTRIBUTION',
+    tradingName: 'Montalto Distribution',
+    abn: '21 152 496 826',
+    address: '6/4 Loftus Street',
+    city: 'Bowral',
     state: 'NSW',
-    postcode: '2000',
+    postcode: '2576',
     country: 'Australia',
-    phone: '1300 COSTPLUS',
+    phone: '0499 390 281',
     email: 'info@costplus100.com.au',
     website: 'www.costplus100.com.au',
     tagline: 'CATERING EQUIPMENT SOLUTIONS',
   };
   
   // Generate PDF invoice
-  console.log('📧 ========== EMAIL SENDING DEBUG ==========');
-  console.log('📧 About to generate PDF for order:', order.id);
-  console.log('📧 order.shippingMethod:', order.shippingMethod);
-  console.log('📧 order.shipping_method:', order.shipping_method);
-  console.log('📧 order.usePickup:', order.usePickup);
-  console.log('📧 order.shipping_amount:', order.shipping_amount);
-  console.log('📧 Generating PDF invoice...');
+  console.log('Generating PDF invoice...');
   const { generateOrderInvoicePDF } = await import('./pdf-generator.tsx');
   const pdfBuffer = await generateOrderInvoicePDF(order, companyInfo);
-  console.log('📧 PDF generated, size:', pdfBuffer.length, 'bytes');
-  console.log('📧 ==========================================');
+  console.log('PDF generated, size:', pdfBuffer.length, 'bytes');
   
   // Format customer details
   const customerDetails = order.customerDetails || order.shipping?.[0] || {};
@@ -778,13 +771,13 @@ email.post('/shipping-quote', async (c) => {
       smtpPort: 587,
       smtpSecure: false,
       senderEmail: 'admin@costplus100.com.au',
-      senderName: 'Costplus100',
+      senderName: 'Montalto Distribution',
     };
 
     // Get company info
     const companyInfo = await get('company_info') || {
       name: 'Montalto Distribution',
-      email: 'info@costplus100.com.au',
+      email: 'admin@costplus100.com.au',
       phone: '0499 390 281',
       address: '6/4 Loftus Street, Bowral NSW 2576',
       abn: '21 152 496 826',
@@ -1087,9 +1080,9 @@ export async function sendCustomerWelcomeEmail(customerEmail: string, customerDa
   
   const { get } = await import('./kv_custom.tsx');
   const companyInfo = await get('company_info') || {
-    tradingName: 'Costplus100',
+    tradingName: 'Montalto Distribution',
     email: 'info@costplus100.com.au',
-    phone: '1300 COSTPLUS',
+    phone: '0499 390 281',
     website: 'www.costplus100.com.au',
   };
   
@@ -1196,9 +1189,9 @@ export async function sendAccessLevelUpdateEmail(customerEmail: string, customer
   
   const { get } = await import('./kv_custom.tsx');
   const companyInfo = await get('company_info') || {
-    tradingName: 'Costplus100',
+    tradingName: 'Montalto Distribution',
     email: 'info@costplus100.com.au',
-    phone: '1300 COSTPLUS',
+    phone: '0499 390 281',
     website: 'www.costplus100.com.au',
   };
   
