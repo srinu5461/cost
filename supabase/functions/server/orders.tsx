@@ -195,6 +195,24 @@ orders.put('/:id/status', async (c) => {
   }
 });
 
+// Update order notes
+orders.put('/:id/notes', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const { notes } = await c.req.json();
+    const order = await kv.get(`order:${id}`);
+    if (!order) return c.json({ success: false, error: 'Order not found' }, 404);
+    order.notes = notes;
+    order.updatedAt = new Date().toISOString();
+    await kv.set(`order:${id}`, order);
+    const ordersList = await kv.get('orders') || [];
+    await kv.set('orders', ordersList.map((o: any) => o.id === id ? { ...o, notes } : o));
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ success: false, error: 'Failed to update notes' }, 500);
+  }
+});
+
 // Update order payment status
 orders.put('/:id/payment-status', async (c) => {
   try {

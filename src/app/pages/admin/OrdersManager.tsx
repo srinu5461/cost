@@ -80,6 +80,10 @@ export function OrdersManager() {
   // Send Invoice Email state
   const [sendingInvoiceEmail, setSendingInvoiceEmail] = useState<string | null>(null);
 
+  // Order notes
+  const [orderNotes, setOrderNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -137,7 +141,27 @@ export function OrdersManager() {
 
   const handleViewOrder = (order: any) => {
     setSelectedOrder(order);
+    setOrderNotes(order.notes || '');
     setViewDialogOpen(true);
+  };
+
+  const handleSaveNotes = async () => {
+    if (!selectedOrder) return;
+    setSavingNotes(true);
+    try {
+      await fetch(`${API_URL}/orders/${selectedOrder.id}/notes`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${publicAnonKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: orderNotes }),
+      });
+      setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, notes: orderNotes } : o));
+      setSelectedOrder((prev: any) => ({ ...prev, notes: orderNotes }));
+      alert('Notes saved. Regenerate the invoice PDF to apply.');
+    } catch {
+      alert('Failed to save notes');
+    } finally {
+      setSavingNotes(false);
+    }
   };
 
   const handleEditOrder = (order: any) => {
@@ -1107,6 +1131,26 @@ Please use Order #${order.id} as payment reference`);
                   <p className="font-mono text-xs font-semibold text-slate-700 mt-0.5 select-all">{selectedOrder.transaction_id}</p>
                 </div>
               )}
+
+              {/* Admin Notes - printed in red on invoice PDF */}
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-2">
+                <span className="text-[11px] font-black text-rose-700 uppercase tracking-wider block">Admin Notes (printed in red on PDF)</span>
+                <Textarea
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  placeholder="e.g. Square account: $118.98 — refund required, no stock with Uropa..."
+                  className="text-xs min-h-[80px] border-rose-200 focus:border-rose-400 focus:ring-rose-300 bg-white"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleSaveNotes}
+                  disabled={savingNotes}
+                  className="bg-[#E31837] hover:bg-[#c41530] text-white font-bold text-xs"
+                >
+                  {savingNotes ? <Loader2 className="size-3.5 animate-spin mr-1" /> : null}
+                  Save Notes
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
