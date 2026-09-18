@@ -470,6 +470,13 @@ Please use Order #${order.id} as payment reference`);
   const handleGenerateInvoice = async (order: any) => {
     if (!order.id) return;
 
+    // If invoice already exists, navigate directly to it
+    const existingInvoiceId = order.invoice_id || order.invoiceId;
+    if (existingInvoiceId) {
+      navigate(`/admin/invoices/${existingInvoiceId}`);
+      return;
+    }
+
     setGeneratingInvoice(order.id);
 
     try {
@@ -486,12 +493,12 @@ Please use Order #${order.id} as payment reference`);
       }
 
       const data = await response.json();
+      const invoiceId = data.invoice?.id || data.invoiceId;
 
-      if (data.alreadyExists) {
-        alert('Invoice already exists for this order!');
-        navigate(`/admin/invoices`);
+      alert('Invoice generated successfully!');
+      if (invoiceId) {
+        navigate(`/admin/invoices/${invoiceId}`);
       } else {
-        alert('Invoice generated successfully!');
         navigate(`/admin/invoices`);
       }
     } catch (error) {
