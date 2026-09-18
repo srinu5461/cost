@@ -328,6 +328,32 @@ invoices.post('/generate-from-order/:orderId', async (c) => {
   }
 });
 
+// Download invoice PDF
+invoices.get('/:id/download-pdf', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const invoice = await kv.get(`invoice:${id}`);
+    if (!invoice) return c.json({ success: false, error: 'Invoice not found' }, 404);
+
+    const companyInfo = { name: 'Costplus100 Pty Ltd', abn: '12 345 678 901', phone: '1300 000 000', email: 'info@costplus100.com.au', website: 'www.costplus100.com.au' };
+    const fullAddress = '123 Business St, Sydney NSW 2000';
+    const bankDetails = { bsb: '123-456', account: '12345678', accountName: 'Costplus100 Pty Ltd' };
+
+    const { generateInvoicePDF } = await import('./pdf-generator.tsx');
+    const pdfBuffer = await generateInvoicePDF(invoice, { ...companyInfo, fullAddress, bankDetails });
+
+    return new Response(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`,
+      },
+    });
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    return c.json({ success: false, error: 'Failed to generate PDF' }, 500);
+  }
+});
+
 // Send invoice email with payment link
 invoices.post('/:id/send-email', async (c) => {
   try {

@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { 
+import {
   ArrowLeft, CheckCircle, Download, Mail, Trash2, DollarSign
 } from 'lucide-react';
 import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -145,6 +146,25 @@ export function InvoiceDetail() {
     }
   };
 
+  const downloadPDF = async () => {
+    try {
+      const response = await fetch(`${API_URL}/invoices/${id}/download-pdf`, {
+        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+      });
+      if (!response.ok) throw new Error('Failed to download PDF');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-${invoice?.invoiceNumber || id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF');
+    }
+  };
+
   const sendEmail = async () => {
     if (!confirm('Send this invoice via email?')) return;
     setSendingEmail(true);
@@ -235,7 +255,8 @@ export function InvoiceDetail() {
             <Mail className="size-3.5" />
             {sendingEmail ? 'Sending...' : 'Email'}
           </button>
-          <button 
+          <button
+            onClick={downloadPDF}
             className="h-9 px-4 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="size-3.5" />
