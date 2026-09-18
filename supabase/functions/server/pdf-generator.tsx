@@ -188,6 +188,17 @@ export async function generateOrderInvoicePDF(order: any, companyInfo: any): Pro
         }
       }
 
+      // Admin Notes - right side, same vertical area as billing/shipping
+      const notes = order.notes || order.adminNotes || order.admin_notes || '';
+      if (notes) {
+        const notesX = 300;
+        const notesY = 170;
+        doc.fillColor('#E31837')
+           .fontSize(9)
+           .font('Helvetica-Bold')
+           .text(notes, notesX, notesY, { width: 245, align: 'left' });
+      }
+
       currentY = 440;
       drawLine(currentY);
 
