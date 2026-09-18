@@ -209,12 +209,13 @@ export function OrdersManager() {
   // Check if order needs shipping (shipping_amount === 0 means customer pays later)
   // Truck icon should only show BEFORE quote is sent (initial stage)
   const needsShipping = (order: any) => {
-    const hasShippingAddress = order.shipping?.[0]?.address;
+    const hasShipping = order.shipping?.[0] && (
+      order.shipping[0].address || order.shipping[0].first_name || order.shipping[0].postcode || order.shipping[0].city
+    );
     const noShippingCost = order.shipping_amount === 0 || order.shipping_amount === null || order.shipping_amount === undefined;
     const statusAllowsQuote = !['quote_sent', 'ready_to_ship', 'shipped', 'delivered', 'cancelled', 'refunded'].includes(order.order_status);
 
-
-    return hasShippingAddress && noShippingCost && statusAllowsQuote;
+    return hasShipping && noShippingCost && statusAllowsQuote;
   };
 
   // Handle opening shipping quote dialog
@@ -934,6 +935,15 @@ Please use Order #${order.id} as payment reference`);
                       <p className="text-xs text-green-700 mt-1">
                         Products have been paid. Shipping quote needs to be sent to customer.
                       </p>
+                      {needsShipping(selectedOrder) && (
+                        <Button
+                          className="mt-3 w-full bg-[#E31837] hover:bg-[#c41530] text-white font-bold"
+                          onClick={() => handleCreateShippingQuote(selectedOrder)}
+                        >
+                          <Truck className="size-4 mr-2" />
+                          Send Shipping Quote
+                        </Button>
+                      )}
                     </div>
                   ) : null}
                 </div>
