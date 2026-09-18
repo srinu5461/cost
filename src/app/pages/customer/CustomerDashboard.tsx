@@ -30,8 +30,11 @@ const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc
 interface Customer {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
   phone: string;
 }
 
@@ -186,7 +189,7 @@ export function CustomerDashboard() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                Welcome back, {customer.firstName}!
+                Welcome back, {customer.firstName || customer.first_name || customer.name?.split(' ')[0] || customer.email}!
               </h1>
               <p className="text-muted-foreground">
                 Manage your orders and account settings
@@ -221,7 +224,7 @@ export function CustomerDashboard() {
                   </div>
                   <div>
                     <p className="font-semibold">
-                      {customer.firstName} {customer.lastName}
+                      {customer.firstName || customer.first_name || customer.name || ''} {customer.lastName || customer.last_name || ''}
                     </p>
                     <p className="text-sm text-muted-foreground">Customer</p>
                   </div>

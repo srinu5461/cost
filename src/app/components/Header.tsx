@@ -19,8 +19,11 @@ import { getSpecialsForProduct } from '../utils/bogoCalculator';
 interface Customer {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
   phone: string;
 }
 
@@ -634,7 +637,7 @@ export function Header() {
                       <User className="size-4 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">{customer.firstName}</p>
+                      <p className="text-sm font-semibold text-slate-900">{customer.firstName || customer.first_name || customer.name?.split(' ')[0] || customer.email}</p>
                       <p className="text-xs text-slate-500">My Account</p>
                     </div>
                     <ChevronDown className={`size-4 text-slate-600 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
@@ -663,7 +666,7 @@ export function Header() {
                       <div className="absolute right-0 top-full mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
                         {/* Customer Info Header */}
                         <div className="px-4 py-3 border-b bg-slate-50">
-                          <p className="font-semibold text-slate-900">{customer.firstName} {customer.lastName}</p>
+                          <p className="font-semibold text-slate-900">{customer.firstName || customer.first_name || customer.name || ''} {customer.lastName || customer.last_name || ''}</p>
                           <p className="text-xs text-slate-600 truncate">{customer.email}</p>
                         </div>
                         
