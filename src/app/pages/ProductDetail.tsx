@@ -527,8 +527,8 @@ export function ProductDetail() {
         body: JSON.stringify({
           productId: displayProduct?.id,
           productName: displayProduct?.name,
-          customerId: (window as any).__customerData?.id || null,
-          customerName: (window as any).__customerData?.name || (window as any).__customerData?.email || 'Customer',
+          customerId: (customerData as any)?.id || null,
+          customerName: (customerData as any)?.name || (customerData as any)?.email || 'Customer',
           rating: reviewForm.rating,
           title: reviewForm.title,
           body: reviewForm.body,
