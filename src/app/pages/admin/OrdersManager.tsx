@@ -74,15 +74,15 @@ export function OrdersManager() {
   const [selectedReturnItems, setSelectedReturnItems] = useState<string[]>([]);
   const [creatingReturn, setCreatingReturn] = useState(false);
 
+  // Order notes
+  const [orderNotes, setOrderNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+
   // Generate Invoice state
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
 
   // Send Invoice Email state
   const [sendingInvoiceEmail, setSendingInvoiceEmail] = useState<string | null>(null);
-
-  // Order notes
-  const [orderNotes, setOrderNotes] = useState('');
-  const [savingNotes, setSavingNotes] = useState(false);
 
   useEffect(() => {
     fetchOrders();
