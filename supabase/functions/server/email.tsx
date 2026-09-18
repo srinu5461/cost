@@ -783,11 +783,11 @@ email.post('/shipping-quote', async (c) => {
 
     // Get company info
     const companyInfo = await get('company_info') || {
-      name: 'Costplus100',
-      email: 'admin@costplus100.com.au',
-      phone: '(08) 6165 8444',
-      address: '123 Business St, Perth WA 6000',
-      abn: '12 345 678 901',
+      name: 'Montalto Distribution',
+      email: 'info@costplus100.com.au',
+      phone: '0499 390 281',
+      address: '6/4 Loftus Street, Bowral NSW 2576',
+      abn: '21 152 496 826',
     };
 
     const smtpPassword = Deno.env.get('SMTP_PASSWORD');

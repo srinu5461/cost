@@ -266,10 +266,10 @@ export function OrdersManager() {
     setShippingCost('');
     setShippingGST('');
     setShippingNotes('');
-    setBankDetails(`Bank: Costplus100 Bank
-BSB: 123-456
-Account Number: 12345678
-Account Name: Costplus100 Pty Ltd
+    setBankDetails(`Bank: STG Bank
+BSB: 112-879
+Account Number: 459325491
+Account Name: Montalto Distribution Group
 
 Please use Order #${order.id} as payment reference`);
     setPaymentLink('');
@@ -322,7 +322,7 @@ Please use Order #${order.id} as payment reference`);
           totalShipping,
           notes: shippingNotes,
           bankDetails,
-          paymentLink,
+          paymentLink: paymentLink.trim() || null,
           order: selectedOrder,
         }),
       });
