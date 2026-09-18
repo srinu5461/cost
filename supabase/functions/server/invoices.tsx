@@ -222,25 +222,25 @@ invoices.post('/generate-from-order/:orderId', async (c) => {
       
       // Get company info
       const companyInfo = await kv.get('company_info') || {
-        companyName: 'COSTPLUS100 PTY LTD',
-        tradingName: 'Costplus100',
-        abn: '12 345 678 901',
+        companyName: 'MONTALTO DISTRIBUTION',
+        tradingName: 'Montalto Distribution',
+        abn: '21 152 496 826',
         email: 'info@costplus100.com.au',
-        phone: '1300 COSTPLUS',
+        phone: '0499 390 281',
         website: 'www.costplus100.com.au',
-        address: '123 Industrial Drive',
-        city: 'Sydney',
+        address: '6/4 Loftus Street',
+        city: 'Bowral',
         state: 'NSW',
-        postcode: '2000',
+        postcode: '2576',
         country: 'Australia',
       };
       
       // Get bank details
       const bankDetails = await kv.get('bank_details') || {
-        bankName: 'Commonwealth Bank',
-        accountName: 'COSTPLUS100 PTY LTD',
-        bsb: '063-000',
-        accountNumber: '1234 5678',
+        bankName: 'STG Bank',
+        accountName: 'Montalto Distribution Group',
+        bsb: '112-879',
+        accountNumber: '459325491',
       };
       
       const fullAddress = `${companyInfo.address}, ${companyInfo.city}, ${companyInfo.state} ${companyInfo.postcode}`;
@@ -335,9 +335,9 @@ invoices.get('/:id/download-pdf', async (c) => {
     const invoice = await kv.get(`invoice:${id}`);
     if (!invoice) return c.json({ success: false, error: 'Invoice not found' }, 404);
 
-    const companyInfo = { name: 'Costplus100 Pty Ltd', abn: '12 345 678 901', phone: '1300 000 000', email: 'info@costplus100.com.au', website: 'www.costplus100.com.au' };
-    const fullAddress = '123 Business St, Sydney NSW 2000';
-    const bankDetails = { bsb: '123-456', account: '12345678', accountName: 'Costplus100 Pty Ltd' };
+    const companyInfo = { name: 'Montalto Distribution', abn: '21 152 496 826', phone: '1300 000 000', email: 'info@costplus100.com.au', website: 'www.costplus100.com.au' };
+    const fullAddress = '6/4 Loftus Street, Bowral NSW 2576';
+    const bankDetails = { bsb: '112-879', account: '459325491', accountName: 'Montalto Distribution Group' };
 
     const { generateInvoicePDF } = await import('./pdf-generator.tsx');
     const pdfBuffer = await generateInvoicePDF(invoice, { ...companyInfo, fullAddress, bankDetails });
@@ -374,24 +374,24 @@ invoices.post('/:id/send-email', async (c) => {
     
     // Get company info and bank details from database
     const companyInfo = await kv.get('company_info') || {
-      companyName: 'COSTPLUS100 PTY LTD',
-      tradingName: 'Costplus100',
-      abn: '12 345 678 901',
+      companyName: 'MONTALTO DISTRIBUTION',
+      tradingName: 'Montalto Distribution',
+      abn: '21 152 496 826',
       email: 'info@costplus100.com.au',
       website: 'www.costplus100.com.au',
-      address: '123 Industrial Drive',
-      city: 'Sydney',
+      address: '6/4 Loftus Street',
+      city: 'Bowral',
       state: 'NSW',
-      postcode: '2000',
+      postcode: '2576',
       country: 'Australia',
     };
     
     // Get bank details
     const bankDetails = await kv.get('bank_details') || {
-      bankName: 'Commonwealth Bank',
-      accountName: 'COSTPLUS100 PTY LTD',
-      bsb: '063-000',
-      accountNumber: '1234 5678',
+      bankName: 'STG Bank',
+      accountName: 'Montalto Distribution Group',
+      bsb: '112-879',
+      accountNumber: '459325491',
     };
     
     // Build full address string
@@ -695,9 +695,9 @@ invoices.post('/:id/send-email', async (c) => {
                 <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Reference:</strong> <span style="background: #FEF3C7; padding: 2px 6px; border-radius: 3px; color: #92400E;\">${invoice.invoiceNumber}</span></p>
                 ` : `
                 <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Bank:</strong> Commonwealth Bank</p>
-                <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Account Name:</strong> COSTPLUS100 PTY LTD</p>
-                <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">BSB:</strong> 063-000</p>
-                <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Account Number:</strong> 1234 5678</p>
+                <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Account Name:</strong> Montalto Distribution Group</p>
+                <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">BSB:</strong> 112-879</p>
+                <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Account Number:</strong> 459325491</p>
                 <p style="margin: 8px 0;\"><strong style="color: #4a5568; font-family: sans-serif;\">Reference:</strong> <span style="background: #FEF3C7; padding: 2px 6px; border-radius: 3px; color: #92400E;\">${invoice.invoiceNumber}</span></p>
                 `}
               </div>
@@ -745,7 +745,7 @@ invoices.post('/:id/send-email', async (c) => {
           <div class="footer">
             <strong>${companyInfo.companyName}</strong>
             ABN: ${companyInfo.abn}<br>
-            ${companyInfo.address || '123 Industrial Drive, Sydney NSW 2000'}<br>
+            ${companyInfo.address || '6/4 Loftus Street, Bowral NSW 2576'}<br>
             ${companyInfo.email} | ${companyInfo.phone}
             ${companyInfo.website ? ` | ${companyInfo.website}` : ''}
           </div>
