@@ -818,13 +818,13 @@ email.post('/shipping-quote', async (c) => {
       return `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #ddd;">
-          ${item.product?.name || 'Product'}${notice}
+          ${item.product?.name || item.name || item.title || 'Product'}${notice}
         </td>
         <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">
           ${item.quantity}
         </td>
         <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">
-          $${((item.product?.price || 0) * item.quantity).toFixed(2)}
+          $${((item.price || item.product?.price || item.unit_price || 0) * item.quantity).toFixed(2)}
         </td>
       </tr>
     `;
