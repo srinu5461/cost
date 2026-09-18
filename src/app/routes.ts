@@ -58,6 +58,7 @@ const DbDiagnostic = lazy(() => import('./pages/DbDiagnostic').then(m => ({ defa
 }));
 
 // Customer Pages - Lazy load
+const AuthCallback = lazy(() => import('./pages/customer/AuthCallback').then(m => ({ default: m.AuthCallback })));
 const CustomerLogin = lazy(() => import('./pages/customer/CustomerLogin').then(m => ({ default: m.CustomerLogin })).catch(err => {
   console.error('Failed to load CustomerLogin:', err);
   return { default: () => null };
@@ -262,6 +263,7 @@ export const router = createBrowserRouter(
           { path: 'product-query', Component: ProductQuery },
           { path: 'db-diagnostic', Component: DbDiagnostic },
           { path: 'login', Component: CustomerLogin },
+          { path: 'auth/callback', Component: AuthCallback },
           { path: 'register', Component: CustomerLogin },
           { path: 'customer/login', Component: CustomerLogin },
           { path: 'customer/dashboard', Component: CustomerDashboard },
