@@ -23,6 +23,7 @@ import { updateSEOTags, homepageSEO } from '../utils/seo';
 import { SEOHead, generateOrganizationSchema, generateLocalBusinessSchema } from '../components/SEOHead';
 import { heroConfig } from '../../config/hero';
 import heroBannerImg from '../../imports/hero-banner.png';
+import { QuoteModal } from '../components/QuoteModal';
 import { buildCategoryTree } from '../utils/categoryTree';
 import { categoryToSlug } from '../utils/slugify';
 import { staticCategories } from '../../config/categories';
@@ -121,6 +122,12 @@ export function Home() {
   const { data: productsFromCDN, isLoading: productsLoading } = useProducts();
   const { addToCart } = useCart();
   const products = productsFromCDN || [];
+
+  const realProductCount = products.length;
+  const realBrandCount = useMemo(() => {
+    const brands = new Set(products.map((p: any) => p.brand || p.manufacturer).filter(Boolean));
+    return brands.size;
+  }, [products]);
 
   // Build hierarchical category tree (Level 1 -> Level 2 -> Level 3)
   const fullCategoryTree = useMemo(() => {
@@ -331,6 +338,7 @@ export function Home() {
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const [sectionsConfig, setSectionsConfig] = useState<any[]>([]);
   const [simcoBrandFilter, setSimcoBrandFilter] = useState<string>('all');
+  const [quoteOpen, setQuoteOpen] = useState(false);
 
   // ⚡ STATIC HERO: Use as fallback only when no banners
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -964,7 +972,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
       {/* SEO Meta Tags and Structured Data for Homepage */}
       <SEOHead
         title="CostPlus Catering Equipment - Professional Kitchen Equipment Australia"
-        description="Australia's premier supplier of commercial catering equipment. Shop 13,777+ professional products from leading brands. Serving Sydney, Melbourne, Brisbane, Perth, and Adelaide with competitive pricing for restaurants, hotels, and professional kitchens."
+        description={`Australia's premier supplier of commercial catering equipment. Shop ${realProductCount > 0 ? `${realProductCount.toLocaleString()}+` : '13,000+'} professional products from leading brands. Serving Sydney, Melbourne, Brisbane, Perth, and Adelaide with competitive pricing for restaurants, hotels, and professional kitchens.`}
         keywords="catering equipment australia, catering equipment sydney, catering equipment melbourne, catering equipment brisbane, catering equipment perth, catering equipment adelaide, commercial kitchen equipment, commercial kitchen equipment sydney, commercial kitchen equipment melbourne, restaurant equipment, hospitality equipment, commercial cooking equipment, food service equipment, professional catering supplies australia"
         schema={{
           '@context': 'https://schema.org',
@@ -1051,21 +1059,30 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                 Premium catering equipment and supplies at wholesale prices. Quality you can trust. Service you can rely on.
               </p>
 
-              {/* Action Buttons: Side-by-side on Mobile (< 480px) */}
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3.5 mb-5 sm:mb-6 w-full max-w-sm sm:max-w-none">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3.5 mb-3 sm:mb-4">
                 <Link
-                  to="products/c/simco-equipment"
+                  to="/products/c/simco-group"
                   className="px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#E31837] hover:bg-[#C8102E] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center text-center shadow-md shadow-red-900/30 transition-all hover:scale-105"
                 >
-                  <span>Explore Simco Category Range</span>
+                  <span>Explore Simco Categories</span>
                 </Link>
 
-                <Link
-                  to="/products/c/simco-equipment-upright-storage-fridge-and-freezers"
-                  className="px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full border border-slate-700/80 bg-slate-900/70 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center text-center backdrop-blur-sm transition-all hover:scale-105"
+                <button
+                  onClick={() => setQuoteOpen(true)}
+                  className="px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 backdrop-blur-sm transition-all hover:scale-105"
                 >
-                  <span>Simco Products</span>
-                </Link>
+                  <Mail className="size-3.5 sm:size-4" />
+                  <span>Get Quote</span>
+                </button>
+
+                <a
+                  href="tel:1800151624"
+                  className="px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-full border border-slate-700/80 bg-slate-900/70 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 backdrop-blur-sm transition-all hover:scale-105"
+                >
+                  <Phone className="size-3.5 sm:size-4" />
+                  <span>1-800-151-624</span>
+                </a>
               </div>
 
               {/* ── HERO STATS COUNTERS (Product Count & Brand Count) - Hidden on < 600px ── */}
@@ -1078,7 +1095,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                   <div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-base sm:text-xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
-                        13,777+
+                        {realProductCount > 0 ? `${realProductCount.toLocaleString()}+` : '13,777+'}
                       </span>
                     </div>
                     <p className="text-[10px] sm:text-xs font-semibold text-slate-300 leading-tight">
@@ -1095,7 +1112,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                   <div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-base sm:text-xl font-black text-white tracking-tight group-hover:text-rose-400 transition-colors">
-                        150+
+                        {realBrandCount > 0 ? `${realBrandCount}+` : '150+'}
                       </span>
                     </div>
                     <p className="text-[10px] sm:text-xs font-semibold text-slate-300 leading-tight">
@@ -1110,70 +1127,6 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
 
           </div>
 
-          {/* ── BOTTOM FULL-WIDTH TRANSPARENT TRUST BADGES STRIP (Visible only on screens >= 600px) ── */}
-          <div className="hidden min-[600px]:block w-full mt-4 sm:mt-5 pt-3 pb-0 border-t border-slate-800/80 z-20">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y-0 sm:divide-x divide-slate-800/80 gap-y-3 gap-x-2 sm:gap-0 items-center min-h-[56px]">
-
-              {/* Item 1: Best Price Guaranteed */}
-              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
-                <div className="w-9 h-9 rounded-full bg-rose-950/60 border border-rose-800/40 flex items-center justify-center text-rose-500 shrink-0 shadow-2xs">
-                  <ShieldCheck className="size-4.5 stroke-[2.2]" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Best Price</h4>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Guaranteed</p>
-                </div>
-              </div>
-
-              {/* Item 2: 1-800-151-624 */}
-              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
-                <div className="w-9 h-9 rounded-full bg-emerald-950/60 border border-emerald-800/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-2xs">
-                  <Phone className="size-4.5 stroke-[2.2]" />
-                </div>
-                <div>
-                  <a href="tel:1800151624" className="text-xs sm:text-sm font-extrabold text-white leading-tight hover:text-[#E31837] transition-colors block">
-                    1-800-151-624
-                  </a>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Call for prices</p>
-                </div>
-              </div>
-
-              {/* Item 3: Square */}
-              <div className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2.5 px-2 sm:px-4 py-1.5 sm:py-1 border-y sm:border-y-0 border-slate-800/80 my-0.5 sm:my-0">
-                <svg className="w-7 h-7 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="2" width="20" height="20" rx="5" fill="#FFFFFF" />
-                  <rect x="7" y="7" width="10" height="10" rx="2" fill="#000000" />
-                  <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="#FFFFFF" />
-                </svg>
-                <span className="text-sm sm:text-base font-black text-white tracking-tight">
-                  Square
-                </span>
-              </div>
-
-              {/* Item 4: Nisbets Wholesale Range */}
-              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
-                <div className="w-9 h-9 rounded-full bg-blue-950/60 border border-blue-800/40 flex items-center justify-center text-blue-400 shrink-0 shadow-2xs">
-                  <Tag className="size-4.5 stroke-[2.2]" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Nisbets</h4>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Wholesale Range</p>
-                </div>
-              </div>
-
-              {/* Item 5: Total Transparency */}
-              <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-4 py-1">
-                <div className="w-9 h-9 rounded-full bg-indigo-950/60 border border-indigo-800/40 flex items-center justify-center text-indigo-400 shrink-0 shadow-2xs">
-                  <DollarSign className="size-4.5 stroke-[2.2]" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Total</h4>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400 font-semibold leading-tight mt-0.5">Transparency</p>
-                </div>
-              </div>
-
-            </div>
-          </div>
 
         </div>
       </div>
@@ -1523,7 +1476,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <Link to="/products?brand=simco" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                <Link to="/products/c/simco-group" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
                   View all
                 </Link>
                 <div className="hidden sm:flex items-center gap-1">
@@ -1603,7 +1556,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <Link to="/products?search=polar" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                <Link to="/products/c/polar-refrigeration" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
                   View all
                 </Link>
                 <div className="hidden sm:flex items-center gap-1">
@@ -1691,7 +1644,7 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <Link to="/products?search=thor" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
+                <Link to="/products/c/thor-cooking" className="text-xs sm:text-sm font-bold text-[#E31837] hover:underline">
                   View all
                 </Link>
                 <div className="hidden sm:flex items-center gap-1">
@@ -2114,6 +2067,8 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
           })()}
         </div>
       </section>
+
+      <QuoteModal open={quoteOpen} onClose={() => setQuoteOpen(false)} />
     </div>
   );
 }
