@@ -1244,7 +1244,7 @@ export function ProductDetail() {
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-xs text-slate-900 font-semibold">Retail Price</span>
-                    <span className="text-base text-slate-400 line-through font-bold">${wasPrice!.toFixed(2)}</span>
+                    <span className="text-base text-slate-900 line-through font-bold">${wasPrice!.toFixed(2)}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
@@ -1257,7 +1257,7 @@ export function ProductDetail() {
                   {displayProduct.price > displayPrice && (
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className="text-xs text-slate-900 font-semibold">Retail Price</span>
-                      <span className="text-lg text-slate-400 line-through font-bold">${displayProduct.price.toFixed(2)}</span>
+                      <span className="text-lg text-slate-900 line-through font-bold">${displayProduct.price.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex items-baseline gap-2">

@@ -78,7 +78,7 @@ export function FeaturedEquipmentCard({ product }: FeaturedEquipmentCardProps) {
         {wasPrice && wasPrice > productPrice && (
           <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
             <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Regular Price:</span>
-            <span className="text-[11px] sm:text-sm text-slate-400 line-through font-semibold">
+            <span className="text-[11px] sm:text-sm text-slate-900 line-through font-semibold">
               ${wasPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>

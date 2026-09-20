@@ -301,7 +301,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex flex-col mb-1 justify-end">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-            <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+            <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
               ${wasPrice!.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -322,7 +322,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex flex-col mb-1 justify-end">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-            <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+            <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
               ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -344,7 +344,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
           {productPrice > displayPrice && (
             <div className="flex items-center gap-1 mb-1">
               <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Regular Price:</span>
-              <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+              <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                 ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
@@ -366,7 +366,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex flex-col mb-1 justify-end">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-            <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+            <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
               ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -387,7 +387,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex flex-col mb-1 justify-end">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-            <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+            <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
               ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -408,7 +408,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
         <div className="flex flex-col mb-1 justify-end">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-            <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+            <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
               ${oldWasPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -756,7 +756,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                   ${wasPrice!.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -774,7 +774,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                   ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -793,7 +793,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
               {productPrice > displayPrice && (
                 <div className="flex items-center gap-1 mb-1">
                   <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Regular Price:</span>
-                  <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                  <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                     ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -812,7 +812,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                   ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -830,7 +830,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                   ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -848,7 +848,7 @@ const promisedDateInFuture = uropaPromisedDate ? new Date(uropaPromisedDate) > n
             <>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Retail Price</span>
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                <span className="text-[10px] sm:text-xs text-slate-900 line-through font-semibold">
                   ${oldWasPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>

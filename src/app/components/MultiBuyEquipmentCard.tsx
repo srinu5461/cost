@@ -87,7 +87,7 @@ export function MultiBuyEquipmentCard({ product }: MultiBuyEquipmentCardProps) {
         {/* ── TOP PRICING ROW: Was Price (Left) + Savings/Tier Badge (Right) ── */}
         <div className="flex items-center justify-between mb-0.5 sm:mb-1">
           {wasPrice && wasPrice > effectivePrice ? (
-            <span className="text-[11px] sm:text-sm text-slate-400 line-through font-semibold">
+            <span className="text-[11px] sm:text-sm text-slate-900 line-through font-semibold">
               ${wasPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           ) : <span />}
