@@ -1,4 +1,4 @@
-import { CategoryNode } from '../context/CMSContext';
+import type { CategoryNode } from '../context/CMSContext';
 
 // Build a hierarchical tree from a flat array of category nodes
 export function buildCategoryTree(nodes: CategoryNode[]): CategoryNode[] {

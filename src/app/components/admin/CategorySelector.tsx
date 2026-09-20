@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CategoryNode } from '../../context/CMSContext';
+import type { CategoryNode } from '../../context/CMSContext';
 
 interface CategorySelectorProps {
   categoryTree: CategoryNode[];
