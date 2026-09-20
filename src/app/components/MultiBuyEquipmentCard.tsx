@@ -107,7 +107,7 @@ export function MultiBuyEquipmentCard({ product }: MultiBuyEquipmentCardProps) {
           <span className="text-base sm:text-xl font-black text-[#E31837]">
             ${effectivePrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
-          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
+          <span className="text-[10px] sm:text-xs text-slate-900 font-medium">Ex GST</span>
         </div>
 
         {/* ── MULTI-BUY HIGHLIGHT TIER PILL ── */}

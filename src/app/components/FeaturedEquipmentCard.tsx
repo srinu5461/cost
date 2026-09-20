@@ -77,7 +77,7 @@ export function FeaturedEquipmentCard({ product }: FeaturedEquipmentCardProps) {
         {/* ── PRICING: Regular Price (strikethrough) then display price + Costplus100 Price badge ── */}
         {wasPrice && wasPrice > productPrice && (
           <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
-            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold">Regular Price:</span>
+            <span className="text-[10px] sm:text-xs text-slate-900 font-semibold">Regular Price:</span>
             <span className="text-[11px] sm:text-sm text-slate-400 line-through font-semibold">
               ${wasPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
@@ -87,7 +87,7 @@ export function FeaturedEquipmentCard({ product }: FeaturedEquipmentCardProps) {
           <span className="text-base sm:text-xl font-black text-[#E31837] leading-none">
             ${productPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
-          <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Ex GST</span>
+          <span className="text-[10px] sm:text-xs text-slate-900 font-medium">Ex GST</span>
           <span className="bg-[#8B5CF6] text-white font-extrabold text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-xs whitespace-nowrap">
             Costplus100 Price
           </span>
