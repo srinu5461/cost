@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link, useParams } from 'react-router';
 import { ProductCard } from '../components/ProductCard';
-import { useCMS, CategoryNode } from '../context/CMSContext';
+import { useCMS } from '../context/CMSContext';
+import type { CategoryNode } from '../context/CMSContext';
 import { useProducts } from '../../hooks/useProducts';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';

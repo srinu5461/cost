@@ -17,7 +17,8 @@ const categoryIconMap: Record<string, any> = {
 };
 
 import { useCart } from '../context/CartContext';
-import { useCMS, CategoryNode } from '../context/CMSContext';
+import { useCMS } from '../context/CMSContext';
+import type { CategoryNode } from '../context/CMSContext';
 import { logger } from '../utils/logger';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { categoryToSlug } from '../utils/slugify';

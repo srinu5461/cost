@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useCMS, CategoryNode } from '../../context/CMSContext';
+import { useCMS } from '../../context/CMSContext';
+import type { CategoryNode } from '../../context/CMSContext';
 import { buildCategoryTree, flattenTree } from '../../utils/categoryTree';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';

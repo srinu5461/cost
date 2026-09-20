@@ -1,7 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router';
 import { categoryToSlug } from '../utils/slugify';
 import { useState, useMemo, useEffect } from 'react';
-import { useCMS, CategoryNode } from '../context/CMSContext';
+import { useCMS } from '../context/CMSContext';
+import type { CategoryNode } from '../context/CMSContext';
 import { useCart } from '../context/CartContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useCMS, CategoryNode } from '../context/CMSContext';
+import { useCMS } from '../context/CMSContext';
+import type { CategoryNode } from '../context/CMSContext';
 import { useCart } from '../context/CartContext';
 import { buildCategoryTree } from '../utils/categoryTree';
 import { categoryToSlug } from '../utils/slugify';

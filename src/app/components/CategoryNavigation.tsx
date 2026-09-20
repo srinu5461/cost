@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router';
 import { Menu, X, ChevronDown, ChevronRight, BookOpen, Users, Sparkles, TrendingUp, Tag, Award, Grid3x3, Home } from 'lucide-react';
-import { useCMS, CategoryNode } from '../context/CMSContext';
+import { useCMS } from '../context/CMSContext';
+import type { CategoryNode } from '../context/CMSContext';
 import { categoryToSlug } from '../utils/slugify';
 import { buildCategoryTree } from '../utils/categoryTree';
 import { projectId, publicAnonKey } from '/utils/supabase/info';
