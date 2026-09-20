@@ -209,7 +209,7 @@ export function generateProductSchema(product: any) {
     '@type': 'Product',
     name: product.name,
     description: product.description || `${product.name} - Professional catering equipment`,
-    image: product.image?.startsWith('http') ? product.image : (product.image ? `https://costplus100.com.au${product.image}` : `https://costplus100.com.au${defaultProductImage}`),
+    image: product.image || defaultProductImage,
     brand: {
       '@type': 'Brand',
       name: product.brand || 'Costplus',
