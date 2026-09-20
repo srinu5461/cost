@@ -1243,26 +1243,26 @@ export function ProductDetail() {
               {hasPromotion ? (
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-xs text-slate-900 font-semibold">Retail Price</span>
+                    <span className="text-xs text-slate-400 font-semibold">Retail Price</span>
                     <span className="text-base text-slate-900 line-through font-bold">${wasPrice!.toFixed(2)}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
                     <span className="bg-[#E31837] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">SAVE ${promotionalSavings!.toFixed(2)}</span>
-                    <span className="text-xs font-bold text-slate-900">ex GST</span>
+                    <span className="text-xs font-bold text-slate-500">ex GST</span>
                   </div>
                 </div>
               ) : (showUniversalCostPlus || showLegacyCostPlus) ? (
                 <div>
                   {displayProduct.price > displayPrice && (
                     <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-xs text-slate-900 font-semibold">Retail Price</span>
+                      <span className="text-xs text-slate-400 font-semibold">Retail Price</span>
                       <span className="text-lg text-slate-900 line-through font-bold">${displayProduct.price.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
-                   <span className="text-xs font-bold text-slate-900">ex GST</span>
+                   <span className="text-xs font-bold text-slate-500">ex GST</span>
 
                     <span className="bg-[#8B5CF6] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">COSTPlUS100 Price</span>
                   </div>
@@ -1270,7 +1270,7 @@ export function ProductDetail() {
               ) : (
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-black text-[#E31837]">${displayPrice.toFixed(2)}</span>
-                  <span className="text-xs font-bold text-slate-900">ex GST</span>
+                  <span className="text-xs font-bold text-slate-500">ex GST</span>
                 </div>
               )}
 
