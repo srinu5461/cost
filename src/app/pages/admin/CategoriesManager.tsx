@@ -2,11 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useCMS } from '../../context/CMSContext';
 import type { CategoryNode } from '../../context/CMSContext';
-import { buildCategoryTree, flattenTree } from '../../utils/categoryTree';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { buildCategoryTree } from '../../utils/categoryTree';
 import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -17,15 +14,16 @@ import {
   Edit2,
   Save,
   X,
-  Package,
   Upload,
   Hash,
-  Check
+  Check,
+  FolderTree,
+  Eye,
+  EyeOff
 } from 'lucide-react';
-
-// Import Supabase config with absolute path
-const projectId = 'bqtzxoteoucvioxqgfpc';
-const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxdHp4b3Rlb3VjdmlveHFnZnBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjYwMDIsImV4cCI6MjA4ODM0MjAwMn0.WtWmz2qJ2NNMx7LHnkrYnJqR9b8cC-IDTVyKaWs9Ta4';
+import { DeleteConfirmModal } from '../../components/ui/DeleteConfirmModal';
+import { notify } from '../../utils/notifications';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-d1fbc049`;
 
@@ -40,12 +38,13 @@ interface EditingCategory {
 export function CategoriesManager() {
   const navigate = useNavigate();
   
-  // ✅ Safe access to CMS context with fallback
-  let data, updateCategories;
+  // Safe access to CMS context with fallback
+  let data, updateCategories, updateCategoryTree;
   try {
     const cms = useCMS();
     data = cms.data;
     updateCategories = cms.updateCategories;
+    updateCategoryTree = cms.updateCategoryTree;
   } catch (e) {
     console.error('CategoriesManager: CMSProvider not available, using empty data');
     data = {
@@ -57,6 +56,7 @@ export function CategoriesManager() {
       homepage: { hero: { title: '', subtitle: '', image: '' }, features: [] },
     };
     updateCategories = async () => {};
+    updateCategoryTree = () => {};
   }
   
   const [categories, setCategories] = useState(data.categories);
@@ -88,6 +88,7 @@ export function CategoriesManager() {
       return node;
     }));
   };
+
   // Build tree from category tree data
   const categoryTree = buildCategoryTree(categoryTreeData);
   const hasTreeData = categoryTree.length > 0;
@@ -112,24 +113,25 @@ export function CategoriesManager() {
     setCategoryTreeData(updatedTree);
   };
 
+  const [deletePath, setDeletePath] = useState<string | null>(null);
+
   // Handle deleting a category
-  const handleDeleteCategory = (path: string) => {
-    if (window.confirm('Are you sure you want to delete this category? This will also delete all its children.')) {
-      // 1. Find the target node name to remove it from the legacy flat list too
-      const targetNode = categoryTreeData.find(node => node.path === path);
-      
-      // 2. Filter out the node and its children from the tree data
-      const updatedTree = categoryTreeData.filter(node => 
-        node.path && node.path !== path && !node.path.startsWith(path + '/')
-      );
-      
-      // 3. Keep the flat category array in sync
-      if (targetNode) {
-        setCategories(prev => prev.filter(cat => cat !== targetNode.name));
-      }
-      
-      setCategoryTreeData(updatedTree);
+  const confirmDeleteCategory = () => {
+    if (!deletePath) return;
+    const path = deletePath;
+    const targetNode = categoryTreeData.find(node => node.path === path);
+    
+    const updatedTree = categoryTreeData.filter(node => 
+      node.path && node.path !== path && !node.path.startsWith(path + '/')
+    );
+    
+    if (targetNode) {
+      setCategories(prev => prev.filter(cat => cat !== targetNode.name));
     }
+    
+    setCategoryTreeData(updatedTree);
+    setDeletePath(null);
+    notify.success('Category deleted successfully');
   };
 
   // Handle adding a child category
@@ -155,12 +157,13 @@ export function CategoriesManager() {
     };
 
     setCategoryTreeData([...categoryTreeData, newCategory]);
+    notify.info('Added new child category item. Remember to click "Save All Changes".');
   };
 
   // Handle adding a new category at any level
   const handleAddNewCategory = () => {
     if (!newCategoryName.trim()) {
-      alert('Please enter a category name');
+      notify.warning('Please enter a category name');
       return;
     }
 
@@ -169,7 +172,6 @@ export function CategoriesManager() {
     let fullPath = newCategoryName;
     let parentName = '';
 
-    // If level > 1 and parent is selected, build the path
     if (newCategoryLevel > 1 && newCategoryParent) {
       const parent = categoryTreeData.find(n => n.path === newCategoryParent);
       if (parent) {
@@ -198,14 +200,14 @@ export function CategoriesManager() {
     setNewCategoryName('');
     setNewCategoryLevel(1);
     setNewCategoryParent('');
+    notify.success(`Category "${newCategoryName}" created`);
   };
 
   // Save all changes to the server
-   const handleSaveChanges = async () => {
+  const handleSaveChanges = async () => {
     setSaving(true);
     
     try {
-      // Strip out the 'children' property before saving to reduce payload size
       const flattenedData = categoryTreeData.map(node => {
         const { children, ...nodeWithoutChildren } = node;
         const isNodeDisabled = disabledSubcategories.has(node.path);
@@ -221,7 +223,6 @@ export function CategoriesManager() {
         'Authorization': `Bearer ${publicAnonKey}`,
       };
       
-      // Save to server via API endpoint for category tree
       const response = await fetch(`${API_URL}/categories/tree`, {
         method: 'PUT',
         headers,
@@ -233,18 +234,18 @@ export function CategoriesManager() {
         throw new Error(`Failed to save categories: ${response.status} ${errorText}`);
       }
 
-      const result = await response.json();
+      await response.json();
       
-      // ✅ FIX: Instantly sync changes with the global CMS Context cache
+      if (updateCategoryTree) {
+        updateCategoryTree(flattenedData);
+      }
       if (updateCategories) {
         await updateCategories(categories);
       }
-      
-      alert('Categories saved successfully!');
-      // 🚀 REMOVED window.location.reload() to prevent logging out!
-      
+
+      notify.success('Category hierarchy saved successfully!');
     } catch (error) {
-      alert('Failed to save categories: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      notify.error('Failed to save categories: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setSaving(false);
     }
@@ -252,9 +253,9 @@ export function CategoriesManager() {
 
   const handleSave = () => {
     updateCategories(categories).then(() => {
-      alert('Categories saved successfully!');
+      notify.success('Categories saved successfully!');
     }).catch((error) => {
-      alert('Failed to save categories: ' + error.message);
+      notify.error('Failed to save categories: ' + error.message);
     });
   };
 
@@ -270,50 +271,70 @@ export function CategoriesManager() {
 
   const deleteCategory = (index: number) => {
     if (categories[index] === 'All Equipment') {
-      alert('Cannot delete \"All Equipment\" category');
+      notify.warning('Cannot delete "All Equipment" category');
       return;
     }
     setCategories(categories.filter((_, i) => i !== index));
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-start mb-6">
+    <div className="max-w-7xl mx-auto pb-8 space-y-5 font-sans">
+      {/* Header Card */}
+      <div className="bg-white rounded-xl p-5 sm:p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl mb-2">Categories Manager v3.0 🔑</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] mb-1 tracking-tight flex items-center gap-2">
+            <FolderTree className="size-6 text-[#E31837]" />
+            Categories Manager
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
             {hasTreeData 
               ? `Managing ${data.categoryTree.length} hierarchical categories across ${maxLevel} levels` 
               : `Managing ${categories.length} categories`}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => navigate('/admin/import-categories')} variant="outline">
-            <Upload className="size-5 mr-2" />
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => navigate('/admin/import-categories')}
+            className="h-10 px-4 bg-white border border-slate-200 text-[#0f172a] hover:bg-slate-50 rounded-xl font-bold transition-all shadow-2xs text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <Upload className="size-4" />
             Import CSV
-          </Button>
-          {hasTreeData && (
+          </button>
+          {hasTreeData ? (
             <>
-              <Button onClick={() => setShowAddDialog(true)} variant="outline">
-                <Plus className="size-5 mr-2" />
+              <button
+                onClick={() => setShowAddDialog(true)}
+                className="h-10 px-4 bg-white border border-slate-200 text-[#0f172a] hover:bg-slate-50 rounded-xl font-bold transition-all shadow-2xs text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="size-4 text-[#E31837]" />
                 Add Category
-              </Button>
-              <Button onClick={handleSaveChanges} size="lg" disabled={saving}>
-                <Save className="size-5 mr-2" />
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                disabled={saving}
+                className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-50"
+              >
+                <Save className="size-4" />
                 {saving ? 'Saving...' : 'Save All Changes'}
-              </Button>
+              </button>
             </>
-          )}
-          {!hasTreeData && (
+          ) : (
             <>
-              <Button onClick={addCategory} variant="outline">
-                <Plus className="size-5 mr-2" />
+              <button
+                onClick={addCategory}
+                className="h-10 px-4 bg-white border border-slate-200 text-[#0f172a] hover:bg-slate-50 rounded-xl font-bold transition-all shadow-2xs text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="size-4 text-[#E31837]" />
                 Add Category
-              </Button>
-              <Button onClick={handleSave} size="lg">
-                <Save className="size-5 mr-2" />
+              </button>
+              <button
+                onClick={handleSave}
+                className="h-10 px-5 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl font-bold transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer"
+              >
+                <Save className="size-4" />
                 Save Changes
-              </Button>
+              </button>
             </>
           )}
         </div>
@@ -321,50 +342,64 @@ export function CategoriesManager() {
 
       {/* Add Category Dialog */}
       {showAddDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-lg">
-            <CardHeader>
-              <CardTitle>Add New Category</CardTitle>
-              <CardDescription>Create a new category at any level in the hierarchy</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden font-sans">
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
               <div>
-                <Label htmlFor="category-name">Category Name</Label>
+                <h3 className="text-sm sm:text-base font-black text-[#0f172a] tracking-tight">Add New Category</h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Create a category node at any level in the tree</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddDialog(false);
+                  setNewCategoryName('');
+                  setNewCategoryLevel(1);
+                  setNewCategoryParent('');
+                }}
+                className="size-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-extrabold text-slate-500 mb-1 block uppercase tracking-wider">Category Name *</label>
                 <Input
-                  id="category-name"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Enter category name"
+                  placeholder="e.g. Commercial Ovens"
+                  className="h-10 bg-slate-50 border-slate-200 rounded-xl text-xs sm:text-sm font-semibold"
                   autoFocus
                 />
               </div>
+
               <div>
-                <Label htmlFor="category-level">Level</Label>
+                <label className="text-xs font-extrabold text-slate-500 mb-1 block uppercase tracking-wider">Target Level *</label>
                 <select
-                  id="category-level"
                   value={newCategoryLevel}
                   onChange={(e) => {
                     setNewCategoryLevel(Number(e.target.value));
                     setNewCategoryParent('');
                   }}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#E31837]"
                 >
-                  <option value={1}>Level 1 (Top Level)</option>
-                  <option value={2}>Level 2</option>
-                  <option value={3}>Level 3</option>
-                  <option value={4}>Level 4</option>
+                  <option value={1}>Level 1 (Top Root Level)</option>
+                  <option value={2}>Level 2 (Subcategory)</option>
+                  <option value={3}>Level 3 (Sub-subcategory)</option>
+                  <option value={4}>Level 4 (Detailed Item Group)</option>
                 </select>
               </div>
+
               {newCategoryLevel > 1 && (
                 <div>
-                  <Label htmlFor="category-parent">Parent Category</Label>
+                  <label className="text-xs font-extrabold text-slate-500 mb-1 block uppercase tracking-wider">Parent Category *</label>
                   <select
-                    id="category-parent"
                     value={newCategoryParent}
                     onChange={(e) => setNewCategoryParent(e.target.value)}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#E31837]"
                   >
-                    <option value="">Select a parent...</option>
+                    <option value="">Select a Level {newCategoryLevel - 1} parent...</option>
                     {categoryTreeData
                       .filter(n => n.level === newCategoryLevel - 1)
                       .sort((a, b) => a.name.localeCompare(b.name))
@@ -372,198 +407,199 @@ export function CategoriesManager() {
                         <option key={n.path} value={n.path}>{n.fullPath}</option>
                       ))}
                   </select>
-                  {newCategoryLevel > 1 && !newCategoryParent && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Select a Level {newCategoryLevel - 1} category as the parent
-                    </p>
-                  )}
                 </div>
               )}
-            </CardContent>
-            <div className="flex gap-2 p-6 pt-0">
-              <Button onClick={handleAddNewCategory} className="flex-1">
-                <Plus className="size-4 mr-2" />
-                Add Category
-              </Button>
-              <Button 
-                variant="outline" 
+            </div>
+
+            <div className="flex gap-3 p-4 bg-slate-50/50 border-t border-slate-200">
+              <button
                 onClick={() => {
                   setShowAddDialog(false);
                   setNewCategoryName('');
                   setNewCategoryLevel(1);
                   setNewCategoryParent('');
                 }}
-                className="flex-1"
+                className="flex-1 h-10 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
               >
                 Cancel
-              </Button>
+              </button>
+              <button
+                onClick={handleAddNewCategory}
+                className="flex-1 h-10 bg-[#E31837] hover:bg-[#c41530] text-white rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+              >
+                <Plus className="size-4" />
+                Add Category
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
       {hasTreeData ? (
-        /* Hierarchical Tree View */
-        <div className="grid grid-cols-1 gap-6">
-          {/* Statistics Card */}
-          <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-6 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Hash className="size-5 text-blue-600" />
-                  <div>
-                    <div className="text-2xl font-bold text-blue-900">{data.categoryTree.length}</div>
-                    <div className="text-xs text-blue-700">Total Categories</div>
-                  </div>
+        <div className="space-y-4">
+          {/* Hierarchy Statistics Card */}
+          <div className="bg-white rounded-xl p-4 shadow-xs border border-slate-200">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 pr-4 border-r border-slate-200">
+                <div className="size-10 bg-red-50 text-[#E31837] rounded-xl flex items-center justify-center shrink-0 border border-red-100">
+                  <Hash className="size-5" />
                 </div>
+                <div>
+                  <p className="text-xl font-black text-[#0f172a] leading-none">{data.categoryTree.length}</p>
+                  <p className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider mt-1">Total Categories</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap flex-1">
                 {Object.entries(stats).sort(([a], [b]) => Number(a) - Number(b)).map(([level, count]) => (
-                  <div key={level} className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      Number(level) === 1 ? 'bg-blue-500' :
-                      Number(level) === 2 ? 'bg-green-500' :
+                  <div key={level} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                    <div className={`size-2.5 rounded-full ${
+                      Number(level) === 1 ? 'bg-[#0f172a]' :
+                      Number(level) === 2 ? 'bg-blue-500' :
                       Number(level) === 3 ? 'bg-purple-500' :
-                      Number(level) === 4 ? 'bg-orange-500' : 'bg-gray-500'
+                      Number(level) === 4 ? 'bg-[#E31837]' : 'bg-slate-400'
                     }`} />
                     <div>
-                      <div className="text-xl font-bold text-slate-800">{count}</div>
-                      <div className="text-xs text-slate-600">Level {level}</div>
+                      <p className="text-xs font-black text-[#0f172a] leading-none">{count}</p>
+                      <p className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider mt-0.5">Level {level}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Tree View Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Folder className="size-5 text-amber-600" />
-                Category Hierarchy Tree
-              </CardTitle>
-              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-4">
-                <span className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-blue-100 text-blue-800 border-blue-300">L1</span>
-                  = Level 1 (Top)
+          {/* Tree View Card Container */}
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm sm:text-base font-black text-[#0f172a] tracking-tight flex items-center gap-2">
+                  <Folder className="size-4.5 text-[#E31837]" />
+                  Category Hierarchy Tree
+                </h2>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap text-xs font-bold text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold border bg-slate-100 text-[#0f172a] border-slate-300">L1</span>
+                  Level 1 (Top)
                 </span>
-                <span className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-green-100 text-green-800 border-green-300">L2</span>
-                  = Level 2
+                <span className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold border bg-blue-50 text-blue-700 border-blue-200">L2</span>
+                  Level 2
                 </span>
-                <span className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-purple-100 text-purple-800 border-purple-300">L3</span>
-                  = Level 3
+                <span className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold border bg-purple-50 text-purple-700 border-purple-200">L3</span>
+                  Level 3
                 </span>
-                <span className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-orange-100 text-orange-800 border-orange-300">L4</span>
-                  = Level 4
+                <span className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold border bg-rose-50 text-[#E31837] border-rose-200">L4</span>
+                  Level 4
                 </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-0.5 max-h-[700px] overflow-y-auto border rounded-md p-4 bg-slate-50">
-                {/* All Equipment */}
-                <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-bold mb-3 shadow-md">
-                  <Folder className="size-5" />
-                  <span className="flex-1">All Equipment</span>
-                  <span className="bg-white text-blue-700 px-3 py-1 rounded-md text-sm font-bold">
-                    {data.products.length}
-                  </span>
-                </div>
+            </div>
 
-                {/* Category Tree */}
+            <div className="p-4 space-y-1">
+              {/* All Equipment Root */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-[#0f172a] text-white rounded-xl font-extrabold text-xs sm:text-sm shadow-2xs mb-2">
+                <Folder className="size-4 text-slate-300" />
+                <span className="flex-1">All Equipment</span>
+                <span className="bg-white/20 text-white px-2.5 py-0.5 rounded-full text-xs font-bold">
+                  {data.products.length} products
+                </span>
+              </div>
+
+              {/* Category Tree */}
+              <div className="space-y-0.5 max-h-[700px] overflow-y-auto custom-scrollbar pr-1">
                 {categoryTree
-                  .sort((a, b) => a.name.localeCompare(b.name)) // Sort root level alphabetically
+                  .sort((a, b) => a.name.localeCompare(b.name))
                   .map((rootNode) => (
                   <CategoryTreeNode 
                     key={rootNode.path} 
                     node={rootNode} 
                     level={0}
-                    displayLevel={rootNode.level} // Use actual level from database
+                    displayLevel={rootNode.level}
                     onUpdate={handleUpdateCategory}
-                    onDelete={handleDeleteCategory}
+                    onDelete={(path) => setDeletePath(path)}
                     onAddChild={handleAddChild}
                     expandedNodes={expandedNodes}
                     setExpandedNodes={setExpandedNodes}
                     editingNode={editingNode}
                     setEditingNode={setEditingNode}
-                    disabledSubcategories={disabledSubcategories} // Added line
-                    onToggleStatus={handleToggleSubcategoryStatus} // Added line
+                    disabledSubcategories={disabledSubcategories}
+                    onToggleStatus={handleToggleSubcategoryStatus}
                   />
                 ))}
               </div>
-              
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  <strong>📊 Hierarchy Info:</strong> Categories are organized by their database level (L1-L{maxLevel}). 
-                  Each level is color-coded for easy identification. Click folders to expand/collapse children.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       ) : (
-        /* Flat List Editor (Legacy) */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Edit Categories</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+        /* Flat List Editor (Legacy Fallback) */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+              <h2 className="text-sm sm:text-base font-black text-[#0f172a]">Edit Categories</h2>
+            </div>
+            <div className="p-4 space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
               {categories.map((category, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={category}
                     onChange={(e) => updateCategory(index, e.target.value)}
                     disabled={category === 'All Equipment'}
-                    className={category === 'All Equipment' ? 'bg-slate-100' : ''}
-                    placeholder="Use ' > ' for subcategories (e.g., Main > Sub)"
+                    className={`h-10 text-xs font-semibold rounded-xl ${category === 'All Equipment' ? 'bg-slate-100' : 'bg-slate-50'}`}
+                    placeholder="Use ' > ' for subcategories"
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={() => deleteCategory(index)}
                     disabled={category === 'All Equipment'}
+                    className="size-10 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-[#E31837] disabled:opacity-50 cursor-pointer shrink-0"
                   >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Category Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {categories.map((category, index) => {
-                  const productCount = category === 'All Equipment'
-                    ? data.products.length
-                    : data.products.filter(p => p.category === category || p.category?.startsWith(category + ' > ')).length;
-                  
-                  return (
-                    <div key={index} className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                      <span className={category === 'All Equipment' ? 'font-semibold' : ''}>
-                        {category}
-                      </span>
-                      <span className="bg-slate-200 px-2 py-0.5 rounded text-xs">
-                        {productCount}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+              <h2 className="text-sm sm:text-base font-black text-[#0f172a]">Category Preview</h2>
+            </div>
+            <div className="p-4 space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+              {categories.map((category, index) => {
+                const productCount = category === 'All Equipment'
+                  ? data.products.length
+                  : data.products.filter(p => p.category === category || p.category?.startsWith(category + ' > ')).length;
+                
+                return (
+                  <div key={index} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+                    <span>{category}</span>
+                    <span className="bg-white px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-600">
+                      {productCount}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deletePath}
+        onClose={() => setDeletePath(null)}
+        onConfirm={confirmDeleteCategory}
+        title="Delete Category"
+        description="Are you sure you want to delete this category? This will also delete all of its child subcategories from the hierarchy tree."
+        confirmText="Delete Category"
+      />
     </div>
   );
 }
 
-// Recursive tree component with enhanced level display and editing
+// Recursive tree component with modern admin styling
 function CategoryTreeNode({ 
   node, 
   level = 0, 
@@ -574,7 +610,9 @@ function CategoryTreeNode({
   expandedNodes,
   setExpandedNodes,
   editingNode,
-  setEditingNode
+  setEditingNode,
+  disabledSubcategories,
+  onToggleStatus
 }: { 
   node: CategoryNode; 
   level?: number; 
@@ -586,61 +624,46 @@ function CategoryTreeNode({
   setExpandedNodes: (nodes: Set<string>) => void;
   editingNode: EditingCategory | null;
   setEditingNode: (node: EditingCategory | null) => void;
+  disabledSubcategories?: Set<string>;
+  onToggleStatus?: (path: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(level < 2); // Auto-expand first 2 levels
+  const [expanded, setExpanded] = useState(level < 2);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(node.name || '');
-  const [editLevel, setEditLevel] = useState(displayLevel);
-  const [editSlug, setEditSlug] = useState(node.slug || '');
-  const [editCode, setEditCode] = useState(node.code || '');
-  const [editImageUrl, setEditImageUrl] = useState(node.imageUrl || '');
   
   const hasChildren = node.children && node.children.length > 0;
   
-  // Level color mapping
   const levelColors: Record<number, string> = {
-    1: 'bg-blue-100 text-blue-800 border-blue-300',
-    2: 'bg-green-100 text-green-800 border-green-300',
-    3: 'bg-purple-100 text-purple-800 border-purple-300',
-    4: 'bg-orange-100 text-orange-800 border-orange-300',
+    1: 'bg-slate-100 text-[#0f172a] border-slate-300',
+    2: 'bg-blue-50 text-blue-700 border-blue-200',
+    3: 'bg-purple-50 text-purple-700 border-purple-200',
+    4: 'bg-rose-50 text-[#E31837] border-rose-200',
   };
   
-  const levelColor = levelColors[displayLevel] || 'bg-gray-100 text-gray-800 border-gray-300';
+  const levelColor = levelColors[displayLevel] || 'bg-slate-100 text-slate-700 border-slate-300';
 
   const handleSaveEdit = () => {
     if (editName.trim() && editName !== node.name) {
       onUpdate(node.path, { name: editName.trim() });
-    }
-    if (editSlug && editSlug.trim() && editSlug !== node.slug) {
-      onUpdate(node.path, { slug: editSlug.trim() });
-    }
-    if (editCode && editCode.trim() && editCode !== node.code) {
-      onUpdate(node.path, { code: editCode.trim() });
-    }
-    if (editImageUrl && editImageUrl.trim() && editImageUrl !== node.imageUrl) {
-      onUpdate(node.path, { imageUrl: editImageUrl.trim() });
     }
     setEditing(false);
   };
 
   const handleCancelEdit = () => {
     setEditName(node.name);
-    setEditSlug(node.slug || '');
-    setEditCode(node.code || '');
-    setEditImageUrl(node.imageUrl || '');
     setEditing(false);
   };
 
   return (
-    <div className="border-l-2 border-gray-200 ml-2">
+    <div className="border-l border-slate-200/80 ml-2">
       <div 
-        className={`flex items-center gap-2 p-2 hover:bg-gray-50 rounded group transition-colors`}
-        style={{ paddingLeft: `${level * 24 + 8}px` }}
+        className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-xl group transition-all"
+        style={{ paddingLeft: `${level * 20 + 8}px` }}
       >
         {/* Expand/Collapse Button */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="size-5 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
+          className="size-6 flex items-center justify-center hover:bg-slate-200/60 rounded-lg text-slate-500 transition-colors cursor-pointer"
           disabled={!hasChildren}
         >
           {hasChildren ? (
@@ -652,115 +675,112 @@ function CategoryTreeNode({
 
         {/* Folder Icon */}
         {hasChildren ? (
-          expanded ? <FolderOpen className="size-5 text-blue-600" /> : <Folder className="size-5 text-blue-600" />
+          expanded ? <FolderOpen className="size-4 text-[#0f172a]" /> : <Folder className="size-4 text-[#0f172a]" />
         ) : (
-          <Hash className="size-4 text-gray-400" />
+          <Hash className="size-3.5 text-slate-400" />
         )}
 
         {/* Level Badge */}
-        <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${levelColor}`}>
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold border ${levelColor}`}>
           L{displayLevel}
         </span>
 
-        {/* Category Name (Editable) */}
+        {/* Category Name */}
         {editing ? (
           <div className="flex items-center gap-2 flex-1">
             <Input
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="h-8 flex-1"
+              className="h-8 flex-1 text-xs font-semibold bg-white border-slate-300 rounded-lg"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveEdit();
                 if (e.key === 'Escape') handleCancelEdit();
               }}
             />
-            <Button size="sm" onClick={handleSaveEdit} className="h-8 px-2">
+            <button
+              onClick={handleSaveEdit}
+              className="size-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center cursor-pointer"
+            >
               <Check className="size-4" />
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-8 px-2">
+            </button>
+            <button
+              onClick={handleCancelEdit}
+              className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer"
+            >
               <X className="size-4" />
-            </Button>
+            </button>
           </div>
         ) : (
           <>
-            <span className="font-medium flex-1">{node.name}</span>
+            <span className="font-extrabold text-xs sm:text-sm text-[#0f172a] flex-1">{node.name}</span>
             
-            {/* Enabled/Disabled Badge (L1 only) */}
+            {/* Status Pill Badge (L1 only) */}
             {displayLevel === 1 && (
-              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
                 node.enabled !== false 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
               }`}>
-                {node.enabled !== false ? '✓ Visible' : '✗ Hidden'}
+                {node.enabled !== false ? 'Visible' : 'Hidden'}
               </span>
             )}
             
             {/* Action Buttons */}
             <div className="flex items-center gap-1">
-              {/* Toggle Visibility (L1 only) */}
               {displayLevel === 1 && (
-                <Button
-                  size="sm"
-                  variant={node.enabled !== false ? "default" : "outline"}
-                  onClick={() => onUpdate(node.path, { enabled: node.enabled === false ? true : false })}
-                  className="h-8 px-2"
-                  title={node.enabled !== false ? "Hide from menu bar" : "Show in menu bar"}
+                <button
+                  onClick={() => onUpdate(node.path, { enabled: node.enabled === false })}
+                  className="size-8 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 cursor-pointer"
+                  title={node.enabled !== false ? "Hide from navigation" : "Show in navigation"}
                 >
-                  {node.enabled !== false ? '👁️' : '👁️‍🗨️'}
-                </Button>
+                  {node.enabled !== false ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5 text-slate-400" />}
+                </button>
               )}
               
-              <Button
-                size="sm"
-                variant="ghost"
+              <button
                 onClick={() => setEditing(true)}
-                className="h-8 px-2"
+                className="size-8 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 cursor-pointer"
                 title="Edit category"
               >
-                <Edit2 className="size-4 text-blue-600" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
+                <Edit2 className="size-3.5" />
+              </button>
+              <button
                 onClick={() => onAddChild(node.path)}
-                className="h-8 px-2"
+                className="size-8 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-emerald-600 cursor-pointer"
                 title="Add child category"
               >
-                <Plus className="size-4 text-green-600" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
+                <Plus className="size-3.5" />
+              </button>
+              <button
                 onClick={() => onDelete(node.path)}
-                className="h-8 px-2"
+                className="size-8 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-[#E31837] cursor-pointer"
                 title="Delete category"
               >
-                <Trash2 className="size-4 text-red-600" />
-              </Button>
+                <Trash2 className="size-3.5" />
+              </button>
             </div>
           </>
         )}
 
-        {/* Product Count */}
+        {/* Product Count Badge */}
         {node.productCount > 0 && (
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
             {node.productCount} products
           </span>
         )}
         
         {/* Children Count */}
         {hasChildren && (
-          <span className="text-xs text-gray-500">
-            {node.children.length} {node.children.length === 1 ? 'child' : 'children'}
+          <span className="text-xs font-semibold text-slate-400">
+            ({node.children.length})
           </span>
         )}
       </div>
 
       {/* Render Children */}
       {expanded && hasChildren && (
-        <div className="ml-4">
+        <div className="ml-2">
           {node.children.map((child) => (
             <CategoryTreeNode
               key={child.path}
@@ -774,6 +794,8 @@ function CategoryTreeNode({
               setExpandedNodes={setExpandedNodes}
               editingNode={editingNode}
               setEditingNode={setEditingNode}
+              disabledSubcategories={disabledSubcategories}
+              onToggleStatus={onToggleStatus}
             />
           ))}
         </div>
