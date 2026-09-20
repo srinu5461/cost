@@ -129,6 +129,15 @@ export function Home() {
     return brands.size;
   }, [products]);
 
+  const heroCategoryCounts = useMemo(() => {
+    const acc: Record<string, number> = {};
+    (products as any[]).forEach((p) => {
+      const top = (p.category || p.categoryName || 'Other').split('>')[0].trim();
+      acc[top] = (acc[top] || 0) + 1;
+    });
+    return Object.entries(acc).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  }, [products]);
+
   // Build hierarchical category tree (Level 1 -> Level 2 -> Level 3)
   const fullCategoryTree = useMemo(() => {
     return buildCategoryTree(data.categoryTree || []);
@@ -1130,25 +1139,16 @@ logoUrl: p.brandLogoUrl || p.brandLogo || ''
               <div className="bg-slate-900/60 backdrop-blur-md border border-slate-700/60 rounded-2xl p-5 shadow-2xl">
                 <p className="text-[11px] font-extrabold text-amber-400 uppercase tracking-widest mb-3">Products by Category</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(
-                    products.reduce((acc: Record<string, number>, p: any) => {
-                      const top = (p.category || p.categoryName || 'Other').split('>')[0].trim();
-                      acc[top] = (acc[top] || 0) + 1;
-                      return acc;
-                    }, {})
-                  )
-                    .sort((a, b) => (b[1] as number) - (a[1] as number))
-                    .slice(0, 10)
-                    .map(([cat, count], i) => (
-                      <Link
-                        key={i}
-                        to={`/products/c/${categoryToSlug(cat as string)}`}
-                        className="flex items-center justify-between gap-2 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700/50 hover:border-amber-500/40 rounded-xl px-3 py-2 transition-all group"
-                      >
-                        <span className="text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight line-clamp-1">{cat}</span>
-                        <span className="text-[11px] font-black text-amber-400 shrink-0">{(count as number).toLocaleString()}</span>
-                      </Link>
-                    ))}
+                  {heroCategoryCounts.map(([cat, count], i) => (
+                    <Link
+                      key={i}
+                      to={`/products/c/${(cat as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`}
+                      className="flex items-center justify-between gap-2 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700/50 hover:border-amber-500/40 rounded-xl px-3 py-2 transition-all group"
+                    >
+                      <span className="text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight line-clamp-1">{cat}</span>
+                      <span className="text-[11px] font-black text-amber-400 shrink-0">{(count as number).toLocaleString()}</span>
+                    </Link>
+                  ))}
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between">
                   <span className="text-[11px] text-slate-400 font-medium">All products</span>
